@@ -71,7 +71,7 @@
 <link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="BINXU,web,code,徐滨的博客" />
+  <meta name="keywords" content="算法,排序,java," />
 
 
 
@@ -87,15 +87,33 @@
 
 
 
-<meta name="description" content="当你最弱的时候 往往坏人最多">
-<meta property="og:type" content="website">
-<meta property="og:title" content="自由而无用">
-<meta property="og:url" content="http://morningXB.github.io/index.html">
+<meta name="description" content="排序算法1.快速排序 QuickSort快速排序是一个就地排序，分而治之，大规模递归的算法。从本质上来说，它是归并排序的就地版本。快速排序可以由下面四步组成。
+（1） 如果不多于1个数据，直接返回。
+（2） 一般选择序列最左边的值作为支点数据。
+（3） 将序列分成2部分，一部分都大于支点数据，另外一部分都小于支点数据。
+（4） 对两边利用递归排序数列。
+快速排序比大部分排序算法都要快。尽管我们可以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="排序算法-java">
+<meta property="og:url" content="http://morningXB.github.io/2017/03/16/排序算法-java/index.html">
 <meta property="og:site_name" content="自由而无用">
-<meta property="og:description" content="当你最弱的时候 往往坏人最多">
+<meta property="og:description" content="排序算法1.快速排序 QuickSort快速排序是一个就地排序，分而治之，大规模递归的算法。从本质上来说，它是归并排序的就地版本。快速排序可以由下面四步组成。
+（1） 如果不多于1个数据，直接返回。
+（2） 一般选择序列最左边的值作为支点数据。
+（3） 将序列分成2部分，一部分都大于支点数据，另外一部分都小于支点数据。
+（4） 对两边利用递归排序数列。
+快速排序比大部分排序算法都要快。尽管我们可以">
+<meta property="og:image" content="http://morningXB.github.io/images/2017-03-16-排序算法-java.jpg">
+<meta property="og:updated_time" content="2017-03-15T22:00:52.429Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="自由而无用">
-<meta name="twitter:description" content="当你最弱的时候 往往坏人最多">
+<meta name="twitter:title" content="排序算法-java">
+<meta name="twitter:description" content="排序算法1.快速排序 QuickSort快速排序是一个就地排序，分而治之，大规模递归的算法。从本质上来说，它是归并排序的就地版本。快速排序可以由下面四步组成。
+（1） 如果不多于1个数据，直接返回。
+（2） 一般选择序列最左边的值作为支点数据。
+（3） 将序列分成2部分，一部分都大于支点数据，另外一部分都小于支点数据。
+（4） 对两边利用递归排序数列。
+快速排序比大部分排序算法都要快。尽管我们可以">
+<meta name="twitter:image" content="http://morningXB.github.io/images/2017-03-16-排序算法-java.jpg">
 
 
 
@@ -123,13 +141,13 @@
 
 
 
-  <link rel="canonical" href="http://morningXB.github.io/"/>
+  <link rel="canonical" href="http://morningXB.github.io/2017/03/16/排序算法-java/"/>
 
 
 
 
 
-  <title> 自由而无用 </title>
+  <title> 排序算法-java | 自由而无用 </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -164,9 +182,7 @@
     
   
 
-  <div class="container one-collumn sidebar-position-right 
-   page-home 
- ">
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -303,9 +319,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
 
   
 
@@ -335,10 +351,7 @@
             
             
               
-                
-                <a class="post-title-link" href="/2017/03/16/排序算法-java/" itemprop="url">
-                  排序算法-java
-                </a>
+                排序算法-java
               
             
           </h1>
@@ -405,6 +418,11 @@
           
 
           
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
 
           
 
@@ -421,9 +439,7 @@
       
 
       
-        
-          
-            <h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><h2 id="1-快速排序-QuickSort"><a href="#1-快速排序-QuickSort" class="headerlink" title="1.快速排序 QuickSort"></a>1.快速排序 QuickSort</h2><p>快速排序是一个就地排序，分而治之，大规模递归的算法。从本质上来说，它是归并排序的就地版本。快速排序可以由下面四步组成。</p>
+        <h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><h2 id="1-快速排序-QuickSort"><a href="#1-快速排序-QuickSort" class="headerlink" title="1.快速排序 QuickSort"></a>1.快速排序 QuickSort</h2><p>快速排序是一个就地排序，分而治之，大规模递归的算法。从本质上来说，它是归并排序的就地版本。快速排序可以由下面四步组成。</p>
 <p>（1） 如果不多于1个数据，直接返回。</p>
 <p>（2） 一般选择序列最左边的值作为支点数据。</p>
 <p>（3） 将序列分成2部分，一部分都大于支点数据，另外一部分都小于支点数据。</p>
@@ -441,203 +457,95 @@
 <h2 id="8-基数排序-RadixSort"><a href="#8-基数排序-RadixSort" class="headerlink" title="8.基数排序 RadixSort"></a>8.基数排序 RadixSort</h2><p>基数排序和通常的排序算法并不走同样的路线。它是一种比较新颖的算法，但是它只能用于整数的排序，如果我们要把同样的办法运用到浮点数上，我们必须了解浮点数的存储格式，并通过特殊的方式将浮点数映射到整数上，然后再映射回去，这是非常麻烦的事情，因此，它的使用同样也不多。而且，最重要的是，这样算法也需要较多的存储空间。</p>
 <h2 id="9-总结"><a href="#9-总结" class="headerlink" title="9.总结"></a>9.总结</h2><p><img src="/images/2017-03-16-排序算法-java.jpg" alt=""></p>
 <h2 id="10-Java实现"><a href="#10-Java实现" class="headerlink" title="10.Java实现"></a>10.Java实现</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div><div class="line">269</div><div class="line">270</div><div class="line">271</div><div class="line">272</div><div class="line">273</div><div class="line">274</div><div class="line">275</div><div class="line">276</div><div class="line">277</div><div class="line">278</div><div class="line">279</div><div class="line">280</div><div class="line">281</div><div class="line">282</div><div class="line">283</div><div class="line">284</div><div class="line">285</div><div class="line">286</div><div class="line">287</div><div class="line">288</div><div class="line">289</div><div class="line">290</div><div class="line">291</div><div class="line">292</div><div class="line">293</div><div class="line">294</div><div class="line">295</div><div class="line">296</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.whut.sort;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 排序算法 </div><div class="line"> * <span class="doctag">@author</span> Bin</div><div class="line"> *</div><div class="line">	*/</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SortUtils</span> </span>&#123;</div><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span>[] t;<span class="comment">// 全局的样本</span></div><div class="line"></div><div class="line"><span class="comment">// 此处之排列int类型。。。</span></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 冒泡排序</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] bublleSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	<span class="keyword">int</span> len = data.length;</div><div class="line"></div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; len; i++) &#123;</div><div class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> j = len - <span class="number">1</span>; j &gt;= i; j--) &#123;</div><div class="line">			<span class="keyword">if</span> (data[j] &lt; data[j - <span class="number">1</span>]) &#123;</div><div class="line">				<span class="keyword">int</span> temp = data[j - <span class="number">1</span>];</div><div class="line">				data[j - <span class="number">1</span>] = data[j];</div><div class="line">				data[j] = temp;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> data;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 优化的冒泡排序</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] optbublleSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	<span class="keyword">int</span> len = data.length;</div><div class="line"></div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; len; i++) &#123;</div><div class="line">		<span class="keyword">boolean</span> flag = <span class="keyword">false</span>;<span class="comment">// 设置一个标志，若不变说明已排序完成</span></div><div class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> j = len - <span class="number">1</span>; j &gt;= i; j--) &#123;</div><div class="line">			<span class="keyword">if</span> (data[j] &lt; data[j - <span class="number">1</span>]) &#123;</div><div class="line">				flag = <span class="keyword">true</span>;</div><div class="line">				<span class="keyword">int</span> temp = data[j - <span class="number">1</span>];</div><div class="line">				data[j - <span class="number">1</span>] = data[j];</div><div class="line">				data[j] = temp;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">if</span> (flag == <span class="keyword">false</span>) &#123;</div><div class="line">			<span class="keyword">return</span> data;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> data;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 直接插入排序</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] insertSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	<span class="keyword">int</span> left = <span class="number">0</span>, right = data.length;</div><div class="line">	<span class="comment">// 2 3 4 1</span></div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = left + <span class="number">1</span>; i &lt; right; i++) &#123;</div><div class="line">		<span class="keyword">int</span> temp = data[i];</div><div class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; i; j++) &#123;</div><div class="line">			<span class="keyword">if</span> (temp &lt; data[j]) &#123;</div><div class="line">				<span class="comment">// 交换</span></div><div class="line">				<span class="keyword">int</span> t = i - <span class="number">1</span>;</div><div class="line">				<span class="keyword">do</span> &#123;</div><div class="line">					data[t + <span class="number">1</span>] = data[t];</div><div class="line">					t--;</div><div class="line">				&#125; <span class="keyword">while</span> (t &gt; j - <span class="number">1</span>);</div><div class="line">				data[j] = temp;</div><div class="line">				<span class="keyword">break</span>;</div><div class="line">			&#125;</div><div class="line"></div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> data;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 搜索插入的位置对排序部分使用二分搜索法</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] binaryInsertSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	<span class="keyword">int</span> left = <span class="number">0</span>, right = data.length;</div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = left + <span class="number">1</span>; i &lt; right; i++) &#123;</div><div class="line">		<span class="keyword">int</span> temp = data[i];</div><div class="line">		<span class="keyword">int</span> low = <span class="number">0</span>, high = i - <span class="number">1</span>, mid;</div><div class="line">		<span class="keyword">while</span> (low &lt;= high) &#123;</div><div class="line">			mid = (low + high) / <span class="number">2</span>;</div><div class="line">			<span class="keyword">if</span> (temp &lt; data[mid]) &#123;</div><div class="line">				high = mid - <span class="number">1</span>;</div><div class="line">			&#125; <span class="keyword">else</span> &#123;</div><div class="line">				low = mid + <span class="number">1</span>;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> k = i; k &gt; low; k--) &#123;</div><div class="line">			data[k] = data[k - <span class="number">1</span>];</div><div class="line">		&#125;</div><div class="line">		data[low] = temp;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> data;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 希尔排序 适合于大数据排序 用gap间隔gap缩小到一排序完成，后续排序在前面的基础上，开始gap较大，数据小排序快。</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] shellSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	<span class="keyword">int</span> left = <span class="number">0</span>, right = data.length;</div><div class="line">	<span class="keyword">int</span> gap = right - left;</div><div class="line"></div><div class="line">	<span class="keyword">do</span> &#123;</div><div class="line">		gap = gap / <span class="number">3</span> + <span class="number">1</span>;</div><div class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> i = gap + left; i &lt; right; i++) &#123;</div><div class="line">			<span class="keyword">int</span> temp = data[i];</div><div class="line">			<span class="keyword">if</span> (temp &lt; data[i - gap]) &#123;</div><div class="line">				<span class="keyword">int</span> j = i - gap;</div><div class="line">				<span class="keyword">do</span> &#123;</div><div class="line">					data[j + gap] = data[j];</div><div class="line">					j = j - gap;</div><div class="line">				&#125; <span class="keyword">while</span> (j &gt;= left &amp;&amp; temp &lt; data[j]);</div><div class="line">				data[j + gap] = temp;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">	&#125; <span class="keyword">while</span> (gap &gt; <span class="number">1</span>);</div><div class="line">	<span class="keyword">return</span> data;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 快速排序 一个递归过程 分块处理 优化方法：对于小规模的数组直接用插入排序，或者先忽略小规模数组，拍完后整体用插入排序。</div><div class="line"> * 可在头尾中间端选取中间值作为基准元素防止左右划分严重不平衡。所以说快排以来与数据输入的顺序。</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] quickSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	t = data;</div><div class="line">	quickSort(<span class="number">0</span>, data.length - <span class="number">1</span>);</div><div class="line">	<span class="keyword">return</span> t;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">quickSort</span><span class="params">(<span class="keyword">int</span> left, <span class="keyword">int</span> right)</span> </span>&#123;</div><div class="line">	<span class="keyword">if</span> (left &lt; right) &#123;</div><div class="line">		<span class="keyword">int</span> pos = getPos(left, right);</div><div class="line">		quickSort(left, pos - <span class="number">1</span>);</div><div class="line">		quickSort(pos + <span class="number">1</span>, right);</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">getPos</span><span class="params">(<span class="keyword">int</span> left, <span class="keyword">int</span> right)</span> </span>&#123;</div><div class="line"></div><div class="line">	<span class="keyword">int</span> temp = t[left];</div><div class="line">	<span class="keyword">int</span> pos = left;</div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = left + <span class="number">1</span>; i &lt;= right; i++) &#123;</div><div class="line">		<span class="keyword">if</span> (temp &gt; t[i]) &#123;</div><div class="line">			pos++;</div><div class="line">			<span class="keyword">if</span> (pos != i) &#123;</div><div class="line">				<span class="keyword">int</span> tt = t[pos];</div><div class="line">				t[pos] = t[i];</div><div class="line">				t[i] = tt;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	t[left] = t[pos];</div><div class="line">	t[pos] = temp;</div><div class="line">	<span class="keyword">return</span> pos;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 选择排序</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] selectSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	<span class="keyword">int</span> len = data.length;</div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; len; i++) &#123;</div><div class="line">		<span class="keyword">int</span> temp = data[i - <span class="number">1</span>];</div><div class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> j = i; j &lt; len; j++) &#123;</div><div class="line">			<span class="keyword">if</span> (data[j] &lt; temp) &#123;</div><div class="line">				temp = data[j];</div><div class="line">				data[j] = data[i - <span class="number">1</span>];</div><div class="line">				data[i - <span class="number">1</span>] = temp;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> data;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 堆排序</div><div class="line"> *</div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] heapSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	t = data;</div><div class="line">	<span class="keyword">int</span> len = data.length;</div><div class="line">	<span class="keyword">int</span> currentPos = (len - <span class="number">2</span>) / <span class="number">2</span>;</div><div class="line">	<span class="keyword">while</span> (currentPos &gt;= <span class="number">0</span>) &#123;</div><div class="line">		shiftDown(currentPos, len - <span class="number">1</span>);</div><div class="line">		currentPos--;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = len - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i--) &#123;</div><div class="line">		<span class="keyword">int</span> temp = t[i];</div><div class="line">		t[i] = t[<span class="number">0</span>];</div><div class="line">		t[<span class="number">0</span>] = temp;</div><div class="line">		shiftDown(<span class="number">0</span>, i - <span class="number">1</span>);</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> t;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 对堆的currentPos位进行下滑调整 构造最大堆</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> currentPos</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">shiftDown</span><span class="params">(<span class="keyword">int</span> currentPos, <span class="keyword">int</span> end)</span> </span>&#123;</div><div class="line">	<span class="keyword">int</span> i = currentPos;</div><div class="line">	<span class="keyword">int</span> j = <span class="number">2</span> * i + <span class="number">1</span>;</div><div class="line">	<span class="keyword">int</span> temp = t[i];<span class="comment">// 可能需要下滑的点</span></div><div class="line">	<span class="keyword">while</span> (j &lt;= end) &#123;</div><div class="line">		<span class="keyword">if</span> (j + <span class="number">1</span> &lt;= end &amp;&amp; t[j + <span class="number">1</span>] &gt; t[j]) &#123;</div><div class="line">			j++;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">if</span> (temp &gt;= t[j]) &#123;</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125; <span class="keyword">else</span> &#123;</div><div class="line">			t[i] = t[j];</div><div class="line">			i = j;</div><div class="line">			j = <span class="number">2</span> * j + <span class="number">1</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">	&#125;</div><div class="line">	t[i] = temp;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * 归并排序</div><div class="line"> * </div><div class="line"> * <span class="doctag">@param</span> data</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span>[] mergeSort(<span class="keyword">int</span>[] data) &#123;</div><div class="line">	<span class="keyword">int</span> left = <span class="number">0</span>;</div><div class="line">	<span class="keyword">int</span> right = data.length - <span class="number">1</span>;</div><div class="line">	t = data;</div><div class="line">	mergeSort(left, right);</div><div class="line">	<span class="keyword">return</span> t;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">mergeSort</span><span class="params">(<span class="keyword">int</span> left, <span class="keyword">int</span> right)</span> </span>&#123;</div><div class="line">	<span class="keyword">if</span> (left &gt;= right)</div><div class="line">		<span class="keyword">return</span>;</div><div class="line">	<span class="keyword">int</span> mid = (left + right) / <span class="number">2</span>;</div><div class="line">	mergeSort(left, mid);</div><div class="line">	mergeSort(mid + <span class="number">1</span>, right);</div><div class="line">	merge(left, mid, right);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">merge</span><span class="params">(<span class="keyword">int</span> left, <span class="keyword">int</span> mid, <span class="keyword">int</span> right)</span> </span>&#123;</div><div class="line">	<span class="keyword">int</span>[] temp = <span class="keyword">new</span> <span class="keyword">int</span>[t.length];</div><div class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> m = <span class="number">0</span>; m &lt; t.length; m++) &#123;</div><div class="line">		temp[m] = t[m];</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">int</span> i = left;</div><div class="line">	<span class="keyword">int</span> j = mid + <span class="number">1</span>;</div><div class="line">	<span class="keyword">int</span> k = left;</div><div class="line">	<span class="keyword">while</span> (i &lt;= mid &amp;&amp; j &lt;= right) &#123;</div><div class="line">		<span class="keyword">if</span> (temp[i] &lt; temp[j]) &#123;</div><div class="line">			t[k++] = temp[i++];</div><div class="line">		&#125; <span class="keyword">else</span> &#123;</div><div class="line">			t[k++] = temp[j++];</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">while</span> (i &lt;= mid) &#123;</div><div class="line">		t[k++] = temp[i++];</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">while</span> (j &lt;= right) &#123;</div><div class="line">		t[k++] = temp[j++];</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-          
+      
+    </div>
+
+    <div>
+      
         
+
       
     </div>
 
     <div>
       
-    </div>
+        
 
-    <div>
       
     </div>
 
     <div>
+      
+        
+
       
     </div>
 
     <footer class="post-footer">
       
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://morningXB.github.io/2017/03/14/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/03/14/hello-world/" itemprop="url">
-                  Hello World
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-03-14T00:00:00+08:00">
-                2017-03-14
-              </time>
-            
-
-            
-
-            
-          </span>
-
+        <div class="post-tags">
           
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/hexo起步/" itemprop="url" rel="index">
-                    <span itemprop="name">hexo起步</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
+            <a href="/tags/算法/" rel="tag"># 算法</a>
           
-
+            <a href="/tags/排序/" rel="tag"># 排序</a>
           
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/03/14/hello-world/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/14/hello-world/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
+            <a href="/tags/java/" rel="tag"># java</a>
           
-
-          
-          
-
-          
-
-          
-
-          
-
         </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
       
 
       
         
-          
-            <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="external">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="external">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="external">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="external">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo new <span class="string">"My New Post"</span></div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="external">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo server</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="external">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo generate</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="external">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo deploy</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="external">Deployment</a></p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
       
 
       
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/03/14/hello-world/" rel="next" title="Hello World">
+                <i class="fa fa-chevron-left"></i> Hello World
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
 
       
-
-      
-      
-        <div class="post-eof"></div>
       
     </footer>
   </article>
 
 
-    
-  </section>
 
-  
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/03/16/排序算法-java/"
+     data-title="排序算法-java"
+     data-content=""
+     data-url="http://morningXB.github.io/2017/03/16/排序算法-java/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
 
           
           </div>
@@ -645,6 +553,14 @@
 
 
           
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/03/16/排序算法-java/"
+           data-title="排序算法-java" data-url="http://morningXB.github.io/2017/03/16/排序算法-java/">
+      </div>
+    
+  </div>
+
 
         </div>
         
@@ -664,8 +580,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview sidebar-panel sidebar-panel-active">
+      <section class="site-overview sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/avatar.jpg"
@@ -747,6 +672,22 @@
 
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#排序算法"><span class="nav-number">1.</span> <span class="nav-text">排序算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-快速排序-QuickSort"><span class="nav-number">1.1.</span> <span class="nav-text">1.快速排序 QuickSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-归并排序-MergeSort"><span class="nav-number">1.2.</span> <span class="nav-text">2.归并排序 MergeSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-堆排序-HeapSort"><span class="nav-number">1.3.</span> <span class="nav-text">3.堆排序 HeapSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Shell排序-ShellSort"><span class="nav-number">1.4.</span> <span class="nav-text">4.Shell排序 ShellSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-插入排序-InsertSort"><span class="nav-number">1.5.</span> <span class="nav-text">5.插入排序 InsertSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-冒泡排序-BubbleSort"><span class="nav-number">1.6.</span> <span class="nav-text">6.冒泡排序 BubbleSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-交换排序-ExchangeSort-和选择排序-SelectSort"><span class="nav-number">1.7.</span> <span class="nav-text">7.交换排序 ExchangeSort 和选择排序 SelectSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-基数排序-RadixSort"><span class="nav-number">1.8.</span> <span class="nav-text">8.基数排序 RadixSort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-总结"><span class="nav-number">1.9.</span> <span class="nav-text">9.总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-Java实现"><span class="nav-number">1.10.</span> <span class="nav-text">10.Java实现</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -868,6 +809,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
 
   
 
