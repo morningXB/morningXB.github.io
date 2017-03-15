@@ -104,7 +104,7 @@
 （4） 对两边利用递归排序数列。
 快速排序比大部分排序算法都要快。尽管我们可以在某">
 <meta property="og:image" content="http://morningXB.github.io/2017/03/16/排序算法-java/2017-03-16-排序算法-java.jpg">
-<meta property="og:updated_time" content="2017-03-15T22:31:04.068Z">
+<meta property="og:updated_time" content="2017-03-15T22:47:14.994Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="排序算法-java">
 <meta name="twitter:description" content="排序算法快速排序 QuickSort快速排序是一个就地排序，分而治之，大规模递归的算法。从本质上来说，它是归并排序的就地版本。快速排序可以由下面四步组成。
@@ -446,8 +446,7 @@
 <p>（4） 对两边利用递归排序数列。</p>
 <p>快速排序比大部分排序算法都要快。尽管我们可以在某些特殊的情况下写出比快速排序快的算法，但是就通常情况而言，没有比它更快的了。快速排序是递归的，对于内存非常有限的机器来说，它不是一个好的选择。 </p>
 <h2 id="归并排序-MergeSort"><a href="#归并排序-MergeSort" class="headerlink" title="归并排序 MergeSort"></a>归并排序 MergeSort</h2><p>归并排序先分解要排序的序列，从1分成2，2分成4，依次分解，当分解到只有1个一组的时候，就可以排序这些分组，然后依次合并回原来的序列中，这样就可以排序所有数据。合并排序比堆排序稍微快一点，但是需要比堆排序多一倍的内存空间，因为它需要一个额外的数组。</p>
-<h2 id="堆排序-HeapSort"><a href="#堆排序-HeapSort" class="headerlink" title="堆排序 HeapSort"></a>堆排序 HeapSort</h2><p>堆排序适合于数据量非常大的场合（百万数据）。</p>
-<p>堆排序不需要大量的递归或者多维的暂存数组。这对于数据量非常巨大的序列是合适的。比如超过数百万条记录，因为快速排序，归并排序都使用递归来设计算法，在数据量非常大的时候，可能会发生堆栈溢出错误。</p>
+<h2 id="堆排序-HeapSort"><a href="#堆排序-HeapSort" class="headerlink" title="堆排序 HeapSort"></a>堆排序 HeapSort</h2><p>堆排序适合于数据量非常大的场合（百万数据）。<br><a id="more"></a><br>堆排序不需要大量的递归或者多维的暂存数组。这对于数据量非常巨大的序列是合适的。比如超过数百万条记录，因为快速排序，归并排序都使用递归来设计算法，在数据量非常大的时候，可能会发生堆栈溢出错误。</p>
 <p>堆排序会将所有的数据建成一个堆，最大的数据在堆顶，然后将堆顶数据和序列的最后一个数据交换。接下来再次重建堆，交换数据，依次下去，就可以排序所有的数据。</p>
 <h2 id="Shell排序-ShellSort"><a href="#Shell排序-ShellSort" class="headerlink" title="Shell排序 ShellSort"></a>Shell排序 ShellSort</h2><p>Shell排序通过将数据分成不同的组，先对每一组进行排序，然后再对所有的元素进行一次插入排序，以减少数据交换和移动的次数。平均效率是O(nlogn)。其中分组的合理性会对算法产生重要的影响。现在多用D.E.Knuth的分组方法。</p>
 <p>Shell排序比冒泡排序快5倍，比插入排序大致快2倍。Shell排序比起QuickSort，MergeSort，HeapSort慢很多。但是它相对比较简单，它适合于数据量在5000以下并且速度并不是特别重要的场合。它对于数据量较小的数列重复排序是非常好的。</p>
