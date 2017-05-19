@@ -1,0 +1,1018 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="源码分析,redis,nosql," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="dict字典，用来存储键值对，是redis中数据库中存储数据以及键值对表数据的底层实现。在dict中使用siphash.c来实现hash函数计算index。dict中包含两个dictht即字典表，这是为了redis中渐进重构rehash准备的，为了解决键冲突，dictEntry中包含一个next指针，dictht中table数组相当于一个一个的桶，当过多的键值对存储到dict中后，必然会导致字典结">
+<meta name="keywords" content="源码分析,redis,nosql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码(3)——dict篇">
+<meta property="og:url" content="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="dict字典，用来存储键值对，是redis中数据库中存储数据以及键值对表数据的底层实现。在dict中使用siphash.c来实现hash函数计算index。dict中包含两个dictht即字典表，这是为了redis中渐进重构rehash准备的，为了解决键冲突，dictEntry中包含一个next指针，dictht中table数组相当于一个一个的桶，当过多的键值对存储到dict中后，必然会导致字典结">
+<meta property="og:updated_time" content="2017-04-22T04:59:04.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码(3)——dict篇">
+<meta name="twitter:description" content="dict字典，用来存储键值对，是redis中数据库中存储数据以及键值对表数据的底层实现。在dict中使用siphash.c来实现hash函数计算index。dict中包含两个dictht即字典表，这是为了redis中渐进重构rehash准备的，为了解决键冲突，dictEntry中包含一个next指针，dictht中table数组相当于一个一个的桶，当过多的键值对存储到dict中后，必然会导致字典结">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/"/>
+
+
+
+
+
+  <title> redis源码(3)——dict篇 | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码(3)——dict篇
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-20T21:39:30+08:00">
+                2017-04-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/04/20/redis源码-3-——dict篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/20/redis源码-3-——dict篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>dict字典，用来存储键值对，是redis中数据库中存储数据以及键值对表数据的底层实现。<br>在dict中使用siphash.c来实现hash函数计算index。<br>dict中包含两个dictht即字典表，这是为了redis中渐进重构rehash准备的，为了解决键冲突，dictEntry中包含一个next指针，dictht中table数组相当于一个一个的桶，当过多的键值对存储到dict中后，必然会导致字典结构失调，查询效率低等问题，所以要扩容增加size，这时候就启动rehash，但是redis不会等待rehash完成，<br>在做下面的操作，所以提出渐进rehash，即每次操作时单步rehash一下，这样就避免了等待，因此需要两个dictht，一个副本，当完成rehash之后把新的ht移动到ht[0]，旧的释放空间后reset，在rehash期间，所有的改变dict状态的操作都在新表上进行。<br>在dict中还提供了一个dicttype，里面用来存储键值的释放，复制，比较等操作的函数指针。<br>dict提供了字典迭代器，有安全不安全迭代器，不安全迭代器通过fingerprint来判断是否有不安全操作。<br><a id="more"></a><br>dict.h<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div></pre></td><td class="code"><pre><div class="line">/* Hash Tables Implementation.</div><div class="line"> *</div><div class="line"> * This file implements in-memory hash tables with insert/del/replace/find/</div><div class="line"> * get-random-element operations. Hash tables will auto-resize if needed</div><div class="line"> * tables of power of two in size are used, collisions are handled by</div><div class="line"> * chaining. See the source code for more information... :)</div><div class="line"> *</div><div class="line"> * Copyright (c) 2006-2012, Salvatore Sanfilippo &lt;antirez at gmail dot com&gt;</div><div class="line"> * All rights reserved.</div><div class="line"> *</div><div class="line"> * Redistribution and use in source and binary forms, with or without</div><div class="line"> * modification, are permitted provided that the following conditions are met:</div><div class="line"> *</div><div class="line"> *   * Redistributions of source code must retain the above copyright notice,</div><div class="line"> *     this list of conditions and the following disclaimer.</div><div class="line"> *   * Redistributions in binary form must reproduce the above copyright</div><div class="line"> *     notice, this list of conditions and the following disclaimer in the</div><div class="line"> *     documentation and/or other materials provided with the distribution.</div><div class="line"> *   * Neither the name of Redis nor the names of its contributors may be used</div><div class="line"> *     to endorse or promote products derived from this software without</div><div class="line"> *     specific prior written permission.</div><div class="line"> *</div><div class="line"> * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"</div><div class="line"> * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE</div><div class="line"> * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE</div><div class="line"> * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE</div><div class="line"> * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR</div><div class="line"> * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF</div><div class="line"> * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS</div><div class="line"> * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN</div><div class="line"> * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)</div><div class="line"> * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE</div><div class="line"> * POSSIBILITY OF SUCH DAMAGE.</div><div class="line"> */</div><div class="line"></div><div class="line">#include &lt;stdint.h&gt;</div><div class="line"></div><div class="line">#ifndef __DICT_H</div><div class="line">#define __DICT_H</div><div class="line"></div><div class="line">#define DICT_OK 0</div><div class="line">#define DICT_ERR 1</div><div class="line"></div><div class="line">/* Unused arguments generate annoying warnings... */</div><div class="line">#define DICT_NOTUSED(V) ((void) V)</div><div class="line"></div><div class="line">typedef struct dictEntry &#123;</div><div class="line">    void *key;//键值</div><div class="line">    union &#123;</div><div class="line">        void *val;</div><div class="line">        uint64_t u64;</div><div class="line">        int64_t s64;</div><div class="line">        double d;</div><div class="line">    &#125; v;//value可以是多种类型</div><div class="line">    struct dictEntry *next;//解决hash冲突而设置的指向下一个键值对的指针</div><div class="line">&#125; dictEntry;</div><div class="line"></div><div class="line">typedef struct dictType &#123;//字典类型结构，存储这个字典一些自定义的函数指针</div><div class="line">    uint64_t (*hashFunction)(const void *key);</div><div class="line">    void *(*keyDup)(void *privdata, const void *key);</div><div class="line">    void *(*valDup)(void *privdata, const void *obj);</div><div class="line">    int (*keyCompare)(void *privdata, const void *key1, const void *key2);</div><div class="line">    void (*keyDestructor)(void *privdata, void *key);</div><div class="line">    void (*valDestructor)(void *privdata, void *obj);</div><div class="line">&#125; dictType;</div><div class="line"></div><div class="line">/* This is our hash table structure. Every dictionary has two of this as we</div><div class="line"> * implement incremental rehashing, for the old to the new table. */</div><div class="line">typedef struct dictht &#123;//hash列表结构用来存储所有的键值对</div><div class="line">    dictEntry **table;//dictEntry指针数组</div><div class="line">    unsigned long size;//table数组的大小</div><div class="line">    unsigned long sizemask;//尺寸掩码等于size-1</div><div class="line">    unsigned long used;//已经存储的键值对个数</div><div class="line">&#125; dictht;</div><div class="line"></div><div class="line">typedef struct dict &#123;//字典结构</div><div class="line">    dictType *type;</div><div class="line">    void *privdata;</div><div class="line">    dictht ht[2];//存储两个hashtable是为了rehash时，充当副本作用</div><div class="line">    long rehashidx; /* rehashing not in progress if rehashidx == -1 */</div><div class="line">    unsigned long iterators; /* number of iterators currently running */</div><div class="line">&#125; dict;</div><div class="line"></div><div class="line">/* If safe is set to 1 this is a safe iterator, that means, you can call</div><div class="line"> * dictAdd, dictFind, and other functions against the dictionary even while</div><div class="line"> * iterating. Otherwise it is a non safe iterator, and only dictNext()</div><div class="line"> * should be called while iterating. */</div><div class="line">typedef struct dictIterator &#123;//字典迭代器</div><div class="line">    dict *d;//当前迭代器指向的字典</div><div class="line">    long index;</div><div class="line">    int table, safe;//是否为安全迭代器，当迭代不安全时只可以调用dictNext()方法</div><div class="line">    dictEntry *entry, *nextEntry;//当前字典中指向的键值对</div><div class="line">    /* unsafe iterator fingerprint for misuse detection. */</div><div class="line">    long long fingerprint;</div><div class="line">&#125; dictIterator;</div><div class="line"></div><div class="line">typedef void (dictScanFunction)(void *privdata, const dictEntry *de);</div><div class="line">typedef void (dictScanBucketFunction)(void *privdata, dictEntry **bucketref);</div><div class="line"></div><div class="line">/* This is the initial size of every hash table */</div><div class="line">#define DICT_HT_INITIAL_SIZE     4//初始化哈希列表的数组大小为4，size=4</div><div class="line"></div><div class="line">/* ------------------------------- Macros ------------------------------------*/</div><div class="line">#define dictFreeVal(d, entry) \</div><div class="line">    if ((d)-&gt;type-&gt;valDestructor) \</div><div class="line">        (d)-&gt;type-&gt;valDestructor((d)-&gt;privdata, (entry)-&gt;v.val)</div><div class="line"></div><div class="line">#define dictSetVal(d, entry, _val_) do &#123; \</div><div class="line">    if ((d)-&gt;type-&gt;valDup) \</div><div class="line">        (entry)-&gt;v.val = (d)-&gt;type-&gt;valDup((d)-&gt;privdata, _val_); \</div><div class="line">    else \</div><div class="line">        (entry)-&gt;v.val = (_val_); \</div><div class="line">&#125; while(0)</div><div class="line"></div><div class="line">#define dictSetSignedIntegerVal(entry, _val_) \</div><div class="line">    do &#123; (entry)-&gt;v.s64 = _val_; &#125; while(0)</div><div class="line"></div><div class="line">#define dictSetUnsignedIntegerVal(entry, _val_) \</div><div class="line">    do &#123; (entry)-&gt;v.u64 = _val_; &#125; while(0)</div><div class="line"></div><div class="line">#define dictSetDoubleVal(entry, _val_) \</div><div class="line">    do &#123; (entry)-&gt;v.d = _val_; &#125; while(0)</div><div class="line"></div><div class="line">#define dictFreeKey(d, entry) \</div><div class="line">    if ((d)-&gt;type-&gt;keyDestructor) \</div><div class="line">        (d)-&gt;type-&gt;keyDestructor((d)-&gt;privdata, (entry)-&gt;key)</div><div class="line"></div><div class="line">#define dictSetKey(d, entry, _key_) do &#123; \</div><div class="line">    if ((d)-&gt;type-&gt;keyDup) \</div><div class="line">        (entry)-&gt;key = (d)-&gt;type-&gt;keyDup((d)-&gt;privdata, _key_); \</div><div class="line">    else \</div><div class="line">        (entry)-&gt;key = (_key_); \</div><div class="line">&#125; while(0)</div><div class="line"></div><div class="line">#define dictCompareKeys(d, key1, key2) \</div><div class="line">    (((d)-&gt;type-&gt;keyCompare) ? \</div><div class="line">        (d)-&gt;type-&gt;keyCompare((d)-&gt;privdata, key1, key2) : \</div><div class="line">        (key1) == (key2))</div><div class="line"></div><div class="line">#define dictHashKey(d, key) (d)-&gt;type-&gt;hashFunction(key)//获取字典中key的hash对应</div><div class="line">#define dictGetKey(he) ((he)-&gt;key)//获取键值对的key</div><div class="line">#define dictGetVal(he) ((he)-&gt;v.val)//获取键值对的val</div><div class="line">#define dictGetSignedIntegerVal(he) ((he)-&gt;v.s64)//获取有符号整型val</div><div class="line">#define dictGetUnsignedIntegerVal(he) ((he)-&gt;v.u64)//获取无符号整型val</div><div class="line">#define dictGetDoubleVal(he) ((he)-&gt;v.d)//获取浮点型val</div><div class="line">#define dictSlots(d) ((d)-&gt;ht[0].size+(d)-&gt;ht[1].size)//获取字典总size</div><div class="line">#define dictSize(d) ((d)-&gt;ht[0].used+(d)-&gt;ht[1].used)//获取字典已经使用的键值对</div><div class="line">#define dictIsRehashing(d) ((d)-&gt;rehashidx != -1)//字典是否在重构</div><div class="line"></div><div class="line">/* API */</div><div class="line">dict *dictCreate(dictType *type, void *privDataPtr);//创建字典 传入类型和私有数据</div><div class="line">int dictExpand(dict *d, unsigned long size);//创建或者扩展字典size</div><div class="line">int dictAdd(dict *d, void *key, void *val);//字典中添加键值对</div><div class="line">dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing);//添加一个没有val的键值对，如果存在key键值对存在existing中</div><div class="line">dictEntry *dictAddOrFind(dict *d, void *key);//添加或者查询key键值对</div><div class="line">int dictReplace(dict *d, void *key, void *val);//字典中替换key键值对的value值</div><div class="line">int dictDelete(dict *d, const void *key);//字典中删除key键值对</div><div class="line">dictEntry *dictUnlink(dict *ht, const void *key);//从字典中揭开键值对，但是不释放空间</div><div class="line">void dictFreeUnlinkedEntry(dict *d, dictEntry *he);//释放解开键值对的空间</div><div class="line">void dictRelease(dict *d);//释放字典空间</div><div class="line">dictEntry * dictFind(dict *d, const void *key);//字典中查找键值对根据key</div><div class="line">void *dictFetchValue(dict *d, const void *key);//获取key键值对的val</div><div class="line">int dictResize(dict *d);//根据usesd调整字典大小到最小</div><div class="line">dictIterator *dictGetIterator(dict *d);//获得字典迭代器</div><div class="line">dictIterator *dictGetSafeIterator(dict *d);//获得安全字典迭代器</div><div class="line">dictEntry *dictNext(dictIterator *iter);//迭代器内部指针后移</div><div class="line">void dictReleaseIterator(dictIterator *iter);//释放迭代器空间</div><div class="line">dictEntry *dictGetRandomKey(dict *d);//获得一个随机的键值对</div><div class="line">unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count);//随机获得一些键值对</div><div class="line">void dictGetStats(char *buf, size_t bufsize, dict *d);//获取字典当前状态</div><div class="line">uint64_t dictGenHashFunction(const void *key, int len);//调用hash算法</div><div class="line">uint64_t dictGenCaseHashFunction(const unsigned char *buf, int len);//调用忽略大小写的hash算法</div><div class="line">void dictEmpty(dict *d, void(callback)(void*));//清空字典</div><div class="line">void dictEnableResize(void);//能够重构</div><div class="line">void dictDisableResize(void);//不能重构</div><div class="line">int dictRehash(dict *d, int n);//分n步重构字典</div><div class="line">int dictRehashMilliseconds(dict *d, int ms);//在固定时间内重构</div><div class="line">void dictSetHashFunctionSeed(uint8_t *seed);//设置重构因子</div><div class="line">uint8_t *dictGetHashFunctionSeed(void);//获取重构因子</div><div class="line">unsigned long dictScan(dict *d, unsigned long v, dictScanFunction *fn, dictScanBucketFunction *bucketfn, void *privdata);//扫描字典</div><div class="line">unsigned int dictGetHash(dict *d, const void *key);//获取字典key值的hash对应</div><div class="line">dictEntry **dictFindEntryRefByPtrAndHash(dict *d, const void *oldptr, unsigned int hash);//根据ptr和hash获取键值对</div><div class="line"></div><div class="line">/* Hash table types */</div><div class="line">extern dictType dictTypeHeapStringCopyKey;</div><div class="line">extern dictType dictTypeHeapStrings;</div><div class="line">extern dictType dictTypeHeapStringCopyKeyValue;</div><div class="line"></div><div class="line">#endif /* __DICT_H */</div></pre></td></tr></table></figure></p>
+<p>dict.c<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div><div class="line">269</div><div class="line">270</div><div class="line">271</div><div class="line">272</div><div class="line">273</div><div class="line">274</div><div class="line">275</div><div class="line">276</div><div class="line">277</div><div class="line">278</div><div class="line">279</div><div class="line">280</div><div class="line">281</div><div class="line">282</div><div class="line">283</div><div class="line">284</div><div class="line">285</div><div class="line">286</div><div class="line">287</div><div class="line">288</div><div class="line">289</div><div class="line">290</div><div class="line">291</div><div class="line">292</div><div class="line">293</div><div class="line">294</div><div class="line">295</div><div class="line">296</div><div class="line">297</div><div class="line">298</div><div class="line">299</div><div class="line">300</div><div class="line">301</div><div class="line">302</div><div class="line">303</div><div class="line">304</div><div class="line">305</div><div class="line">306</div><div class="line">307</div><div class="line">308</div><div class="line">309</div><div class="line">310</div><div class="line">311</div><div class="line">312</div><div class="line">313</div><div class="line">314</div><div class="line">315</div><div class="line">316</div><div class="line">317</div><div class="line">318</div><div class="line">319</div><div class="line">320</div><div class="line">321</div><div class="line">322</div><div class="line">323</div><div class="line">324</div><div class="line">325</div><div class="line">326</div><div class="line">327</div><div class="line">328</div><div class="line">329</div><div class="line">330</div><div class="line">331</div><div class="line">332</div><div class="line">333</div><div class="line">334</div><div class="line">335</div><div class="line">336</div><div class="line">337</div><div class="line">338</div><div class="line">339</div><div class="line">340</div><div class="line">341</div><div class="line">342</div><div class="line">343</div><div class="line">344</div><div class="line">345</div><div class="line">346</div><div class="line">347</div><div class="line">348</div><div class="line">349</div><div class="line">350</div><div class="line">351</div><div class="line">352</div><div class="line">353</div><div class="line">354</div><div class="line">355</div><div class="line">356</div><div class="line">357</div><div class="line">358</div><div class="line">359</div><div class="line">360</div><div class="line">361</div><div class="line">362</div><div class="line">363</div><div class="line">364</div><div class="line">365</div><div class="line">366</div><div class="line">367</div><div class="line">368</div><div class="line">369</div><div class="line">370</div><div class="line">371</div><div class="line">372</div><div class="line">373</div><div class="line">374</div><div class="line">375</div><div class="line">376</div><div class="line">377</div><div class="line">378</div><div class="line">379</div><div class="line">380</div><div class="line">381</div><div class="line">382</div><div class="line">383</div><div class="line">384</div><div class="line">385</div><div class="line">386</div><div class="line">387</div><div class="line">388</div><div class="line">389</div><div class="line">390</div><div class="line">391</div><div class="line">392</div><div class="line">393</div><div class="line">394</div><div class="line">395</div><div class="line">396</div><div class="line">397</div><div class="line">398</div><div class="line">399</div><div class="line">400</div><div class="line">401</div><div class="line">402</div><div class="line">403</div><div class="line">404</div><div class="line">405</div><div class="line">406</div><div class="line">407</div><div class="line">408</div><div class="line">409</div><div class="line">410</div><div class="line">411</div><div class="line">412</div><div class="line">413</div><div class="line">414</div><div class="line">415</div><div class="line">416</div><div class="line">417</div><div class="line">418</div><div class="line">419</div><div class="line">420</div><div class="line">421</div><div class="line">422</div><div class="line">423</div><div class="line">424</div><div class="line">425</div><div class="line">426</div><div class="line">427</div><div class="line">428</div><div class="line">429</div><div class="line">430</div><div class="line">431</div><div class="line">432</div><div class="line">433</div><div class="line">434</div><div class="line">435</div><div class="line">436</div><div class="line">437</div><div class="line">438</div><div class="line">439</div><div class="line">440</div><div class="line">441</div><div class="line">442</div><div class="line">443</div><div class="line">444</div><div class="line">445</div><div class="line">446</div><div class="line">447</div><div class="line">448</div><div class="line">449</div><div class="line">450</div><div class="line">451</div><div class="line">452</div><div class="line">453</div><div class="line">454</div><div class="line">455</div><div class="line">456</div><div class="line">457</div><div class="line">458</div><div class="line">459</div><div class="line">460</div><div class="line">461</div><div class="line">462</div><div class="line">463</div><div class="line">464</div><div class="line">465</div><div class="line">466</div><div class="line">467</div><div class="line">468</div><div class="line">469</div><div class="line">470</div><div class="line">471</div><div class="line">472</div><div class="line">473</div><div class="line">474</div><div class="line">475</div><div class="line">476</div><div class="line">477</div><div class="line">478</div><div class="line">479</div><div class="line">480</div><div class="line">481</div><div class="line">482</div><div class="line">483</div><div class="line">484</div><div class="line">485</div><div class="line">486</div><div class="line">487</div><div class="line">488</div><div class="line">489</div><div class="line">490</div><div class="line">491</div><div class="line">492</div><div class="line">493</div><div class="line">494</div><div class="line">495</div><div class="line">496</div><div class="line">497</div><div class="line">498</div><div class="line">499</div><div class="line">500</div><div class="line">501</div><div class="line">502</div><div class="line">503</div><div class="line">504</div><div class="line">505</div><div class="line">506</div><div class="line">507</div><div class="line">508</div><div class="line">509</div><div class="line">510</div><div class="line">511</div><div class="line">512</div><div class="line">513</div><div class="line">514</div><div class="line">515</div><div class="line">516</div><div class="line">517</div><div class="line">518</div><div class="line">519</div><div class="line">520</div><div class="line">521</div><div class="line">522</div><div class="line">523</div><div class="line">524</div><div class="line">525</div><div class="line">526</div><div class="line">527</div><div class="line">528</div><div class="line">529</div><div class="line">530</div><div class="line">531</div><div class="line">532</div><div class="line">533</div><div class="line">534</div><div class="line">535</div><div class="line">536</div><div class="line">537</div><div class="line">538</div><div class="line">539</div><div class="line">540</div><div class="line">541</div><div class="line">542</div><div class="line">543</div><div class="line">544</div><div class="line">545</div><div class="line">546</div><div class="line">547</div><div class="line">548</div><div class="line">549</div><div class="line">550</div><div class="line">551</div><div class="line">552</div><div class="line">553</div><div class="line">554</div><div class="line">555</div><div class="line">556</div><div class="line">557</div><div class="line">558</div><div class="line">559</div><div class="line">560</div><div class="line">561</div><div class="line">562</div><div class="line">563</div><div class="line">564</div><div class="line">565</div><div class="line">566</div><div class="line">567</div><div class="line">568</div><div class="line">569</div><div class="line">570</div><div class="line">571</div><div class="line">572</div><div class="line">573</div><div class="line">574</div><div class="line">575</div><div class="line">576</div><div class="line">577</div><div class="line">578</div><div class="line">579</div><div class="line">580</div><div class="line">581</div><div class="line">582</div><div class="line">583</div><div class="line">584</div><div class="line">585</div><div class="line">586</div><div class="line">587</div><div class="line">588</div><div class="line">589</div><div class="line">590</div><div class="line">591</div><div class="line">592</div><div class="line">593</div><div class="line">594</div><div class="line">595</div><div class="line">596</div><div class="line">597</div><div class="line">598</div><div class="line">599</div><div class="line">600</div><div class="line">601</div><div class="line">602</div><div class="line">603</div><div class="line">604</div><div class="line">605</div><div class="line">606</div><div class="line">607</div><div class="line">608</div><div class="line">609</div><div class="line">610</div><div class="line">611</div><div class="line">612</div><div class="line">613</div><div class="line">614</div><div class="line">615</div><div class="line">616</div><div class="line">617</div><div class="line">618</div><div class="line">619</div><div class="line">620</div><div class="line">621</div><div class="line">622</div><div class="line">623</div><div class="line">624</div><div class="line">625</div><div class="line">626</div><div class="line">627</div><div class="line">628</div><div class="line">629</div><div class="line">630</div><div class="line">631</div><div class="line">632</div><div class="line">633</div><div class="line">634</div><div class="line">635</div><div class="line">636</div><div class="line">637</div><div class="line">638</div><div class="line">639</div><div class="line">640</div><div class="line">641</div><div class="line">642</div><div class="line">643</div><div class="line">644</div><div class="line">645</div><div class="line">646</div><div class="line">647</div><div class="line">648</div><div class="line">649</div><div class="line">650</div><div class="line">651</div><div class="line">652</div><div class="line">653</div><div class="line">654</div><div class="line">655</div><div class="line">656</div><div class="line">657</div><div class="line">658</div><div class="line">659</div><div class="line">660</div><div class="line">661</div><div class="line">662</div><div class="line">663</div><div class="line">664</div><div class="line">665</div><div class="line">666</div><div class="line">667</div><div class="line">668</div><div class="line">669</div><div class="line">670</div><div class="line">671</div><div class="line">672</div><div class="line">673</div><div class="line">674</div><div class="line">675</div><div class="line">676</div><div class="line">677</div><div class="line">678</div><div class="line">679</div><div class="line">680</div><div class="line">681</div><div class="line">682</div><div class="line">683</div><div class="line">684</div><div class="line">685</div><div class="line">686</div><div class="line">687</div><div class="line">688</div><div class="line">689</div><div class="line">690</div><div class="line">691</div><div class="line">692</div><div class="line">693</div><div class="line">694</div><div class="line">695</div><div class="line">696</div><div class="line">697</div><div class="line">698</div><div class="line">699</div><div class="line">700</div><div class="line">701</div><div class="line">702</div><div class="line">703</div><div class="line">704</div><div class="line">705</div><div class="line">706</div><div class="line">707</div><div class="line">708</div><div class="line">709</div><div class="line">710</div><div class="line">711</div><div class="line">712</div><div class="line">713</div><div class="line">714</div><div class="line">715</div><div class="line">716</div><div class="line">717</div><div class="line">718</div><div class="line">719</div><div class="line">720</div><div class="line">721</div><div class="line">722</div><div class="line">723</div><div class="line">724</div><div class="line">725</div><div class="line">726</div><div class="line">727</div><div class="line">728</div><div class="line">729</div><div class="line">730</div><div class="line">731</div><div class="line">732</div><div class="line">733</div><div class="line">734</div><div class="line">735</div><div class="line">736</div><div class="line">737</div><div class="line">738</div><div class="line">739</div><div class="line">740</div><div class="line">741</div><div class="line">742</div><div class="line">743</div><div class="line">744</div><div class="line">745</div><div class="line">746</div><div class="line">747</div><div class="line">748</div><div class="line">749</div><div class="line">750</div><div class="line">751</div><div class="line">752</div><div class="line">753</div><div class="line">754</div><div class="line">755</div><div class="line">756</div><div class="line">757</div><div class="line">758</div><div class="line">759</div><div class="line">760</div><div class="line">761</div><div class="line">762</div><div class="line">763</div><div class="line">764</div><div class="line">765</div><div class="line">766</div><div class="line">767</div><div class="line">768</div><div class="line">769</div><div class="line">770</div><div class="line">771</div><div class="line">772</div><div class="line">773</div><div class="line">774</div><div class="line">775</div><div class="line">776</div><div class="line">777</div><div class="line">778</div><div class="line">779</div><div class="line">780</div><div class="line">781</div><div class="line">782</div><div class="line">783</div><div class="line">784</div><div class="line">785</div><div class="line">786</div><div class="line">787</div><div class="line">788</div><div class="line">789</div><div class="line">790</div><div class="line">791</div><div class="line">792</div><div class="line">793</div><div class="line">794</div><div class="line">795</div><div class="line">796</div><div class="line">797</div><div class="line">798</div><div class="line">799</div><div class="line">800</div><div class="line">801</div><div class="line">802</div><div class="line">803</div><div class="line">804</div><div class="line">805</div><div class="line">806</div><div class="line">807</div><div class="line">808</div><div class="line">809</div><div class="line">810</div><div class="line">811</div><div class="line">812</div><div class="line">813</div><div class="line">814</div><div class="line">815</div><div class="line">816</div><div class="line">817</div><div class="line">818</div><div class="line">819</div><div class="line">820</div><div class="line">821</div><div class="line">822</div><div class="line">823</div><div class="line">824</div><div class="line">825</div><div class="line">826</div><div class="line">827</div><div class="line">828</div><div class="line">829</div><div class="line">830</div><div class="line">831</div><div class="line">832</div><div class="line">833</div><div class="line">834</div><div class="line">835</div><div class="line">836</div><div class="line">837</div><div class="line">838</div><div class="line">839</div><div class="line">840</div><div class="line">841</div><div class="line">842</div><div class="line">843</div><div class="line">844</div><div class="line">845</div><div class="line">846</div><div class="line">847</div><div class="line">848</div><div class="line">849</div><div class="line">850</div><div class="line">851</div><div class="line">852</div><div class="line">853</div><div class="line">854</div><div class="line">855</div><div class="line">856</div><div class="line">857</div><div class="line">858</div><div class="line">859</div><div class="line">860</div><div class="line">861</div><div class="line">862</div><div class="line">863</div><div class="line">864</div><div class="line">865</div><div class="line">866</div><div class="line">867</div><div class="line">868</div><div class="line">869</div><div class="line">870</div><div class="line">871</div><div class="line">872</div><div class="line">873</div><div class="line">874</div><div class="line">875</div><div class="line">876</div><div class="line">877</div><div class="line">878</div><div class="line">879</div><div class="line">880</div><div class="line">881</div><div class="line">882</div><div class="line">883</div><div class="line">884</div><div class="line">885</div><div class="line">886</div><div class="line">887</div><div class="line">888</div><div class="line">889</div><div class="line">890</div><div class="line">891</div><div class="line">892</div><div class="line">893</div><div class="line">894</div><div class="line">895</div><div class="line">896</div><div class="line">897</div><div class="line">898</div><div class="line">899</div><div class="line">900</div><div class="line">901</div><div class="line">902</div><div class="line">903</div><div class="line">904</div><div class="line">905</div><div class="line">906</div><div class="line">907</div><div class="line">908</div><div class="line">909</div><div class="line">910</div><div class="line">911</div><div class="line">912</div><div class="line">913</div><div class="line">914</div><div class="line">915</div><div class="line">916</div><div class="line">917</div><div class="line">918</div><div class="line">919</div><div class="line">920</div><div class="line">921</div><div class="line">922</div><div class="line">923</div><div class="line">924</div><div class="line">925</div><div class="line">926</div><div class="line">927</div><div class="line">928</div><div class="line">929</div><div class="line">930</div><div class="line">931</div><div class="line">932</div><div class="line">933</div><div class="line">934</div><div class="line">935</div><div class="line">936</div><div class="line">937</div><div class="line">938</div><div class="line">939</div><div class="line">940</div><div class="line">941</div><div class="line">942</div><div class="line">943</div><div class="line">944</div><div class="line">945</div><div class="line">946</div><div class="line">947</div><div class="line">948</div><div class="line">949</div><div class="line">950</div><div class="line">951</div><div class="line">952</div><div class="line">953</div><div class="line">954</div><div class="line">955</div><div class="line">956</div><div class="line">957</div><div class="line">958</div><div class="line">959</div><div class="line">960</div><div class="line">961</div><div class="line">962</div><div class="line">963</div><div class="line">964</div><div class="line">965</div><div class="line">966</div><div class="line">967</div><div class="line">968</div><div class="line">969</div><div class="line">970</div><div class="line">971</div><div class="line">972</div><div class="line">973</div><div class="line">974</div><div class="line">975</div><div class="line">976</div><div class="line">977</div><div class="line">978</div><div class="line">979</div><div class="line">980</div><div class="line">981</div><div class="line">982</div><div class="line">983</div><div class="line">984</div><div class="line">985</div><div class="line">986</div><div class="line">987</div><div class="line">988</div><div class="line">989</div><div class="line">990</div><div class="line">991</div><div class="line">992</div><div class="line">993</div><div class="line">994</div><div class="line">995</div><div class="line">996</div><div class="line">997</div><div class="line">998</div><div class="line">999</div><div class="line">1000</div><div class="line">1001</div><div class="line">1002</div><div class="line">1003</div><div class="line">1004</div><div class="line">1005</div><div class="line">1006</div><div class="line">1007</div><div class="line">1008</div><div class="line">1009</div><div class="line">1010</div><div class="line">1011</div><div class="line">1012</div><div class="line">1013</div><div class="line">1014</div><div class="line">1015</div><div class="line">1016</div><div class="line">1017</div><div class="line">1018</div><div class="line">1019</div><div class="line">1020</div><div class="line">1021</div><div class="line">1022</div><div class="line">1023</div><div class="line">1024</div><div class="line">1025</div><div class="line">1026</div><div class="line">1027</div><div class="line">1028</div><div class="line">1029</div><div class="line">1030</div><div class="line">1031</div><div class="line">1032</div><div class="line">1033</div><div class="line">1034</div><div class="line">1035</div><div class="line">1036</div><div class="line">1037</div><div class="line">1038</div><div class="line">1039</div><div class="line">1040</div><div class="line">1041</div><div class="line">1042</div><div class="line">1043</div><div class="line">1044</div><div class="line">1045</div><div class="line">1046</div><div class="line">1047</div><div class="line">1048</div><div class="line">1049</div><div class="line">1050</div><div class="line">1051</div><div class="line">1052</div><div class="line">1053</div><div class="line">1054</div><div class="line">1055</div><div class="line">1056</div><div class="line">1057</div><div class="line">1058</div><div class="line">1059</div><div class="line">1060</div><div class="line">1061</div><div class="line">1062</div><div class="line">1063</div><div class="line">1064</div><div class="line">1065</div><div class="line">1066</div><div class="line">1067</div><div class="line">1068</div><div class="line">1069</div><div class="line">1070</div><div class="line">1071</div><div class="line">1072</div><div class="line">1073</div><div class="line">1074</div><div class="line">1075</div><div class="line">1076</div><div class="line">1077</div><div class="line">1078</div><div class="line">1079</div><div class="line">1080</div><div class="line">1081</div><div class="line">1082</div><div class="line">1083</div><div class="line">1084</div><div class="line">1085</div><div class="line">1086</div><div class="line">1087</div><div class="line">1088</div><div class="line">1089</div><div class="line">1090</div><div class="line">1091</div><div class="line">1092</div><div class="line">1093</div><div class="line">1094</div><div class="line">1095</div><div class="line">1096</div><div class="line">1097</div><div class="line">1098</div><div class="line">1099</div><div class="line">1100</div></pre></td><td class="code"><pre><div class="line">#include "fmacros.h"</div><div class="line"></div><div class="line">#include &lt;stdio.h&gt;</div><div class="line">#include &lt;stdlib.h&gt;</div><div class="line">#include &lt;stdint.h&gt;</div><div class="line">#include &lt;string.h&gt;</div><div class="line">#include &lt;stdarg.h&gt;</div><div class="line">#include &lt;limits.h&gt;</div><div class="line">#include &lt;sys/time.h&gt;</div><div class="line"></div><div class="line">#include "dict.h"</div><div class="line">#include "zmalloc.h"</div><div class="line">#ifndef DICT_BENCHMARK_MAIN</div><div class="line">#include "redisassert.h"</div><div class="line">#else</div><div class="line">#include &lt;assert.h&gt;</div><div class="line">#endif</div><div class="line"></div><div class="line">/* Using dictEnableResize() / dictDisableResize() we make possible to</div><div class="line"> * enable/disable resizing of the hash table as needed. This is very important</div><div class="line"> * for Redis, as we use copy-on-write and don't want to move too much memory</div><div class="line"> * around when there is a child performing saving operations.</div><div class="line"> *</div><div class="line"> * Note that even when dict_can_resize is set to 0, not all resizes are</div><div class="line"> * prevented: a hash table is still allowed to grow if the ratio between</div><div class="line"> * the number of elements and the buckets &gt; dict_force_resize_ratio. */</div><div class="line"> //在需要时使用dictEnableResize() / dictDisableResize()使得字典可以调节size，这对于redis很重要，</div><div class="line"> //当有一个子进程在save操作时，我们使用copy-on-write,不想移动过多内存</div><div class="line"> //dict_can_resize=0不能阻止字典resize，当used-buckets&gt;dict_force_resize_ratio时 依然可以resize</div><div class="line">static int dict_can_resize = 1;</div><div class="line">static unsigned int dict_force_resize_ratio = 5;</div><div class="line"></div><div class="line">/* -------------------------- private prototypes ---------------------------- */</div><div class="line"></div><div class="line">static int _dictExpandIfNeeded(dict *ht);//在需要时扩展字典</div><div class="line">static unsigned long _dictNextPower(unsigned long size);//计算次幂数</div><div class="line">static int _dictKeyIndex(dict *ht, const void *key, unsigned int hash, dictEntry **existing);//返回字典中key的桶index，如果存在填充exsiting</div><div class="line">static int _dictInit(dict *ht, dictType *type, void *privDataPtr);//初始化字典</div><div class="line"></div><div class="line">/* -------------------------- hash functions -------------------------------- */</div><div class="line"></div><div class="line">static uint8_t dict_hash_function_seed[16];</div><div class="line">//hash种子，用于hash函数计算</div><div class="line">void dictSetHashFunctionSeed(uint8_t *seed) &#123;</div><div class="line">    memcpy(dict_hash_function_seed,seed,sizeof(dict_hash_function_seed));</div><div class="line">&#125;</div><div class="line"></div><div class="line">uint8_t *dictGetHashFunctionSeed(void) &#123;</div><div class="line">    return dict_hash_function_seed;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* The default hashing function uses SipHash implementation</div><div class="line"> * in siphash.c. */</div><div class="line">//hash映射默认实现在siphash.c中 采用的是简单的hash算法 分为区分大小写和忽略大小写</div><div class="line">uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k);</div><div class="line">uint64_t siphash_nocase(const uint8_t *in, const size_t inlen, const uint8_t *k);</div><div class="line"></div><div class="line">uint64_t dictGenHashFunction(const void *key, int len) &#123;</div><div class="line">    return siphash(key,len,dict_hash_function_seed);</div><div class="line">&#125;</div><div class="line"></div><div class="line">uint64_t dictGenCaseHashFunction(const unsigned char *buf, int len) &#123;</div><div class="line">    return siphash_nocase(buf,len,dict_hash_function_seed);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* ----------------------------- API implementation ------------------------- */</div><div class="line"></div><div class="line">/* Reset a hash table already initialized with ht_init().</div><div class="line"> * NOTE: This function should only be called by ht_destroy(). */</div><div class="line"> </div><div class="line">static void _dictReset(dictht *ht)</div><div class="line">&#123;</div><div class="line">	//重置dictht</div><div class="line">    ht-&gt;table = NULL;</div><div class="line">    ht-&gt;size = 0;</div><div class="line">    ht-&gt;sizemask = 0;</div><div class="line">    ht-&gt;used = 0;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Create a new hash table */</div><div class="line">dict *dictCreate(dictType *type,</div><div class="line">        void *privDataPtr)</div><div class="line">&#123;</div><div class="line">    dict *d = zmalloc(sizeof(*d));</div><div class="line">	//调用私有方法</div><div class="line">    _dictInit(d,type,privDataPtr);</div><div class="line">    return d;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Initialize the hash table */</div><div class="line">int _dictInit(dict *d, dictType *type,</div><div class="line">        void *privDataPtr)</div><div class="line">&#123;</div><div class="line">	//初始化变量</div><div class="line">    _dictReset(&amp;d-&gt;ht[0]);</div><div class="line">    _dictReset(&amp;d-&gt;ht[1]);</div><div class="line">    d-&gt;type = type;</div><div class="line">    d-&gt;privdata = privDataPtr;</div><div class="line">    d-&gt;rehashidx = -1;//是否重构过</div><div class="line">    d-&gt;iterators = 0;//迭代器个数0</div><div class="line">    return DICT_OK;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Resize the table to the minimal size that contains all the elements,</div><div class="line"> * but with the invariant of a USED/BUCKETS ratio near to &lt;= 1 */</div><div class="line">//调整表size到最小容纳所有的元素</div><div class="line">//used/buckets接近1小于1</div><div class="line">int dictResize(dict *d)</div><div class="line">&#123;</div><div class="line">    int minimal;</div><div class="line">	//如果不能resiaze或者正在重构散列</div><div class="line">    if (!dict_can_resize || dictIsRehashing(d)) return DICT_ERR;</div><div class="line">    minimal = d-&gt;ht[0].used;//使得minimal等于已经添加的键值对数目</div><div class="line">    if (minimal &lt; DICT_HT_INITIAL_SIZE)</div><div class="line">        minimal = DICT_HT_INITIAL_SIZE;//确保最小size为4</div><div class="line">        //创建新的字典</div><div class="line">    return dictExpand(d, minimal);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Expand or create the hash table */</div><div class="line">int dictExpand(dict *d, unsigned long size)</div><div class="line">&#123;</div><div class="line">    dictht n; /* the new hash table */</div><div class="line">	//在redis中used参数必须为2的n次幂</div><div class="line">    unsigned long realsize = _dictNextPower(size);//计算扩容的realsize 应该小于等于size的最小2的n次幂</div><div class="line">    /* the size is invalid if it is smaller than the number of</div><div class="line">     * elements already inside the hash table */</div><div class="line">    if (dictIsRehashing(d) || d-&gt;ht[0].used &gt; size)//如果正在rehash或者size变小了丢失数据返回失败</div><div class="line">        return DICT_ERR;</div><div class="line"></div><div class="line">    /* Rehashing to the same table size is not useful. */</div><div class="line">    if (realsize == d-&gt;ht[0].size) return DICT_ERR;//此时size不变 不需要扩容</div><div class="line"></div><div class="line">    /* Allocate the new hash table and initialize all pointers to NULL */</div><div class="line">    n.size = realsize;</div><div class="line">    n.sizemask = realsize-1;</div><div class="line">    n.table = zcalloc(realsize*sizeof(dictEntry*));</div><div class="line">    n.used = 0;</div><div class="line"></div><div class="line">    /* Is this the first initialization? If so it's not really a rehashing</div><div class="line">     * we just set the first hash table so that it can accept keys. */</div><div class="line">    if (d-&gt;ht[0].table == NULL) &#123;//d为刚刚创建的字典</div><div class="line">        d-&gt;ht[0] = n;</div><div class="line">        return DICT_OK;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Prepare a second hash table for incremental rehashing */</div><div class="line">	//将dictht赋给ht[1] 然后让dict开始重构</div><div class="line">    d-&gt;ht[1] = n;</div><div class="line">    d-&gt;rehashidx = 0;</div><div class="line">    return DICT_OK;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Performs N steps of incremental rehashing. Returns 1 if there are still</div><div class="line"> * keys to move from the old to the new hash table, otherwise 0 is returned.</div><div class="line"> *</div><div class="line"> * Note that a rehashing step consists in moving a bucket (that may have more</div><div class="line"> * than one key as we use chaining) from the old to the new hash table, however</div><div class="line"> * since part of the hash table may be composed of empty spaces, it is not</div><div class="line"> * guaranteed that this function will rehash even a single bucket, since it</div><div class="line"> * will visit at max N*10 empty buckets in total, otherwise the amount of</div><div class="line"> * work it does would be unbound and the function may block for a long time. */</div><div class="line">//字典重构</div><div class="line">//n为step 一次step将一个桶中所有的键值对move到dictht[1]中</div><div class="line">int dictRehash(dict *d, int n) &#123;</div><div class="line">	//空桶的最大数目为n*10</div><div class="line">    int empty_visits = n*10; /* Max number of empty buckets to visit. */</div><div class="line">    if (!dictIsRehashing(d)) return 0;</div><div class="line"></div><div class="line">    while(n-- &amp;&amp; d-&gt;ht[0].used != 0) &#123;</div><div class="line">        dictEntry *de, *nextde;</div><div class="line"></div><div class="line">        /* Note that rehashidx can't overflow as we are sure there are more</div><div class="line">         * elements because ht[0].used != 0 */</div><div class="line">        assert(d-&gt;ht[0].size &gt; (unsigned long)d-&gt;rehashidx);</div><div class="line">        while(d-&gt;ht[0].table[d-&gt;rehashidx] == NULL) &#123;//查找不为空的桶</div><div class="line">            d-&gt;rehashidx++;</div><div class="line">            if (--empty_visits == 0) return 1;</div><div class="line">        &#125;dictEntry</div><div class="line">        de = d-&gt;ht[0].table[d-&gt;rehashidx];</div><div class="line">        /* Move all the keys in this bucket from the old to the new hash HT */</div><div class="line">        while(de) &#123;//遍历不为空的桶，将所有的键值对move到新键值对表中</div><div class="line">            unsigned int h;</div><div class="line"></div><div class="line">            nextde = de-&gt;next;</div><div class="line">            /* Get the index in the new hash table */</div><div class="line">            h = dictHashKey(d, de-&gt;key) &amp; d-&gt;ht[1].sizemask;</div><div class="line">            de-&gt;next = d-&gt;ht[1].table[h];</div><div class="line">            d-&gt;ht[1].table[h] = de;</div><div class="line">            d-&gt;ht[0].used--;</div><div class="line">            d-&gt;ht[1].used++;</div><div class="line">            de = nextde;</div><div class="line">        &#125;</div><div class="line">        d-&gt;ht[0].table[d-&gt;rehashidx] = NULL;</div><div class="line">        d-&gt;rehashidx++;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Check if we already rehashed the whole table... */</div><div class="line">    if (d-&gt;ht[0].used == 0) &#123;//如果移动完毕就释放内存，将ht[1]赋给ht[0]</div><div class="line">        zfree(d-&gt;ht[0].table);</div><div class="line">        d-&gt;ht[0] = d-&gt;ht[1];</div><div class="line">        _dictReset(&amp;d-&gt;ht[1]);</div><div class="line">        d-&gt;rehashidx = -1;</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* More to rehash... */</div><div class="line">    return 1;</div><div class="line">&#125;</div><div class="line"></div><div class="line">long long timeInMilliseconds(void) &#123;</div><div class="line">    struct timeval tv;</div><div class="line"></div><div class="line">    gettimeofday(&amp;tv,NULL);</div><div class="line">    return (((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Rehash for an amount of time between ms milliseconds and ms+1 milliseconds */</div><div class="line">int dictRehashMilliseconds(dict *d, int ms) &#123;</div><div class="line">    long long start = timeInMilliseconds();</div><div class="line">    int rehashes = 0;</div><div class="line"></div><div class="line">    while(dictRehash(d,100)) &#123;</div><div class="line">        rehashes += 100;</div><div class="line">        if (timeInMilliseconds()-start &gt; ms) break;</div><div class="line">    &#125;</div><div class="line">    return rehashes;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* This function performs just a step of rehashing, and only if there are</div><div class="line"> * no safe iterators bound to our hash table. When we have iterators in the</div><div class="line"> * middle of a rehashing we can't mess with the two hash tables otherwise</div><div class="line"> * some element can be missed or duplicated.</div><div class="line"> *</div><div class="line"> * This function is called by common lookup or update operations in the</div><div class="line"> * dictionary so that the hash table automatically migrates from H1 to H2</div><div class="line"> * while it is actively used. */</div><div class="line"> //单步重构</div><div class="line">static void _dictRehashStep(dict *d) &#123;</div><div class="line">    if (d-&gt;iterators == 0) dictRehash(d,1);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Add an element to the target hash table */</div><div class="line">//添加键值对</div><div class="line">int dictAdd(dict *d, void *key, void *val)</div><div class="line">&#123;</div><div class="line">    dictEntry *entry = dictAddRaw(d,key,NULL);</div><div class="line"></div><div class="line">    if (!entry) return DICT_ERR;</div><div class="line">    dictSetVal(d, entry, val);</div><div class="line">    return DICT_OK;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Low level add or find:</div><div class="line"> * This function adds the entry but instead of setting a value returns the</div><div class="line"> * dictEntry structure to the user, that will make sure to fill the value</div><div class="line"> * field as he wishes.</div><div class="line"> *</div><div class="line"> * This function is also directly exposed to the user API to be called</div><div class="line"> * mainly in order to store non-pointers inside the hash value, example:</div><div class="line"> *</div><div class="line"> * entry = dictAddRaw(dict,mykey,NULL);</div><div class="line"> * if (entry != NULL) dictSetSignedIntegerVal(entry,1000);</div><div class="line"> *</div><div class="line"> * Return values:</div><div class="line"> *</div><div class="line"> * If key already exists NULL is returned, and "*existing" is populated</div><div class="line"> * with the existing entry if existing is not NULL.</div><div class="line"> *</div><div class="line"> * If key was added, the hash entry is returned to be manipulated by the caller.</div><div class="line"> */</div><div class="line">dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing)</div><div class="line">&#123;</div><div class="line">    int index;</div><div class="line">    dictEntry *entry;</div><div class="line">    dictht *ht;</div><div class="line"></div><div class="line">    if (dictIsRehashing(d)) _dictRehashStep(d);</div><div class="line"></div><div class="line">    /* Get the index of the new element, or -1 if</div><div class="line">     * the element already exists. */</div><div class="line">     //计算key的字典中桶index</div><div class="line">    if ((index = _dictKeyIndex(d, key, dictHashKey(d,key), existing)) == -1)</div><div class="line">        return NULL;//已经存在的key键值对返回null</div><div class="line"></div><div class="line">    /* Allocate the memory and store the new entry.</div><div class="line">     * Insert the element in top, with the assumption that in a database</div><div class="line">     * system it is more likely that recently added entries are accessed</div><div class="line">     * more frequently. */</div><div class="line">    ht = dictIsRehashing(d) ? &amp;d-&gt;ht[1] : &amp;d-&gt;ht[0];//如果任然在重构，操作基于ht[1]否则ht[0]</div><div class="line">    entry = zmalloc(sizeof(*entry));</div><div class="line">    entry-&gt;next = ht-&gt;table[index];//添加在桶的头部</div><div class="line">    ht-&gt;table[index] = entry;</div><div class="line">    ht-&gt;used++;</div><div class="line"></div><div class="line">    /* Set the hash entry fields. */</div><div class="line">    dictSetKey(d, entry, key);//添加了一个没有val的键值对</div><div class="line">    return entry;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Add or Overwrite:</div><div class="line"> * Add an element, discarding the old value if the key already exists.</div><div class="line"> * Return 1 if the key was added from scratch, 0 if there was already an</div><div class="line"> * element with such key and dictReplace() just performed a value update</div><div class="line"> * operation. */</div><div class="line">int dictReplace(dict *d, void *key, void *val)</div><div class="line">&#123;</div><div class="line">    dictEntry *entry, *existing, auxentry;</div><div class="line"></div><div class="line">    /* Try to add the element. If the key</div><div class="line">     * does not exists dictAdd will suceed. */</div><div class="line">    entry = dictAddRaw(d,key,&amp;existing);</div><div class="line">    if (entry) &#123;//如果不存在 直接添加</div><div class="line">        dictSetVal(d, entry, val);</div><div class="line">        return 1;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Set the new value and free the old one. Note that it is important</div><div class="line">     * to do that in this order, as the value may just be exactly the same</div><div class="line">     * as the previous one. In this context, think to reference counting,</div><div class="line">     * you want to increment (set), and then decrement (free), and not the</div><div class="line">     * reverse. */</div><div class="line">    auxentry = *existing;//存在这个key</div><div class="line">    dictSetVal(d, existing, val);//替换新的val</div><div class="line">    dictFreeVal(d, &amp;auxentry);//释放旧的val</div><div class="line">    return 0;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Add or Find:</div><div class="line"> * dictAddOrFind() is simply a version of dictAddRaw() that always</div><div class="line"> * returns the hash entry of the specified key, even if the key already</div><div class="line"> * exists and can't be added (in that case the entry of the already</div><div class="line"> * existing key is returned.)</div><div class="line"> *</div><div class="line"> * See dictAddRaw() for more information. */</div><div class="line">dictEntry *dictAddOrFind(dict *d, void *key) &#123;</div><div class="line">    dictEntry *entry, *existing;</div><div class="line">    entry = dictAddRaw(d,key,&amp;existing);</div><div class="line">    return entry ? entry : existing;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Search and remove an element. This is an helper function for</div><div class="line"> * dictDelete() and dictUnlink(), please check the top comment</div><div class="line"> * of those functions. */</div><div class="line">static dictEntry *dictGenericDelete(dict *d, const void *key, int nofree) &#123;</div><div class="line">    unsigned int h, idx;</div><div class="line">    dictEntry *he, *prevHe;</div><div class="line">    int table;</div><div class="line"></div><div class="line">    if (d-&gt;ht[0].used == 0 &amp;&amp; d-&gt;ht[1].used == 0) return NULL;</div><div class="line"></div><div class="line">    if (dictIsRehashing(d)) _dictRehashStep(d);</div><div class="line">    h = dictHashKey(d, key);</div><div class="line">	//对于新旧表分别遍历</div><div class="line">    for (table = 0; table &lt;= 1; table++) &#123;</div><div class="line">        idx = h &amp; d-&gt;ht[table].sizemask;//计算桶的index</div><div class="line">        he = d-&gt;ht[table].table[idx];</div><div class="line">        prevHe = NULL;</div><div class="line">        while(he) &#123;</div><div class="line">            if (key==he-&gt;key || dictCompareKeys(d, key, he-&gt;key)) &#123;</div><div class="line">                /* Unlink the element from the list */</div><div class="line">                if (prevHe)</div><div class="line">                    prevHe-&gt;next = he-&gt;next;</div><div class="line">                else</div><div class="line">                    d-&gt;ht[table].table[idx] = he-&gt;next;</div><div class="line">                if (!nofree) &#123;//是否释放空间</div><div class="line">                    dictFreeKey(d, he);</div><div class="line">                    dictFreeVal(d, he);</div><div class="line">                    zfree(he);</div><div class="line">                &#125;</div><div class="line">                d-&gt;ht[table].used--;</div><div class="line">                return he;</div><div class="line">            &#125;</div><div class="line">            prevHe = he;</div><div class="line">            he = he-&gt;next;</div><div class="line">        &#125;</div><div class="line">        if (!dictIsRehashing(d)) break;//如果没有重构 不需要扫描ht[1]</div><div class="line">    &#125;</div><div class="line">    return NULL; /* not found */</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Remove an element, returning DICT_OK on success or DICT_ERR if the</div><div class="line"> * element was not found. */</div><div class="line">int dictDelete(dict *ht, const void *key) &#123;</div><div class="line">    return dictGenericDelete(ht,key,0) ? DICT_OK : DICT_ERR;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Remove an element from the table, but without actually releasing</div><div class="line"> * the key, value and dictionary entry. The dictionary entry is returned</div><div class="line"> * if the element was found (and unlinked from the table), and the user</div><div class="line"> * should later call `dictFreeUnlinkedEntry()` with it in order to release it.</div><div class="line"> * Otherwise if the key is not found, NULL is returned.</div><div class="line"> *</div><div class="line"> * This function is useful when we want to remove something from the hash</div><div class="line"> * table but want to use its value before actually deleting the entry.</div><div class="line"> * Without this function the pattern would require two lookups:</div><div class="line"> *</div><div class="line"> *  entry = dictFind(...);</div><div class="line"> *  // Do something with entry</div><div class="line"> *  dictDelete(dictionary,entry);</div><div class="line"> *</div><div class="line"> * Thanks to this function it is possible to avoid this, and use</div><div class="line"> * instead:</div><div class="line"> *</div><div class="line"> * entry = dictUnlink(dictionary,entry);</div><div class="line"> * // Do something with entry</div><div class="line"> * dictFreeUnlinkedEntry(entry); // &lt;- This does not need to lookup again.</div><div class="line"> */</div><div class="line"> //从表中删除键值对，但是不释放空间</div><div class="line">dictEntry *dictUnlink(dict *ht, const void *key) &#123;</div><div class="line">    return dictGenericDelete(ht,key,1);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* You need to call this function to really free the entry after a call</div><div class="line"> * to dictUnlink(). It's safe to call this function with 'he' = NULL. */</div><div class="line">void dictFreeUnlinkedEntry(dict *d, dictEntry *he) &#123;</div><div class="line">    if (he == NULL) return;</div><div class="line">    dictFreeKey(d, he);</div><div class="line">    dictFreeVal(d, he);</div><div class="line">    zfree(he);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Destroy an entire dictionary */</div><div class="line">//清空dict中dictht 但不释放它的空间 callback为私有数据的释放函数</div><div class="line">int _dictClear(dict *d, dictht *ht, void(callback)(void *)) &#123;</div><div class="line">    unsigned long i;</div><div class="line"></div><div class="line">    /* Free all the elements */</div><div class="line">    for (i = 0; i &lt; ht-&gt;size &amp;&amp; ht-&gt;used &gt; 0; i++) &#123;</div><div class="line">        dictEntry *he, *nextHe;</div><div class="line"></div><div class="line">        if (callback &amp;&amp; (i &amp; 65535) == 0) callback(d-&gt;privdata);</div><div class="line"></div><div class="line">        if ((he = ht-&gt;table[i]) == NULL) continue;</div><div class="line">        while(he) &#123;//释放所有的键值对</div><div class="line">            nextHe = he-&gt;next;</div><div class="line">            dictFreeKey(d, he);</div><div class="line">            dictFreeVal(d, he);</div><div class="line">            zfree(he);</div><div class="line">            ht-&gt;used--;</div><div class="line">            he = nextHe;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    /* Free the table and the allocated cache structure */</div><div class="line">    zfree(ht-&gt;table);</div><div class="line">    /* Re-initialize the table */</div><div class="line">    _dictReset(ht);</div><div class="line">    return DICT_OK; /* never fails */</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Clear &amp; Release the hash table */</div><div class="line">//释放dict的空间</div><div class="line">void dictRelease(dict *d)</div><div class="line">&#123;</div><div class="line">    _dictClear(d,&amp;d-&gt;ht[0],NULL);</div><div class="line">    _dictClear(d,&amp;d-&gt;ht[1],NULL);</div><div class="line">    zfree(d);</div><div class="line">&#125;</div><div class="line"></div><div class="line">dictEntry *dictFind(dict *d, const void *key)</div><div class="line">&#123;</div><div class="line">    dictEntry *he;</div><div class="line">    unsigned int h, idx, table;</div><div class="line"></div><div class="line">    if (d-&gt;ht[0].used + d-&gt;ht[1].used == 0) return NULL; /* dict is empty */</div><div class="line">    if (dictIsRehashing(d)) _dictRehashStep(d);</div><div class="line">    h = dictHashKey(d, key);//计算hash值</div><div class="line">    for (table = 0; table &lt;= 1; table++) &#123;</div><div class="line">        idx = h &amp; d-&gt;ht[table].sizemask;//计算桶index</div><div class="line">        he = d-&gt;ht[table].table[idx];</div><div class="line">        while(he) &#123;//遍历查找</div><div class="line">            if (key==he-&gt;key || dictCompareKeys(d, key, he-&gt;key))</div><div class="line">                return he;</div><div class="line">            he = he-&gt;next;</div><div class="line">        &#125;</div><div class="line">        if (!dictIsRehashing(d)) return NULL;</div><div class="line">    &#125;</div><div class="line">    return NULL;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void *dictFetchValue(dict *d, const void *key) &#123;</div><div class="line">    dictEntry *he;</div><div class="line"></div><div class="line">    he = dictFind(d,key);//查找键值对</div><div class="line">    return he ? dictGetVal(he) : NULL;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* A fingerprint is a 64 bit number that represents the state of the dictionary</div><div class="line"> * at a given time, it's just a few dict properties xored together.</div><div class="line"> * When an unsafe iterator is initialized, we get the dict fingerprint, and check</div><div class="line"> * the fingerprint again when the iterator is released.</div><div class="line"> * If the two fingerprints are different it means that the user of the iterator</div><div class="line"> * performed forbidden operations against the dictionary while iterating. */</div><div class="line">//对于字典状态通过异或运算生成64位数，当获取不安全迭代器调用，释放时对比前后fingerprint，不同代表中间有其他操作</div><div class="line">long long dictFingerprint(dict *d) &#123;</div><div class="line">    long long integers[6], hash = 0;</div><div class="line">    int j;</div><div class="line"></div><div class="line">    integers[0] = (long) d-&gt;ht[0].table;</div><div class="line">    integers[1] = d-&gt;ht[0].size;</div><div class="line">    integers[2] = d-&gt;ht[0].used;</div><div class="line">    integers[3] = (long) d-&gt;ht[1].table;</div><div class="line">    integers[4] = d-&gt;ht[1].size;</div><div class="line">    integers[5] = d-&gt;ht[1].used;</div><div class="line"></div><div class="line">    /* We hash N integers by summing every successive integer with the integer</div><div class="line">     * hashing of the previous sum. Basically:</div><div class="line">     *</div><div class="line">     * Result = hash(hash(hash(int1)+int2)+int3) ...</div><div class="line">     *</div><div class="line">     * This way the same set of integers in a different order will (likely) hash</div><div class="line">     * to a different number. */</div><div class="line">    for (j = 0; j &lt; 6; j++) &#123;</div><div class="line">        hash += integers[j];</div><div class="line">        /* For the hashing step we use Tomas Wang's 64 bit integer hash. */</div><div class="line">        hash = (~hash) + (hash &lt;&lt; 21); // hash = (hash &lt;&lt; 21) - hash - 1;</div><div class="line">        hash = hash ^ (hash &gt;&gt; 24);</div><div class="line">        hash = (hash + (hash &lt;&lt; 3)) + (hash &lt;&lt; 8); // hash * 265</div><div class="line">        hash = hash ^ (hash &gt;&gt; 14);</div><div class="line">        hash = (hash + (hash &lt;&lt; 2)) + (hash &lt;&lt; 4); // hash * 21</div><div class="line">        hash = hash ^ (hash &gt;&gt; 28);</div><div class="line">        hash = hash + (hash &lt;&lt; 31);</div><div class="line">    &#125;</div><div class="line">    return hash;</div><div class="line">&#125;</div><div class="line"></div><div class="line">dictIterator *dictGetIterator(dict *d)</div><div class="line">&#123;</div><div class="line">    dictIterator *iter = zmalloc(sizeof(*iter));</div><div class="line"></div><div class="line">    iter-&gt;d = d;</div><div class="line">    iter-&gt;table = 0;</div><div class="line">    iter-&gt;index = -1;</div><div class="line">    iter-&gt;safe = 0;//默认不安全</div><div class="line">    iter-&gt;entry = NULL;</div><div class="line">    iter-&gt;nextEntry = NULL;</div><div class="line">    return iter;</div><div class="line">&#125;</div><div class="line"></div><div class="line">dictIterator *dictGetSafeIterator(dict *d) &#123;</div><div class="line">    dictIterator *i = dictGetIterator(d);</div><div class="line"></div><div class="line">    i-&gt;safe = 1;</div><div class="line">    return i;</div><div class="line">&#125;</div><div class="line"></div><div class="line">dictEntry *dictNext(dictIterator *iter)</div><div class="line">&#123;</div><div class="line">    while (1) &#123;</div><div class="line">        if (iter-&gt;entry == NULL) &#123;</div><div class="line">            dictht *ht = &amp;iter-&gt;d-&gt;ht[iter-&gt;table];</div><div class="line">            if (iter-&gt;index == -1 &amp;&amp; iter-&gt;table == 0) &#123;</div><div class="line">                if (iter-&gt;safe)</div><div class="line">                    iter-&gt;d-&gt;iterators++;</div><div class="line">                else</div><div class="line">                    iter-&gt;fingerprint = dictFingerprint(iter-&gt;d);</div><div class="line">            &#125;</div><div class="line">            iter-&gt;index++;</div><div class="line">            if (iter-&gt;index &gt;= (long) ht-&gt;size) &#123;</div><div class="line">                if (dictIsRehashing(iter-&gt;d) &amp;&amp; iter-&gt;table == 0) &#123;</div><div class="line">                    iter-&gt;table++;</div><div class="line">                    iter-&gt;index = 0;</div><div class="line">                    ht = &amp;iter-&gt;d-&gt;ht[1];//切换到ht[1]</div><div class="line">                &#125; else &#123;</div><div class="line">                    break;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            iter-&gt;entry = ht-&gt;table[iter-&gt;index];</div><div class="line">        &#125; else &#123;</div><div class="line">            iter-&gt;entry = iter-&gt;nextEntry;</div><div class="line">        &#125;</div><div class="line">        if (iter-&gt;entry) &#123;</div><div class="line">            /* We need to save the 'next' here, the iterator user</div><div class="line">             * may delete the entry we are returning. */</div><div class="line">            iter-&gt;nextEntry = iter-&gt;entry-&gt;next;</div><div class="line">            return iter-&gt;entry;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    return NULL;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void dictReleaseIterator(dictIterator *iter)</div><div class="line">&#123;</div><div class="line">    if (!(iter-&gt;index == -1 &amp;&amp; iter-&gt;table == 0)) &#123;</div><div class="line">        if (iter-&gt;safe)</div><div class="line">            iter-&gt;d-&gt;iterators--;</div><div class="line">        else</div><div class="line">			//不安全迭代器释放之前对比前后的fingerprint</div><div class="line">            assert(iter-&gt;fingerprint == dictFingerprint(iter-&gt;d));</div><div class="line">    &#125;</div><div class="line">    zfree(iter);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Return a random entry from the hash table. Useful to</div><div class="line"> * implement randomized algorithms */</div><div class="line">dictEntry *dictGetRandomKey(dict *d)</div><div class="line">&#123;</div><div class="line">    dictEntry *he, *orighe;</div><div class="line">    unsigned int h;</div><div class="line">    int listlen, listele;</div><div class="line"></div><div class="line">    if (dictSize(d) == 0) return NULL;</div><div class="line">    if (dictIsRehashing(d)) _dictRehashStep(d);</div><div class="line">    if (dictIsRehashing(d)) &#123;</div><div class="line">        do &#123;</div><div class="line">            /* We are sure there are no elements in indexes from 0</div><div class="line">             * to rehashidx-1 */</div><div class="line">             //在0-rehashidx-1的桶没有键值对所以如下随机数生成</div><div class="line">            h = d-&gt;rehashidx + (random() % (d-&gt;ht[0].size +</div><div class="line">                                            d-&gt;ht[1].size -</div><div class="line">                                            d-&gt;rehashidx));</div><div class="line">            he = (h &gt;= d-&gt;ht[0].size) ? d-&gt;ht[1].table[h - d-&gt;ht[0].size] :</div><div class="line">                                      d-&gt;ht[0].table[h];</div><div class="line">        &#125; while(he == NULL);</div><div class="line">    &#125; else &#123;</div><div class="line">        do &#123;</div><div class="line">            h = random() &amp; d-&gt;ht[0].sizemask;//在ht[0]中随机一个桶</div><div class="line">            he = d-&gt;ht[0].table[h];</div><div class="line">        &#125; while(he == NULL);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Now we found a non empty bucket, but it is a linked</div><div class="line">     * list and we need to get a random element from the list.</div><div class="line">     * The only sane way to do so is counting the elements and</div><div class="line">     * select a random index. */</div><div class="line">     //在桶上随机一个键值对</div><div class="line">    listlen = 0;</div><div class="line">    orighe = he;</div><div class="line">    while(he) &#123;</div><div class="line">        he = he-&gt;next;</div><div class="line">        listlen++;//获取桶上键值对总数</div><div class="line">    &#125;</div><div class="line">    listele = random() % listlen;//生成随机键值对</div><div class="line">    he = orighe;</div><div class="line">    while(listele--) he = he-&gt;next;</div><div class="line">    return he;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* This function samples the dictionary to return a few keys from random</div><div class="line"> * locations.</div><div class="line"> *</div><div class="line"> * It does not guarantee to return all the keys specified in 'count', nor</div><div class="line"> * it does guarantee to return non-duplicated elements, however it will make</div><div class="line"> * some effort to do both things.</div><div class="line"> *</div><div class="line"> * Returned pointers to hash table entries are stored into 'des' that</div><div class="line"> * points to an array of dictEntry pointers. The array must have room for</div><div class="line"> * at least 'count' elements, that is the argument we pass to the function</div><div class="line"> * to tell how many random elements we need.</div><div class="line"> *</div><div class="line"> * The function returns the number of items stored into 'des', that may</div><div class="line"> * be less than 'count' if the hash table has less than 'count' elements</div><div class="line"> * inside, or if not enough elements were found in a reasonable amount of</div><div class="line"> * steps.</div><div class="line"> *</div><div class="line"> * Note that this function is not suitable when you need a good distribution</div><div class="line"> * of the returned items, but only when you need to "sample" a given number</div><div class="line"> * of continuous elements to run some kind of algorithm or to produce</div><div class="line"> * statistics. However the function is much faster than dictGetRandomKey()</div><div class="line"> * at producing N elements. */</div><div class="line"> //随机生成一些键值对，不一定达到count数目在某些情况下，并且可能有重复，比单个随机获取键值对快</div><div class="line">unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count) &#123;</div><div class="line">    unsigned long j; /* internal hash table id, 0 or 1. */</div><div class="line">    unsigned long tables; /* 1 or 2 tables? */</div><div class="line">    unsigned long stored = 0, maxsizemask;</div><div class="line">    unsigned long maxsteps;</div><div class="line"></div><div class="line">    if (dictSize(d) &lt; count) count = dictSize(d);//确保count不超过size</div><div class="line">    maxsteps = count*10;</div><div class="line"></div><div class="line">    /* Try to do a rehashing work proportional to 'count'. */</div><div class="line">    for (j = 0; j &lt; count; j++) &#123;</div><div class="line">        if (dictIsRehashing(d))</div><div class="line">            _dictRehashStep(d);</div><div class="line">        else</div><div class="line">            break;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    tables = dictIsRehashing(d) ? 2 : 1;</div><div class="line">    maxsizemask = d-&gt;ht[0].sizemask;</div><div class="line">    if (tables &gt; 1 &amp;&amp; maxsizemask &lt; d-&gt;ht[1].sizemask)</div><div class="line">        maxsizemask = d-&gt;ht[1].sizemask;//更新掩码</div><div class="line"></div><div class="line">    /* Pick a random point inside the larger table. */</div><div class="line">    unsigned long i = random() &amp; maxsizemask;</div><div class="line">    unsigned long emptylen = 0; /* Continuous empty entries so far. */</div><div class="line">    while(stored &lt; count &amp;&amp; maxsteps--) &#123;</div><div class="line">        for (j = 0; j &lt; tables; j++) &#123;</div><div class="line">            /* Invariant of the dict.c rehashing: up to the indexes already</div><div class="line">             * visited in ht[0] during the rehashing, there are no populated</div><div class="line">             * buckets, so we can skip ht[0] for indexes between 0 and idx-1. */</div><div class="line">            if (tables == 2 &amp;&amp; j == 0 &amp;&amp; i &lt; (unsigned long) d-&gt;rehashidx) &#123;</div><div class="line">                /* Moreover, if we are currently out of range in the second</div><div class="line">                 * table, there will be no elements in both tables up to</div><div class="line">                 * the current rehashing index, so we jump if possible.</div><div class="line">                 * (this happens when going from big to small table). */</div><div class="line">                 //由于重构过程中rehashidx参数的参考，所以i小于它是可以确保为空桶</div><div class="line">                if (i &gt;= d-&gt;ht[1].size) i = d-&gt;rehashidx;</div><div class="line">                continue;</div><div class="line">            &#125;</div><div class="line">            if (i &gt;= d-&gt;ht[j].size) continue; /* Out of range for this table. */</div><div class="line">            dictEntry *he = d-&gt;ht[j].table[i];</div><div class="line"></div><div class="line">            /* Count contiguous empty buckets, and jump to other</div><div class="line">             * locations if they reach 'count' (with a minimum of 5). */</div><div class="line">            if (he == NULL) &#123;</div><div class="line">                emptylen++;</div><div class="line">                if (emptylen &gt;= 5 &amp;&amp; emptylen &gt; count) &#123;</div><div class="line">                    i = random() &amp; maxsizemask;//重新随机</div><div class="line">                    emptylen = 0;</div><div class="line">                &#125;</div><div class="line">            &#125; else &#123;</div><div class="line">                emptylen = 0;</div><div class="line">                while (he) &#123;</div><div class="line">                    /* Collect all the elements of the buckets found non</div><div class="line">                     * empty while iterating. */</div><div class="line">                    *des = he;//存储随机的键值对</div><div class="line">                    des++;</div><div class="line">                    he = he-&gt;next;</div><div class="line">                    stored++;</div><div class="line">                    if (stored == count) return stored;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        i = (i+1) &amp; maxsizemask;//i+1后重新计算桶index</div><div class="line">    &#125;</div><div class="line">    return stored;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Function to reverse bits. Algorithm from:</div><div class="line"> * http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel */</div><div class="line"> //翻转一个长整形bit位</div><div class="line">static unsigned long rev(unsigned long v) &#123;</div><div class="line">    unsigned long s = 8 * sizeof(v); // bit size; must be power of 2</div><div class="line">    unsigned long mask = ~0;</div><div class="line">    while ((s &gt;&gt;= 1) &gt; 0) &#123;</div><div class="line">        mask ^= (mask &lt;&lt; s);</div><div class="line">        v = ((v &gt;&gt; s) &amp; mask) | ((v &lt;&lt; s) &amp; ~mask);</div><div class="line">    &#125;</div><div class="line">    return v;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* dictScan() is used to iterate over the elements of a dictionary.</div><div class="line"> *</div><div class="line"> * Iterating works the following way:</div><div class="line"> *</div><div class="line"> * 1) Initially you call the function using a cursor (v) value of 0.</div><div class="line"> * 2) The function performs one step of the iteration, and returns the</div><div class="line"> *    new cursor value you must use in the next call.</div><div class="line"> * 3) When the returned cursor is 0, the iteration is complete.</div><div class="line"> *</div><div class="line"> * The function guarantees all elements present in the</div><div class="line"> * dictionary get returned between the start and end of the iteration.</div><div class="line"> * However it is possible some elements get returned multiple times.</div><div class="line"> *</div><div class="line"> * For every element returned, the callback argument 'fn' is</div><div class="line"> * called with 'privdata' as first argument and the dictionary entry</div><div class="line"> * 'de' as second argument.</div><div class="line"> *</div><div class="line"> * HOW IT WORKS.</div><div class="line"> *</div><div class="line"> * The iteration algorithm was designed by Pieter Noordhuis.</div><div class="line"> * The main idea is to increment a cursor starting from the higher order</div><div class="line"> * bits. That is, instead of incrementing the cursor normally, the bits</div><div class="line"> * of the cursor are reversed, then the cursor is incremented, and finally</div><div class="line"> * the bits are reversed again.</div><div class="line"> *</div><div class="line"> * This strategy is needed because the hash table may be resized between</div><div class="line"> * iteration calls.</div><div class="line"> *</div><div class="line"> * dict.c hash tables are always power of two in size, and they</div><div class="line"> * use chaining, so the position of an element in a given table is given</div><div class="line"> * by computing the bitwise AND between Hash(key) and SIZE-1</div><div class="line"> * (where SIZE-1 is always the mask that is equivalent to taking the rest</div><div class="line"> *  of the division between the Hash of the key and SIZE).</div><div class="line"> *</div><div class="line"> * For example if the current hash table size is 16, the mask is</div><div class="line"> * (in binary) 1111. The position of a key in the hash table will always be</div><div class="line"> * the last four bits of the hash output, and so forth.</div><div class="line"> *</div><div class="line"> * WHAT HAPPENS IF THE TABLE CHANGES IN SIZE?</div><div class="line"> *</div><div class="line"> * If the hash table grows, elements can go anywhere in one multiple of</div><div class="line"> * the old bucket: for example let's say we already iterated with</div><div class="line"> * a 4 bit cursor 1100 (the mask is 1111 because hash table size = 16).</div><div class="line"> *</div><div class="line"> * If the hash table will be resized to 64 elements, then the new mask will</div><div class="line"> * be 111111. The new buckets you obtain by substituting in ??1100</div><div class="line"> * with either 0 or 1 can be targeted only by keys we already visited</div><div class="line"> * when scanning the bucket 1100 in the smaller hash table.</div><div class="line"> *</div><div class="line"> * By iterating the higher bits first, because of the inverted counter, the</div><div class="line"> * cursor does not need to restart if the table size gets bigger. It will</div><div class="line"> * continue iterating using cursors without '1100' at the end, and also</div><div class="line"> * without any other combination of the final 4 bits already explored.</div><div class="line"> *</div><div class="line"> * Similarly when the table size shrinks over time, for example going from</div><div class="line"> * 16 to 8, if a combination of the lower three bits (the mask for size 8</div><div class="line"> * is 111) were already completely explored, it would not be visited again</div><div class="line"> * because we are sure we tried, for example, both 0111 and 1111 (all the</div><div class="line"> * variations of the higher bit) so we don't need to test it again.</div><div class="line"> *</div><div class="line"> * WAIT... YOU HAVE *TWO* TABLES DURING REHASHING!</div><div class="line"> *</div><div class="line"> * Yes, this is true, but we always iterate the smaller table first, then</div><div class="line"> * we test all the expansions of the current cursor into the larger</div><div class="line"> * table. For example if the current cursor is 101 and we also have a</div><div class="line"> * larger table of size 16, we also test (0)101 and (1)101 inside the larger</div><div class="line"> * table. This reduces the problem back to having only one table, where</div><div class="line"> * the larger one, if it exists, is just an expansion of the smaller one.</div><div class="line"> *</div><div class="line"> * LIMITATIONS</div><div class="line"> *</div><div class="line"> * This iterator is completely stateless, and this is a huge advantage,</div><div class="line"> * including no additional memory used.</div><div class="line"> *</div><div class="line"> * The disadvantages resulting from this design are:</div><div class="line"> *</div><div class="line"> * 1) It is possible we return elements more than once. However this is usually</div><div class="line"> *    easy to deal with in the application level.</div><div class="line"> * 2) The iterator must return multiple elements per call, as it needs to always</div><div class="line"> *    return all the keys chained in a given bucket, and all the expansions, so</div><div class="line"> *    we are sure we don't miss keys moving during rehashing.</div><div class="line"> * 3) The reverse cursor is somewhat hard to understand at first, but this</div><div class="line"> *    comment is supposed to help.</div><div class="line"> */</div><div class="line">unsigned long dictScan(dict *d,</div><div class="line">                       unsigned long v,</div><div class="line">                       dictScanFunction *fn,</div><div class="line">                       dictScanBucketFunction* bucketfn,</div><div class="line">                       void *privdata)</div><div class="line">&#123;</div><div class="line">    dictht *t0, *t1;</div><div class="line">    const dictEntry *de, *next;</div><div class="line">    unsigned long m0, m1;</div><div class="line"></div><div class="line">    if (dictSize(d) == 0) return 0;</div><div class="line"></div><div class="line">    if (!dictIsRehashing(d)) &#123;</div><div class="line">        t0 = &amp;(d-&gt;ht[0]);</div><div class="line">        m0 = t0-&gt;sizemask;</div><div class="line"></div><div class="line">        /* Emit entries at cursor */</div><div class="line">        if (bucketfn) bucketfn(privdata, &amp;t0-&gt;table[v &amp; m0]);</div><div class="line">        de = t0-&gt;table[v &amp; m0];</div><div class="line">        while (de) &#123;</div><div class="line">            next = de-&gt;next;</div><div class="line">            fn(privdata, de);</div><div class="line">            de = next;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">    &#125; else &#123;</div><div class="line">        t0 = &amp;d-&gt;ht[0];</div><div class="line">        t1 = &amp;d-&gt;ht[1];</div><div class="line"></div><div class="line">        /* Make sure t0 is the smaller and t1 is the bigger table */</div><div class="line">        if (t0-&gt;size &gt; t1-&gt;size) &#123;</div><div class="line">            t0 = &amp;d-&gt;ht[1];</div><div class="line">            t1 = &amp;d-&gt;ht[0];</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        m0 = t0-&gt;sizemask;</div><div class="line">        m1 = t1-&gt;sizemask;</div><div class="line"></div><div class="line">        /* Emit entries at cursor */</div><div class="line">        if (bucketfn) bucketfn(privdata, &amp;t0-&gt;table[v &amp; m0]);</div><div class="line">        de = t0-&gt;table[v &amp; m0];</div><div class="line">        while (de) &#123;</div><div class="line">            next = de-&gt;next;</div><div class="line">            fn(privdata, de);</div><div class="line">            de = next;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        /* Iterate over indices in larger table that are the expansion</div><div class="line">         * of the index pointed to by the cursor in the smaller table */</div><div class="line">        do &#123;</div><div class="line">            /* Emit entries at cursor */</div><div class="line">            if (bucketfn) bucketfn(privdata, &amp;t1-&gt;table[v &amp; m1]);</div><div class="line">            de = t1-&gt;table[v &amp; m1];</div><div class="line">            while (de) &#123;</div><div class="line">                next = de-&gt;next;</div><div class="line">                fn(privdata, de);</div><div class="line">                de = next;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            /* Increment bits not covered by the smaller mask */</div><div class="line">            v = (((v | m0) + 1) &amp; ~m0) | (v &amp; m0);</div><div class="line"></div><div class="line">            /* Continue while bits covered by mask difference is non-zero */</div><div class="line">        &#125; while (v &amp; (m0 ^ m1));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Set unmasked bits so incrementing the reversed cursor</div><div class="line">     * operates on the masked bits of the smaller table */</div><div class="line">    v |= ~m0;</div><div class="line"></div><div class="line">    /* Increment the reverse cursor */</div><div class="line">    v = rev(v);</div><div class="line">    v++;</div><div class="line">    v = rev(v);</div><div class="line"></div><div class="line">    return v;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* ------------------------- private functions ------------------------------ */</div><div class="line"></div><div class="line">/* Expand the hash table if needed */</div><div class="line">static int _dictExpandIfNeeded(dict *d)</div><div class="line">&#123;</div><div class="line">    /* Incremental rehashing already in progress. Return. */</div><div class="line">    if (dictIsRehashing(d)) return DICT_OK;//正在rehash</div><div class="line"></div><div class="line">    /* If the hash table is empty expand it to the initial size. */</div><div class="line">	//当dict在空的时候</div><div class="line">	if (d-&gt;ht[0].size == 0) return dictExpand(d, DICT_HT_INITIAL_SIZE);</div><div class="line"></div><div class="line">    /* If we reached the 1:1 ratio, and we are allowed to resize the hash</div><div class="line">     * table (global setting) or we should avoid it but the ratio between</div><div class="line">     * elements/buckets is over the "safe" threshold, we resize doubling</div><div class="line">     * the number of buckets. */</div><div class="line">     //当used大于size并且可以resize或者used和size比值大于ratio</div><div class="line">    if (d-&gt;ht[0].used &gt;= d-&gt;ht[0].size &amp;&amp;</div><div class="line">        (dict_can_resize ||</div><div class="line">         d-&gt;ht[0].used/d-&gt;ht[0].size &gt; dict_force_resize_ratio))</div><div class="line">    &#123;</div><div class="line">        return dictExpand(d, d-&gt;ht[0].used*2);//扩展2倍的used</div><div class="line">    &#125;</div><div class="line">    return DICT_OK;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Our hash table capability is a power of two */</div><div class="line">static unsigned long _dictNextPower(unsigned long size)</div><div class="line">&#123;</div><div class="line">    unsigned long i = DICT_HT_INITIAL_SIZE;</div><div class="line"></div><div class="line">    if (size &gt;= LONG_MAX) return LONG_MAX;</div><div class="line">    while(1) &#123;</div><div class="line">        if (i &gt;= size)</div><div class="line">            return i;</div><div class="line">        i *= 2;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Returns the index of a free slot that can be populated with</div><div class="line"> * a hash entry for the given 'key'.</div><div class="line"> * If the key already exists, -1 is returned</div><div class="line"> * and the optional output parameter may be filled.</div><div class="line"> *</div><div class="line"> * Note that if we are in the process of rehashing the hash table, the</div><div class="line"> * index is always returned in the context of the second (new) hash table. */</div><div class="line"> //在给定的hash值确定的桶中查找key键值对，返回-1代表有并且填充existing 否则返回桶index</div><div class="line">static int _dictKeyIndex(dict *d, const void *key, unsigned int hash, dictEntry **existing)</div><div class="line">&#123;</div><div class="line">    unsigned int idx, table;</div><div class="line">    dictEntry *he;</div><div class="line">    if (existing) *existing = NULL;</div><div class="line"></div><div class="line">    /* Expand the hash table if needed */</div><div class="line">    if (_dictExpandIfNeeded(d) == DICT_ERR)</div><div class="line">        return -1;</div><div class="line">    for (table = 0; table &lt;= 1; table++) &#123;</div><div class="line">        idx = hash &amp; d-&gt;ht[table].sizemask;//计算桶index</div><div class="line">        /* Search if this slot does not already contain the given key */</div><div class="line">        he = d-&gt;ht[table].table[idx];</div><div class="line">        while(he) &#123;</div><div class="line">            if (key==he-&gt;key || dictCompareKeys(d, key, he-&gt;key)) &#123;</div><div class="line">                if (existing) *existing = he;</div><div class="line">                return -1;</div><div class="line">            &#125;</div><div class="line">            he = he-&gt;next;</div><div class="line">        &#125;</div><div class="line">        if (!dictIsRehashing(d)) break;</div><div class="line">    &#125;</div><div class="line">    return idx;</div><div class="line">&#125;</div><div class="line">//清空字典</div><div class="line">void dictEmpty(dict *d, void(callback)(void*)) &#123;</div><div class="line">    _dictClear(d,&amp;d-&gt;ht[0],callback);//清空键值对表</div><div class="line">    _dictClear(d,&amp;d-&gt;ht[1],callback);</div><div class="line">    d-&gt;rehashidx = -1;//还原字段初始值</div><div class="line">    d-&gt;iterators = 0;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void dictEnableResize(void) &#123;</div><div class="line">    dict_can_resize = 1;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void dictDisableResize(void) &#123;</div><div class="line">    dict_can_resize = 0;</div><div class="line">&#125;</div><div class="line"></div><div class="line">unsigned int dictGetHash(dict *d, const void *key) &#123;</div><div class="line">    return dictHashKey(d, key);</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* Finds the dictEntry reference by using pointer and pre-calculated hash.</div><div class="line"> * oldkey is a dead pointer and should not be accessed.</div><div class="line"> * the hash value should be provided using dictGetHash.</div><div class="line"> * no string / key comparison is performed.</div><div class="line"> * return value is the reference to the dictEntry if found, or NULL if not found. */</div><div class="line"> //根据提前提供的hash以及oldptr查找键值对</div><div class="line">dictEntry **dictFindEntryRefByPtrAndHash(dict *d, const void *oldptr, unsigned int hash) &#123;</div><div class="line">    dictEntry *he, **heref;</div><div class="line">    unsigned int idx, table;</div><div class="line"></div><div class="line">    if (d-&gt;ht[0].used + d-&gt;ht[1].used == 0) return NULL; /* dict is empty */</div><div class="line">    for (table = 0; table &lt;= 1; table++) &#123;</div><div class="line">        idx = hash &amp; d-&gt;ht[table].sizemask;</div><div class="line">        heref = &amp;d-&gt;ht[table].table[idx];</div><div class="line">        he = *heref;</div><div class="line">        while(he) &#123;</div><div class="line">            if (oldptr==he-&gt;key)//判断是否相等</div><div class="line">                return heref;</div><div class="line">            heref = &amp;he-&gt;next;</div><div class="line">            he = *heref;</div><div class="line">        &#125;</div><div class="line">        if (!dictIsRehashing(d)) return NULL;</div><div class="line">    &#125;</div><div class="line">    return NULL;</div><div class="line">&#125;</div><div class="line"></div><div class="line">/* ------------------------------- Debugging ---------------------------------*/</div><div class="line"></div><div class="line">#define DICT_STATS_VECTLEN 50</div><div class="line">//答应dictht的状态属性</div><div class="line">size_t _dictGetStatsHt(char *buf, size_t bufsize, dictht *ht, int tableid) &#123;</div><div class="line">    unsigned long i, slots = 0, chainlen, maxchainlen = 0;</div><div class="line">    unsigned long totchainlen = 0;</div><div class="line">    unsigned long clvector[DICT_STATS_VECTLEN];</div><div class="line">    size_t l = 0;</div><div class="line"></div><div class="line">    if (ht-&gt;used == 0) &#123;</div><div class="line">        return snprintf(buf,bufsize,</div><div class="line">            "No stats available for empty dictionaries\n");</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Compute stats. */</div><div class="line">    for (i = 0; i &lt; DICT_STATS_VECTLEN; i++) clvector[i] = 0;</div><div class="line">    for (i = 0; i &lt; ht-&gt;size; i++) &#123;</div><div class="line">        dictEntry *he;</div><div class="line"></div><div class="line">        if (ht-&gt;table[i] == NULL) &#123;</div><div class="line">            clvector[0]++;</div><div class="line">            continue;</div><div class="line">        &#125;</div><div class="line">        slots++;</div><div class="line">        /* For each hash entry on this slot... */</div><div class="line">        chainlen = 0;</div><div class="line">        he = ht-&gt;table[i];</div><div class="line">        while(he) &#123;</div><div class="line">            chainlen++;</div><div class="line">            he = he-&gt;next;</div><div class="line">        &#125;</div><div class="line">        clvector[(chainlen &lt; DICT_STATS_VECTLEN) ? chainlen : (DICT_STATS_VECTLEN-1)]++;</div><div class="line">        if (chainlen &gt; maxchainlen) maxchainlen = chainlen;</div><div class="line">        totchainlen += chainlen;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Generate human readable stats. */</div><div class="line">    l += snprintf(buf+l,bufsize-l,</div><div class="line">        "Hash table %d stats (%s):\n"</div><div class="line">        " table size: %ld\n"</div><div class="line">        " number of elements: %ld\n"</div><div class="line">        " different slots: %ld\n"</div><div class="line">        " max chain length: %ld\n"</div><div class="line">        " avg chain length (counted): %.02f\n"</div><div class="line">        " avg chain length (computed): %.02f\n"</div><div class="line">        " Chain length distribution:\n",</div><div class="line">        tableid, (tableid == 0) ? "main hash table" : "rehashing target",</div><div class="line">        ht-&gt;size, ht-&gt;used, slots, maxchainlen,</div><div class="line">        (float)totchainlen/slots, (float)ht-&gt;used/slots);</div><div class="line"></div><div class="line">    for (i = 0; i &lt; DICT_STATS_VECTLEN-1; i++) &#123;</div><div class="line">        if (clvector[i] == 0) continue;</div><div class="line">        if (l &gt;= bufsize) break;</div><div class="line">        l += snprintf(buf+l,bufsize-l,</div><div class="line">            "   %s%ld: %ld (%.02f%%)\n",</div><div class="line">            (i == DICT_STATS_VECTLEN-1)?"&gt;= ":"",</div><div class="line">            i, clvector[i], ((float)clvector[i]/ht-&gt;size)*100);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    /* Unlike snprintf(), teturn the number of characters actually written. */</div><div class="line">    if (bufsize) buf[bufsize-1] = '\0';</div><div class="line">    return strlen(buf);</div><div class="line">&#125;</div><div class="line"></div><div class="line">void dictGetStats(char *buf, size_t bufsize, dict *d) &#123;</div><div class="line">    size_t l;</div><div class="line">    char *orig_buf = buf;</div><div class="line">    size_t orig_bufsize = bufsize;</div><div class="line"></div><div class="line">    l = _dictGetStatsHt(buf,bufsize,&amp;d-&gt;ht[0],0);</div><div class="line">    buf += l;</div><div class="line">    bufsize -= l;</div><div class="line">    if (dictIsRehashing(d) &amp;&amp; bufsize &gt; 0) &#123;</div><div class="line">        _dictGetStatsHt(buf,bufsize,&amp;d-&gt;ht[1],1);</div><div class="line">    &#125;</div><div class="line">    /* Make sure there is a NULL term at the end. */</div><div class="line">    if (orig_bufsize) orig_buf[orig_bufsize-1] = '\0';</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/" title="redis源码(3)——dict篇">https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/源码分析/" rel="tag"># 源码分析</a>
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/nosql/" rel="tag"># nosql</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/04/18/redis源码-2-——adlist篇/" rel="next" title="redis源码(2)——adlist篇">
+                <i class="fa fa-chevron-left"></i> redis源码(2)——adlist篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/04/22/redis源码-4-——intset和ziplist篇/" rel="prev" title="redis源码(4)——intset和ziplist篇">
+                redis源码(4)——intset和ziplist篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/04/20/redis源码-3-——dict篇/"
+     data-title="redis源码(3)——dict篇"
+     data-content=""
+     data-url="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/04/20/redis源码-3-——dict篇/"
+           data-title="redis源码(3)——dict篇" data-url="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">18</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"morningXB"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
