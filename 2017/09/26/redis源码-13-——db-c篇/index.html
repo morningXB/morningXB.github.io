@@ -1,0 +1,1018 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="源码分析,redis,nosql," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="数据库中记录着许多类型的数据对象，对于整个数据库，内部也是用一个字典来存储管理键值对，value就是各种robj对象，对于一个server可以有许多个数据库，对于一个客户端client只能选择一个数据库在一个时间点，下面我们看一下相关的数据结构，看看redisdb等之中存储的信息有哪些。123456789101112131415161718192021222324252627// redis中数据">
+<meta name="keywords" content="源码分析,redis,nosql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码(13)——db.c篇">
+<meta property="og:url" content="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="数据库中记录着许多类型的数据对象，对于整个数据库，内部也是用一个字典来存储管理键值对，value就是各种robj对象，对于一个server可以有许多个数据库，对于一个客户端client只能选择一个数据库在一个时间点，下面我们看一下相关的数据结构，看看redisdb等之中存储的信息有哪些。123456789101112131415161718192021222324252627// redis中数据">
+<meta property="og:updated_time" content="2017-09-27T11:05:19.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码(13)——db.c篇">
+<meta name="twitter:description" content="数据库中记录着许多类型的数据对象，对于整个数据库，内部也是用一个字典来存储管理键值对，value就是各种robj对象，对于一个server可以有许多个数据库，对于一个客户端client只能选择一个数据库在一个时间点，下面我们看一下相关的数据结构，看看redisdb等之中存储的信息有哪些。123456789101112131415161718192021222324252627// redis中数据">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/"/>
+
+
+
+
+
+  <title> redis源码(13)——db.c篇 | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码(13)——db.c篇
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-26T10:42:13+08:00">
+                2017-09-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/09/26/redis源码-13-——db-c篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/09/26/redis源码-13-——db-c篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>数据库中记录着许多类型的数据对象，对于整个数据库，内部也是用一个字典来存储管理键值对，value就是各种robj对象，对于一个server可以有许多个数据库，对于一个客户端client只能选择一个数据库在一个时间点，下面我们看一下相关的数据结构，看看redisdb等之中存储的信息有哪些。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// redis中数据库结构，id用来表示数据库标号，从0到配置的最大标号</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> &#123;</span></div><div class="line">    dict *dict;                 <span class="comment">/* The keyspace for this DB */</span></div><div class="line">    <span class="comment">// 存储数据库中键和对象</span></div><div class="line">    dict *expires;              <span class="comment">/* Timeout of keys with a timeout set */</span></div><div class="line">    <span class="comment">// 每一个对象的过期时限</span></div><div class="line">    dict *blocking_keys;        <span class="comment">/* Keys with clients waiting for data (BLPOP)*/</span></div><div class="line">    <span class="comment">// 存储阻塞的key以及阻塞的用户list</span></div><div class="line">    dict *ready_keys;           <span class="comment">/* Blocked keys that received a PUSH */</span></div><div class="line">    <span class="comment">// 存储准备解开阻塞的key</span></div><div class="line">    dict *watched_keys;         <span class="comment">/* WATCHED keys for MULTI/EXEC CAS */</span></div><div class="line">    <span class="comment">// 查看的key用于事务块</span></div><div class="line">    <span class="keyword">int</span> id;                     <span class="comment">/* Database ID */</span></div><div class="line">    <span class="comment">// 数据库id</span></div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> avg_ttl;          <span class="comment">/* Average TTL, just for stats */</span></div><div class="line">    <span class="comment">// 平均ttl</span></div><div class="line">&#125; redisDb;</div><div class="line"></div><div class="line"><span class="comment">//Redis服务器和客户端也都保存有数据库的信息，下面截取出来：</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">client</span> &#123;</span></div><div class="line">    redisDb *db;            <span class="comment">/* Pointer to currently SELECTed DB. */</span></div><div class="line">&#125; client;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></div><div class="line">    redisDb *db;</div><div class="line">    <span class="keyword">int</span> dbnum;                      <span class="comment">/* Total number of configured DBs */</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<a id="more"></a>
+<p>redisdb中的dict用来存储数据库中的键值对，所以也存在相应的查询，添加删除操作函数。<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div></pre></td><td class="code"><pre><div class="line">// 基础的查询api，不能直接调用，用lookupKeyRead(),lookupKeyWrite() and lookupKeyReadWithFlags()取代</div><div class="line">robj *lookupKey(redisDb *db, robj *key, int flags);</div><div class="line">// 查询key为了一个读操作。return null如果key不存在。</div><div class="line">// 调用这个函数的副作用分：1.一个键实效如果达到了它的ttl 2.最近访问时间跟新 3.全局命中丢失跟新</div><div class="line">// 当我们获取与键相连的对象时，只在只读操作时才可以使用此API。</div><div class="line">// flags改变指令行为：1.LOOKUP_NONE没有特殊指示 2.LOOKUP_NOTOUCH不改变最近跟新时间</div><div class="line">robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags);</div><div class="line">// 常规的读查询</div><div class="line">robj *lookupKeyRead(redisDb *db, robj *key);</div><div class="line">// 查询key用来写操作，它副作用是，如果需要，使key实效如果ttl已经达到</div><div class="line">robj *lookupKeyWrite(redisDb *db, robj *key);</div><div class="line">robj *lookupKeyReadOrReply(client *c, robj *key, robj *reply);</div><div class="line">robj *lookupKeyWriteOrReply(client *c, robj *key, robj *reply);</div><div class="line"></div><div class="line">robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags) &#123;</div><div class="line">    robj *val;</div><div class="line"></div><div class="line">    if (expireIfNeeded(db,key) == 1) &#123;</div><div class="line">    	// key达到过期时间，实效</div><div class="line">    	// 在一个master环境下，key确保被删除，所以返回null</div><div class="line">        if (server.masterhost == NULL) return NULL;</div><div class="line">        // 在一个slave环境下，为了确保主从的一致性，返回null</div><div class="line">        if (server.current_client &amp;&amp;</div><div class="line">            server.current_client != server.master &amp;&amp;</div><div class="line">            server.current_client-&gt;cmd &amp;&amp;</div><div class="line">            server.current_client-&gt;cmd-&gt;flags &amp; CMD_READONLY)</div><div class="line">        &#123;</div><div class="line">            return NULL;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    val = lookupKey(db,key,flags);</div><div class="line">    // 更新读查询命中以及丢失次数</div><div class="line">    if (val == NULL)</div><div class="line">        server.stat_keyspace_misses++;</div><div class="line">    else</div><div class="line">        server.stat_keyspace_hits++;</div><div class="line">    return val;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line">// 向数据库添加键，同时增加value的引用的计数，如果已经存在 终止函数</div><div class="line">void dbAdd(redisDb *db, robj *key, robj *val)；</div><div class="line"> // 重写已经存在的key，函数不会修改key的过期时间，程序终止，如果key不存在。</div><div class="line">void dbOverwrite(redisDb *db, robj *key, robj *val)；</div><div class="line">// 数据库中所有的key通过该函数添加。</div><div class="line">// 函数作用1.增加value引用计数 2.用户查看目标key通知 3.ttl重置</div><div class="line">void setKey(redisDb *db, robj *key, robj *val)；</div><div class="line">// 是否存在key</div><div class="line">int dbExists(redisDb *db, robj *key)；</div><div class="line">// 随机返回一个key的redis对象，保证返回的key没有过期</div><div class="line">robj *dbRandomKey(redisDb *db)；</div><div class="line">// 同步删除key value以及相关的条目</div><div class="line">int dbSyncDelete(redisDb *db, robj *key)；</div><div class="line">// 删除包装，是否懒删除</div><div class="line">int dbDelete(redisDb *db, robj *key)；</div><div class="line">// 当出现对象正在share状态，或者编码不是RAW，我们需要unshare他们，为SETBIT or APPEND准备</div><div class="line">robj *dbUnshareStringValue(redisDb *db, robj *key, robj *o)；</div><div class="line">// 清空所欧的数据库，分为同步删除与异步删除</div><div class="line">long long emptyDb(int dbnum, int flags, void(callback)(void*))；</div><div class="line">// 切换db</div><div class="line">int selectDb(client *c, int id)；</div><div class="line">// 键改变的钩子函数，每次数据库中的键更新时，调用该函数</div><div class="line">// 每次数据库被清空时调用signalFlushedDb，用于事务检查</div><div class="line">void signalModifiedKey(redisDb *db, robj *key) &#123;</div><div class="line">    touchWatchedKey(db,key);</div><div class="line">&#125;</div><div class="line">void signalFlushedDb(int dbid) &#123;</div><div class="line">    touchWatchedKeysOnFlush(dbid);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>利用上面完成的关于db的函数来完成指令函数的实现，关于db的指令也有很多，下面主要注释几个比较复杂的函数比如scan等<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div><div class="line">269</div><div class="line">270</div><div class="line">271</div><div class="line">272</div><div class="line">273</div><div class="line">274</div><div class="line">275</div><div class="line">276</div><div class="line">277</div><div class="line">278</div><div class="line">279</div><div class="line">280</div><div class="line">281</div><div class="line">282</div><div class="line">283</div><div class="line">284</div><div class="line">285</div><div class="line">286</div><div class="line">287</div><div class="line">288</div><div class="line">289</div><div class="line">290</div><div class="line">291</div><div class="line">292</div><div class="line">293</div><div class="line">294</div><div class="line">295</div><div class="line">296</div><div class="line">297</div><div class="line">298</div><div class="line">299</div><div class="line">300</div><div class="line">301</div><div class="line">302</div><div class="line">303</div><div class="line">304</div><div class="line">305</div><div class="line">306</div><div class="line">307</div><div class="line">308</div><div class="line">309</div><div class="line">310</div><div class="line">311</div><div class="line">312</div><div class="line">313</div><div class="line">314</div><div class="line">315</div><div class="line">316</div><div class="line">317</div><div class="line">318</div><div class="line">319</div><div class="line">320</div><div class="line">321</div><div class="line">322</div><div class="line">323</div><div class="line">324</div><div class="line">325</div><div class="line">326</div><div class="line">327</div><div class="line">328</div><div class="line">329</div><div class="line">330</div><div class="line">331</div><div class="line">332</div><div class="line">333</div><div class="line">334</div><div class="line">335</div><div class="line">336</div><div class="line">337</div><div class="line">338</div><div class="line">339</div><div class="line">340</div><div class="line">341</div><div class="line">342</div><div class="line">343</div><div class="line">344</div><div class="line">345</div><div class="line">346</div><div class="line">347</div><div class="line">348</div><div class="line">349</div><div class="line">350</div><div class="line">351</div><div class="line">352</div><div class="line">353</div><div class="line">354</div><div class="line">355</div><div class="line">356</div><div class="line">357</div><div class="line">358</div><div class="line">359</div><div class="line">360</div><div class="line">361</div><div class="line">362</div><div class="line">363</div><div class="line">364</div><div class="line">365</div><div class="line">366</div><div class="line">367</div><div class="line">368</div><div class="line">369</div><div class="line">370</div><div class="line">371</div><div class="line">372</div><div class="line">373</div><div class="line">374</div><div class="line">375</div><div class="line">376</div><div class="line">377</div><div class="line">378</div><div class="line">379</div><div class="line">380</div><div class="line">381</div><div class="line">382</div><div class="line">383</div><div class="line">384</div><div class="line">385</div><div class="line">386</div><div class="line">387</div><div class="line">388</div><div class="line">389</div><div class="line">390</div><div class="line">391</div><div class="line">392</div><div class="line">393</div><div class="line">394</div><div class="line">395</div><div class="line">396</div><div class="line">397</div><div class="line">398</div><div class="line">399</div><div class="line">400</div><div class="line">401</div><div class="line">402</div><div class="line">403</div><div class="line">404</div><div class="line">405</div><div class="line">406</div><div class="line">407</div><div class="line">408</div><div class="line">409</div><div class="line">410</div><div class="line">411</div><div class="line">412</div><div class="line">413</div><div class="line">414</div><div class="line">415</div><div class="line">416</div><div class="line">417</div><div class="line">418</div><div class="line">419</div><div class="line">420</div><div class="line">421</div><div class="line">422</div><div class="line">423</div><div class="line">424</div><div class="line">425</div><div class="line">426</div><div class="line">427</div><div class="line">428</div><div class="line">429</div><div class="line">430</div><div class="line">431</div><div class="line">432</div><div class="line">433</div><div class="line">434</div><div class="line">435</div><div class="line">436</div><div class="line">437</div><div class="line">438</div><div class="line">439</div><div class="line">440</div><div class="line">441</div><div class="line">442</div><div class="line">443</div><div class="line">444</div><div class="line">445</div><div class="line">446</div><div class="line">447</div><div class="line">448</div><div class="line">449</div><div class="line">450</div><div class="line">451</div><div class="line">452</div><div class="line">453</div><div class="line">454</div><div class="line">455</div><div class="line">456</div><div class="line">457</div><div class="line">458</div><div class="line">459</div><div class="line">460</div><div class="line">461</div><div class="line">462</div><div class="line">463</div><div class="line">464</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* This callback is used by scanGenericCommand in order to collect elements</span></div><div class="line"> * returned by the dictionary iterator into a list. */</div><div class="line"><span class="comment">// 这个callback函数被scanGenericCommand调用为了收集元素添加到list中通过字典迭代器</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">scanCallback</span><span class="params">(<span class="keyword">void</span> *privdata, <span class="keyword">const</span> dictEntry *de)</span> </span>&#123;</div><div class="line">    <span class="keyword">void</span> **pd = (<span class="keyword">void</span>**) privdata;</div><div class="line">    <span class="built_in">list</span> *keys = pd[<span class="number">0</span>];</div><div class="line">    robj *o = pd[<span class="number">1</span>];</div><div class="line">    robj *key, *val = <span class="literal">NULL</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (o == <span class="literal">NULL</span>) &#123;</div><div class="line">        sds sdskey = dictGetKey(de);</div><div class="line">        key = createStringObject(sdskey, sdslen(sdskey));</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_SET) &#123;</div><div class="line">        sds keysds = dictGetKey(de);</div><div class="line">        key = createStringObject(keysds,sdslen(keysds));</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_HASH) &#123;</div><div class="line">        sds sdskey = dictGetKey(de);</div><div class="line">        sds sdsval = dictGetVal(de);</div><div class="line">        key = createStringObject(sdskey,sdslen(sdskey));</div><div class="line">        val = createStringObject(sdsval,sdslen(sdsval));</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_ZSET) &#123;</div><div class="line">        sds sdskey = dictGetKey(de);</div><div class="line">        key = createStringObject(sdskey,sdslen(sdskey));</div><div class="line">        val = createStringObjectFromLongDouble(*(<span class="keyword">double</span>*)dictGetVal(de),<span class="number">0</span>);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        serverPanic(<span class="string">"Type not handled in SCAN callback."</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    listAddNodeTail(keys, key);</div><div class="line">    <span class="keyword">if</span> (val) listAddNodeTail(keys, val);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Try to parse a SCAN cursor stored at object 'o':</span></div><div class="line"> * if the cursor is valid, store it as unsigned integer into *cursor and</div><div class="line"> * returns C_OK. Otherwise return C_ERR and send an error to the</div><div class="line"> * client. */</div><div class="line"><span class="comment">// 获取scan指令中的cursor值</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">parseScanCursorOrReply</span><span class="params">(client *c, robj *o, <span class="keyword">unsigned</span> <span class="keyword">long</span> *cursor)</span> </span>&#123;</div><div class="line">    <span class="keyword">char</span> *eptr;</div><div class="line"></div><div class="line">    <span class="comment">/* Use strtoul() because we need an *unsigned* long, so</span></div><div class="line">     * getLongLongFromObject() does not cover the whole cursor space. */</div><div class="line">    errno = <span class="number">0</span>;</div><div class="line">    *cursor = strtoul(o-&gt;ptr, &amp;eptr, <span class="number">10</span>);</div><div class="line">    <span class="keyword">if</span> (<span class="built_in">isspace</span>(((<span class="keyword">char</span>*)o-&gt;ptr)[<span class="number">0</span>]) || eptr[<span class="number">0</span>] != <span class="string">'\0'</span> || errno == ERANGE)</div><div class="line">    &#123;</div><div class="line">        addReplyError(c, <span class="string">"invalid cursor"</span>);</div><div class="line">        <span class="keyword">return</span> C_ERR;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> C_OK;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* This command implements SCAN, HSCAN and SSCAN commands.</span></div><div class="line"> * If object 'o' is passed, then it must be a Hash or Set object, otherwise</div><div class="line"> * if 'o' is NULL the command will operate on the dictionary associated with</div><div class="line"> * the current database.</div><div class="line"> *</div><div class="line"> * When 'o' is not NULL the function assumes that the first argument in</div><div class="line"> * the client arguments vector is a key so it skips it before iterating</div><div class="line"> * in order to parse options.</div><div class="line"> *</div><div class="line"> * In the case of a Hash object the function returns both the field and value</div><div class="line"> * of every element on the Hash. */</div><div class="line"><span class="comment">// 此函数实现了SCAN。HSCAN，SSCAN指令</span></div><div class="line"><span class="comment">// 如果o被传入，那么一定是hash或set对象，否则o为null，这个指令将会操作现在数据库的字典</span></div><div class="line"><span class="comment">// 当o不是空，函数假设第一个参数在参数容器中是一个key，所以为了分析options在迭代之前跳过它。</span></div><div class="line"><span class="comment">// 在hash对象的情况下，函数返回每个元素的field以及value</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">scanGenericCommand</span><span class="params">(client *c, robj *o, <span class="keyword">unsigned</span> <span class="keyword">long</span> cursor)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> i, j;</div><div class="line">    <span class="built_in">list</span> *keys = listCreate();</div><div class="line">    listNode *node, *nextnode;</div><div class="line">    <span class="keyword">long</span> count = <span class="number">10</span>;</div><div class="line">    sds pat = <span class="literal">NULL</span>;</div><div class="line">    <span class="keyword">int</span> patlen = <span class="number">0</span>, use_pattern = <span class="number">0</span>;</div><div class="line">    dict *ht;</div><div class="line"></div><div class="line">    <span class="comment">/* Object must be NULL (to iterate keys names), or the type of the object</span></div><div class="line">     * must be Set, Sorted Set, or Hash. */</div><div class="line">    <span class="comment">// 对象必须为空或者type为集合，哈希表，或者有序集合</span></div><div class="line">    serverAssert(o == <span class="literal">NULL</span> || o-&gt;type == OBJ_SET || o-&gt;type == OBJ_HASH ||</div><div class="line">                o-&gt;type == OBJ_ZSET);</div><div class="line"></div><div class="line">    <span class="comment">/* Set i to the first option argument. The previous one is the cursor. */</span></div><div class="line">    <span class="comment">// 设置i为第一个option参数，前一个为游标参数。当o=null时，可以跳过key</span></div><div class="line">    i = (o == <span class="literal">NULL</span>) ? <span class="number">2</span> : <span class="number">3</span>; <span class="comment">/* Skip the key argument if needed. */</span></div><div class="line"></div><div class="line">    <span class="comment">/* Step 1: Parse options. */</span></div><div class="line">    <span class="comment">// 第一步解析options</span></div><div class="line">    <span class="keyword">while</span> (i &lt; c-&gt;argc) &#123;</div><div class="line">        j = c-&gt;argc - i;</div><div class="line">        <span class="comment">// 获取count option 以及参数，判断语法规范以及参数格式</span></div><div class="line">        <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i]-&gt;ptr, <span class="string">"count"</span>) &amp;&amp; j &gt;= <span class="number">2</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (getLongFromObjectOrReply(c, c-&gt;argv[i+<span class="number">1</span>], &amp;count, <span class="literal">NULL</span>)</div><div class="line">                != C_OK)</div><div class="line">            &#123;</div><div class="line">                <span class="keyword">goto</span> cleanup;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (count &lt; <span class="number">1</span>) &#123;</div><div class="line">                addReply(c,shared.syntaxerr);</div><div class="line">                <span class="keyword">goto</span> cleanup;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            i += <span class="number">2</span>;</div><div class="line">          <span class="comment">// 获取match option 以及参数，判断语法规范以及参数格式  </span></div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i]-&gt;ptr, <span class="string">"match"</span>) &amp;&amp; j &gt;= <span class="number">2</span>) &#123;</div><div class="line">            pat = c-&gt;argv[i+<span class="number">1</span>]-&gt;ptr;</div><div class="line">            patlen = sdslen(pat);</div><div class="line"></div><div class="line">            <span class="comment">/* The pattern always matches if it is exactly "*", so it is</span></div><div class="line">             * equivalent to disabling it. */</div><div class="line">            <span class="comment">// 如果pat=“*”那么不使用regex</span></div><div class="line">            use_pattern = !(pat[<span class="number">0</span>] == <span class="string">'*'</span> &amp;&amp; patlen == <span class="number">1</span>);</div><div class="line"></div><div class="line">            i += <span class="number">2</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            addReply(c,shared.syntaxerr);</div><div class="line">            <span class="keyword">goto</span> cleanup;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Step 2: Iterate the collection.</span></div><div class="line">     *</div><div class="line">     * Note that if the object is encoded with a ziplist, intset, or any other</div><div class="line">     * representation that is not a hash table, we are sure that it is also</div><div class="line">     * composed of a small number of elements. So to avoid taking state we</div><div class="line">     * just return everything inside the object in a single call, setting the</div><div class="line">     * cursor to zero to signal the end of the iteration. */</div><div class="line">    <span class="comment">// 第二步：迭代集合</span></div><div class="line">    <span class="comment">// 注意如果对象的编码时ziplist, intset，或者其他不是hashtable，我们确定它包含少量的元素，所以我们直接返回所有的元素，将游标设为0标志到达迭代器尾部。</span></div><div class="line">    <span class="comment">/* Handle the case of a hash table. */</span></div><div class="line">    ht = <span class="literal">NULL</span>;</div><div class="line">    <span class="keyword">if</span> (o == <span class="literal">NULL</span>) &#123;</div><div class="line">        ht = c-&gt;db-&gt;dict;</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_SET &amp;&amp; o-&gt;encoding == OBJ_ENCODING_HT) &#123;</div><div class="line">        ht = o-&gt;ptr;</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_HASH &amp;&amp; o-&gt;encoding == OBJ_ENCODING_HT) &#123;</div><div class="line">        ht = o-&gt;ptr;</div><div class="line">        count *= <span class="number">2</span>; <span class="comment">/* We return key / value for this type. */</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_ZSET &amp;&amp; o-&gt;encoding == OBJ_ENCODING_SKIPLIST) &#123;</div><div class="line">        zset *zs = o-&gt;ptr;</div><div class="line">        ht = zs-&gt;dict;</div><div class="line">        count *= <span class="number">2</span>; <span class="comment">/* We return key / value for this type. */</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (ht) &#123;</div><div class="line">        <span class="keyword">void</span> *privdata[<span class="number">2</span>];</div><div class="line">        <span class="comment">/* We set the max number of iterations to ten times the specified</span></div><div class="line">         * COUNT, so if the hash table is in a pathological state (very</div><div class="line">         * sparsely populated) we avoid to block too much time at the cost</div><div class="line">         * of returning no or very few elements. */</div><div class="line">        <span class="comment">// 我们设置最大迭代次数为count的10倍，这样如果哈希表非常小，我们防治阻塞太长的时间在返回极少的元素</span></div><div class="line">        <span class="keyword">long</span> maxiterations = count*<span class="number">10</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* We pass two pointers to the callback: the list to which it will</span></div><div class="line">         * add new elements, and the object containing the dictionary so that</div><div class="line">         * it is possible to fetch more data in a type-dependent way. */</div><div class="line">        <span class="comment">// 我们传两个指针给callback。一个供添加新元素的list，一个包含字典的对象，这样我们可能获取更多元素以一个类型依赖的方式</span></div><div class="line">        privdata[<span class="number">0</span>] = keys;</div><div class="line">        privdata[<span class="number">1</span>] = o;</div><div class="line">        <span class="keyword">do</span> &#123;</div><div class="line">        	<span class="comment">// 迭代对象中元素</span></div><div class="line">            cursor = dictScan(ht, cursor, scanCallback, <span class="literal">NULL</span>, privdata);</div><div class="line">        &#125; <span class="keyword">while</span> (cursor &amp;&amp;</div><div class="line">              maxiterations-- &amp;&amp;</div><div class="line">              listLength(keys) &lt; (<span class="keyword">unsigned</span> <span class="keyword">long</span>)count);</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_SET) &#123;</div><div class="line">        <span class="keyword">int</span> pos = <span class="number">0</span>;</div><div class="line">        <span class="keyword">int64_t</span> ll;</div><div class="line"></div><div class="line">        <span class="keyword">while</span>(intsetGet(o-&gt;ptr,pos++,&amp;ll))</div><div class="line">            listAddNodeTail(keys,createStringObjectFromLongLong(ll));</div><div class="line">        cursor = <span class="number">0</span>;</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_HASH || o-&gt;type == OBJ_ZSET) &#123;</div><div class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *p = ziplistIndex(o-&gt;ptr,<span class="number">0</span>);</div><div class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *vstr;</div><div class="line">        <span class="keyword">unsigned</span> <span class="keyword">int</span> vlen;</div><div class="line">        <span class="keyword">long</span> <span class="keyword">long</span> vll;</div><div class="line"></div><div class="line">        <span class="keyword">while</span>(p) &#123;</div><div class="line">            ziplistGet(p,&amp;vstr,&amp;vlen,&amp;vll);</div><div class="line">            listAddNodeTail(keys,</div><div class="line">                (vstr != <span class="literal">NULL</span>) ? createStringObject((<span class="keyword">char</span>*)vstr,vlen) :</div><div class="line">                                 createStringObjectFromLongLong(vll));</div><div class="line">            p = ziplistNext(o-&gt;ptr,p);</div><div class="line">        &#125;</div><div class="line">        cursor = <span class="number">0</span>;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        serverPanic(<span class="string">"Not handled encoding in SCAN."</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Step 3: Filter elements. */</span></div><div class="line">    <span class="comment">// 第三步过滤元素</span></div><div class="line">    node = listFirst(keys);</div><div class="line">    <span class="keyword">while</span> (node) &#123;</div><div class="line">        robj *kobj = listNodeValue(node);</div><div class="line">        nextnode = listNextNode(node);</div><div class="line">        <span class="keyword">int</span> filter = <span class="number">0</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* Filter element if it does not match the pattern. */</span></div><div class="line">        <span class="keyword">if</span> (!filter &amp;&amp; use_pattern) &#123;</div><div class="line">            <span class="keyword">if</span> (sdsEncodedObject(kobj)) &#123;</div><div class="line">                <span class="keyword">if</span> (!stringmatchlen(pat, patlen, kobj-&gt;ptr, sdslen(kobj-&gt;ptr), <span class="number">0</span>))</div><div class="line">                    filter = <span class="number">1</span>;</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">char</span> buf[LONG_STR_SIZE];</div><div class="line">                <span class="keyword">int</span> len;</div><div class="line"></div><div class="line">                serverAssert(kobj-&gt;encoding == OBJ_ENCODING_INT);</div><div class="line">                len = ll2string(buf,<span class="keyword">sizeof</span>(buf),(<span class="keyword">long</span>)kobj-&gt;ptr);</div><div class="line">                <span class="keyword">if</span> (!stringmatchlen(pat, patlen, buf, len, <span class="number">0</span>)) filter = <span class="number">1</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* Filter element if it is an expired key. */</span></div><div class="line">        <span class="comment">// p判断key是否过期</span></div><div class="line">        <span class="keyword">if</span> (!filter &amp;&amp; o == <span class="literal">NULL</span> &amp;&amp; expireIfNeeded(c-&gt;db, kobj)) filter = <span class="number">1</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* Remove the element and its associted value if needed. */</span></div><div class="line">        <span class="comment">// 如果被过滤从list中删除</span></div><div class="line">        <span class="keyword">if</span> (filter) &#123;</div><div class="line">            decrRefCount(kobj);</div><div class="line">            listDelNode(keys, node);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* If this is a hash or a sorted set, we have a flat list of</span></div><div class="line">         * key-value elements, so if this element was filtered, remove the</div><div class="line">         * value, or skip it if it was not filtered: we only match keys. */</div><div class="line">        <span class="comment">// 如果是要输出键值对那么往后再删除一个node</span></div><div class="line">        <span class="keyword">if</span> (o &amp;&amp; (o-&gt;type == OBJ_ZSET || o-&gt;type == OBJ_HASH)) &#123;</div><div class="line">            node = nextnode;</div><div class="line">            nextnode = listNextNode(node);</div><div class="line">            <span class="keyword">if</span> (filter) &#123;</div><div class="line">                kobj = listNodeValue(node);</div><div class="line">                decrRefCount(kobj);</div><div class="line">                listDelNode(keys, node);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        node = nextnode;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Step 4: Reply to the client. */</span></div><div class="line">    <span class="comment">// 第四部，回应用户</span></div><div class="line">    addReplyMultiBulkLen(c, <span class="number">2</span>);</div><div class="line">    addReplyBulkLongLong(c,cursor);</div><div class="line"></div><div class="line">    addReplyMultiBulkLen(c, listLength(keys));</div><div class="line">    <span class="keyword">while</span> ((node = listFirst(keys)) != <span class="literal">NULL</span>) &#123;</div><div class="line">        robj *kobj = listNodeValue(node);</div><div class="line">        addReplyBulk(c, kobj);</div><div class="line">        decrRefCount(kobj);</div><div class="line">        listDelNode(keys, node);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">cleanup:</div><div class="line">    listSetFreeMethod(keys,decrRefCountVoid);</div><div class="line">    listRelease(keys);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// rename指令实现</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">renameGenericCommand</span><span class="params">(client *c, <span class="keyword">int</span> nx)</span> </span>&#123;</div><div class="line">    robj *o;</div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> expire;</div><div class="line">    <span class="keyword">int</span> samekey = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* When source and dest key is the same, no operation is performed,</span></div><div class="line">     * if the key exists, however we still return an error on unexisting key. */</div><div class="line">    <span class="comment">// 	如果源key与目标key相同，没有操作执行</span></div><div class="line">    <span class="keyword">if</span> (sdscmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,c-&gt;argv[<span class="number">2</span>]-&gt;ptr) == <span class="number">0</span>) samekey = <span class="number">1</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> ((o = lookupKeyWriteOrReply(c,c-&gt;argv[<span class="number">1</span>],shared.nokeyerr)) == <span class="literal">NULL</span>)</div><div class="line">        <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (samekey) &#123;</div><div class="line">        addReply(c,nx ? shared.czero : shared.ok);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    incrRefCount(o);</div><div class="line">    expire = getExpire(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</div><div class="line">    <span class="keyword">if</span> (lookupKeyWrite(c-&gt;db,c-&gt;argv[<span class="number">2</span>]) != <span class="literal">NULL</span>) &#123;</div><div class="line">    	<span class="comment">// 目标key已经存在</span></div><div class="line">        <span class="keyword">if</span> (nx) &#123;</div><div class="line">            decrRefCount(o);</div><div class="line">            addReply(c,shared.czero);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">/* Overwrite: delete the old key before creating the new one</span></div><div class="line">         * with the same name. */</div><div class="line">        <span class="comment">// 删除已经存在的目标key</span></div><div class="line">        dbDelete(c-&gt;db,c-&gt;argv[<span class="number">2</span>]);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 添加新的目标key</span></div><div class="line">    dbAdd(c-&gt;db,c-&gt;argv[<span class="number">2</span>],o);</div><div class="line">    <span class="comment">// 设置原来的过期实现</span></div><div class="line">    <span class="keyword">if</span> (expire != <span class="number">-1</span>) setExpire(c,c-&gt;db,c-&gt;argv[<span class="number">2</span>],expire);</div><div class="line">    <span class="comment">// 删除原来的key</span></div><div class="line">    dbDelete(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</div><div class="line">    signalModifiedKey(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</div><div class="line">    signalModifiedKey(c-&gt;db,c-&gt;argv[<span class="number">2</span>]);</div><div class="line">    notifyKeyspaceEvent(NOTIFY_GENERIC,<span class="string">"rename_from"</span>,</div><div class="line">        c-&gt;argv[<span class="number">1</span>],c-&gt;db-&gt;id);</div><div class="line">    notifyKeyspaceEvent(NOTIFY_GENERIC,<span class="string">"rename_to"</span>,</div><div class="line">        c-&gt;argv[<span class="number">2</span>],c-&gt;db-&gt;id);</div><div class="line">    server.dirty++;</div><div class="line">    addReply(c,nx ? shared.cone : shared.ok);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// move指令实现</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">moveCommand</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    robj *o;</div><div class="line">    redisDb *src, *dst;</div><div class="line">    <span class="keyword">int</span> srcid;</div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> dbid, expire;</div><div class="line"></div><div class="line">    <span class="comment">// 在集群模式下不可移动</span></div><div class="line">    <span class="keyword">if</span> (server.cluster_enabled) &#123;</div><div class="line">        addReplyError(c,<span class="string">"MOVE is not allowed in cluster mode"</span>);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Obtain source and target DB pointers */</span></div><div class="line">    src = c-&gt;db;</div><div class="line">    srcid = c-&gt;db-&gt;id;</div><div class="line">    <span class="comment">// 获取目标数据库id</span></div><div class="line">    <span class="keyword">if</span> (getLongLongFromObject(c-&gt;argv[<span class="number">2</span>],&amp;dbid) == C_ERR ||</div><div class="line">        dbid &lt; INT_MIN || dbid &gt; INT_MAX ||</div><div class="line">        selectDb(c,dbid) == C_ERR)</div><div class="line">    &#123;</div><div class="line">        addReply(c,shared.outofrangeerr);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 记录目标数据库</span></div><div class="line">    dst = c-&gt;db;</div><div class="line">    <span class="comment">// 返回原来的数据库</span></div><div class="line">    selectDb(c,srcid); <span class="comment">/* Back to the source DB */</span></div><div class="line"></div><div class="line">    <span class="comment">/* If the user is moving using as target the same</span></div><div class="line">     * DB as the source DB it is probably an error. */</div><div class="line">    <span class="comment">// 如果是同一个数据库那么返回错误</span></div><div class="line">    <span class="keyword">if</span> (src == dst) &#123;</div><div class="line">        addReply(c,shared.sameobjecterr);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Check if the element exists and get a reference */</span></div><div class="line">    <span class="comment">// 查找源数据库中移动的key</span></div><div class="line">    o = lookupKeyWrite(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</div><div class="line">    <span class="keyword">if</span> (!o) &#123;</div><div class="line">        addReply(c,shared.czero);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    expire = getExpire(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</div><div class="line">    <span class="comment">// 如果目标数据库中存在key那么直接返回错误</span></div><div class="line">    <span class="comment">/* Return zero if the key already exists in the target DB */</span></div><div class="line">    <span class="keyword">if</span> (lookupKeyWrite(dst,c-&gt;argv[<span class="number">1</span>]) != <span class="literal">NULL</span>) &#123;</div><div class="line">        addReply(c,shared.czero);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 往目标数据库添加key，设置过期时限</span></div><div class="line">    dbAdd(dst,c-&gt;argv[<span class="number">1</span>],o);</div><div class="line">    <span class="keyword">if</span> (expire != <span class="number">-1</span>) setExpire(c,dst,c-&gt;argv[<span class="number">1</span>],expire);</div><div class="line">    incrRefCount(o);</div><div class="line"></div><div class="line">    <span class="comment">/* OK! key moved, free the entry in the source DB */</span></div><div class="line">    <span class="comment">// 删除源数据库中的key</span></div><div class="line">    dbDelete(src,c-&gt;argv[<span class="number">1</span>]);</div><div class="line">    server.dirty++;</div><div class="line">    addReply(c,shared.cone);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Helper function for dbSwapDatabases(): scans the list of keys that have</span></div><div class="line"> * one or more blocked clients for B[LR]POP or other list blocking commands</div><div class="line"> * and signal the keys are ready if they are lists. See the comment where</div><div class="line"> * the function is used for more info. */</div><div class="line"><span class="comment">// 检查blocking_keys，将符合的key加入到readylist，该函数是dbSwapDatabases的辅助函数</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">scanDatabaseForReadyLists</span><span class="params">(redisDb *db)</span> </span>&#123;</div><div class="line">    dictEntry *de;</div><div class="line">    dictIterator *di = dictGetSafeIterator(db-&gt;blocking_keys);</div><div class="line">    <span class="keyword">while</span>((de = dictNext(di)) != <span class="literal">NULL</span>) &#123;</div><div class="line">        robj *key = dictGetKey(de);</div><div class="line">        robj *value = lookupKey(db,key,LOOKUP_NOTOUCH);</div><div class="line">        <span class="comment">// 如果该key在新的数据库中存在且类型为list加入到readylist</span></div><div class="line">        <span class="keyword">if</span> (value &amp;&amp; value-&gt;type == OBJ_LIST)</div><div class="line">            signalListAsReady(db, key);</div><div class="line">    &#125;</div><div class="line">    dictReleaseIterator(di);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Swap two databases at runtime so that all clients will magically see</span></div><div class="line"> * the new database even if already connected. Note that the client</div><div class="line"> * structure c-&gt;db points to a given DB, so we need to be smarter and</div><div class="line"> * swap the underlying referenced structures, otherwise we would need</div><div class="line"> * to fix all the references to the Redis DB structure.</div><div class="line"> *</div><div class="line"> * Returns C_ERR if at least one of the DB ids are out of range, otherwise</div><div class="line"> * C_OK is returned. */</div><div class="line"><span class="comment">// 交换两个数据库实现</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">dbSwapDatabases</span><span class="params">(<span class="keyword">int</span> id1, <span class="keyword">int</span> id2)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (id1 &lt; <span class="number">0</span> || id1 &gt;= server.dbnum ||</div><div class="line">        id2 &lt; <span class="number">0</span> || id2 &gt;= server.dbnum) <span class="keyword">return</span> C_ERR;</div><div class="line">    <span class="keyword">if</span> (id1 == id2) <span class="keyword">return</span> C_OK;</div><div class="line">    redisDb aux = server.db[id1];</div><div class="line">    redisDb *db1 = &amp;server.db[id1], *db2 = &amp;server.db[id2];</div><div class="line"></div><div class="line">    <span class="comment">/* Swap hash tables. Note that we don't swap blocking_keys,</span></div><div class="line">     * ready_keys and watched_keys, since we want clients to</div><div class="line">     * remain in the same DB they were. */</div><div class="line">    <span class="comment">// 交换相应的属性</span></div><div class="line">    db1-&gt;dict = db2-&gt;dict;</div><div class="line">    db1-&gt;expires = db2-&gt;expires;</div><div class="line">    db1-&gt;avg_ttl = db2-&gt;avg_ttl;</div><div class="line"></div><div class="line">    db2-&gt;dict = aux.dict;</div><div class="line">    db2-&gt;expires = aux.expires;</div><div class="line">    db2-&gt;avg_ttl = aux.avg_ttl;</div><div class="line"></div><div class="line">    <span class="comment">/* Now we need to handle clients blocked on lists: as an effect</span></div><div class="line">     * of swapping the two DBs, a client that was waiting for list</div><div class="line">     * X in a given DB, may now actually be unblocked if X happens</div><div class="line">     * to exist in the new version of the DB, after the swap.</div><div class="line">     *</div><div class="line">     * However normally we only do this check for efficiency reasons</div><div class="line">     * in dbAdd() when a list is created. So here we need to rescan</div><div class="line">     * the list of clients blocked on lists and signal lists as ready</div><div class="line">     * if needed. */</div><div class="line">    <span class="comment">// 交换后的db，可能阻塞的key不在阻塞了，所以进行检查，将可能的key加入到readylist</span></div><div class="line">    scanDatabaseForReadyLists(db1);</div><div class="line">    scanDatabaseForReadyLists(db2);</div><div class="line">    <span class="keyword">return</span> C_OK;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* SWAPDB db1 db2 */</span></div><div class="line"><span class="comment">// 交换两个db指令实现</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">swapdbCommand</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    <span class="keyword">long</span> id1, id2;</div><div class="line"></div><div class="line">    <span class="comment">/* Not allowed in cluster mode: we have just DB 0 there. */</span></div><div class="line">    <span class="comment">// 在集群模式下不允许执行该指令</span></div><div class="line">    <span class="keyword">if</span> (server.cluster_enabled) &#123;</div><div class="line">        addReplyError(c,<span class="string">"SWAPDB is not allowed in cluster mode"</span>);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Get the two DBs indexes. */</span></div><div class="line">    <span class="comment">// 获取两个db的id</span></div><div class="line">    <span class="keyword">if</span> (getLongFromObjectOrReply(c, c-&gt;argv[<span class="number">1</span>], &amp;id1,</div><div class="line">        <span class="string">"invalid first DB index"</span>) != C_OK)</div><div class="line">        <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (getLongFromObjectOrReply(c, c-&gt;argv[<span class="number">2</span>], &amp;id2,</div><div class="line">        <span class="string">"invalid second DB index"</span>) != C_OK)</div><div class="line">        <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* Swap... */</span></div><div class="line">    <span class="comment">// 交换数据库</span></div><div class="line">    <span class="keyword">if</span> (dbSwapDatabases(id1,id2) == C_ERR) &#123;</div><div class="line">        addReplyError(c,<span class="string">"DB index is out of range"</span>);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        server.dirty++;</div><div class="line">        addReply(c,shared.ok);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接下来是关于数据库key的过期时限的操作，在数据库中也是用一个字典来管理存储每一个key的expire的，下面是关于expire的操作。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 移除key的过期时间</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">removeExpire</span><span class="params">(redisDb *db, robj *key)</span> </span>&#123;</div><div class="line">    <span class="comment">/* An expire may only be removed if there is a corresponding entry in the</span></div><div class="line">     * main dict. Otherwise, the key will never be freed. */</div><div class="line">    serverAssertWithInfo(<span class="literal">NULL</span>,key,dictFind(db-&gt;dict,key-&gt;ptr) != <span class="literal">NULL</span>);</div><div class="line">    <span class="keyword">return</span> dictDelete(db-&gt;expires,key-&gt;ptr) == DICT_OK;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Set an expire to the specified key. If the expire is set in the context</span></div><div class="line"> * of an user calling a command 'c' is the client, otherwise 'c' is set</div><div class="line"> * to NULL. The 'when' parameter is the absolute unix time in milliseconds</div><div class="line"> * after which the key will no longer be considered valid. */</div><div class="line"><span class="comment">// 设置key的过期时间</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">setExpire</span><span class="params">(client *c, redisDb *db, robj *key, <span class="keyword">long</span> <span class="keyword">long</span> when)</span> </span>&#123;</div><div class="line">    dictEntry *kde, *de;</div><div class="line"></div><div class="line">    <span class="comment">/* Reuse the sds from the main dict in the expire dict */</span></div><div class="line">    kde = dictFind(db-&gt;dict,key-&gt;ptr);</div><div class="line">    serverAssertWithInfo(<span class="literal">NULL</span>,key,kde != <span class="literal">NULL</span>);</div><div class="line">    de = dictAddOrFind(db-&gt;expires,dictGetKey(kde));</div><div class="line">    dictSetSignedIntegerVal(de,when);</div><div class="line"></div><div class="line">    <span class="keyword">int</span> writable_slave = server.masterhost &amp;&amp; server.repl_slave_ro == <span class="number">0</span>;</div><div class="line">    <span class="keyword">if</span> (c &amp;&amp; writable_slave &amp;&amp; !(c-&gt;flags &amp; CLIENT_MASTER))</div><div class="line">        rememberSlaveKeyWithExpire(db,key);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Return the expire time of the specified key, or -1 if no expire</span></div><div class="line"> * is associated with this key (i.e. the key is non volatile) */</div><div class="line"><span class="comment">// 返回该键的过期时间，或者返回-1 如果没有实效时间关联到该键 </span></div><div class="line"><span class="function"><span class="keyword">long</span> <span class="keyword">long</span> <span class="title">getExpire</span><span class="params">(redisDb *db, robj *key)</span> </span>&#123;</div><div class="line">    dictEntry *de;</div><div class="line"></div><div class="line">    <span class="comment">/* No expire? return ASAP */</span></div><div class="line">    <span class="keyword">if</span> (dictSize(db-&gt;expires) == <span class="number">0</span> ||</div><div class="line">       (de = dictFind(db-&gt;expires,key-&gt;ptr)) == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="number">-1</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* The entry was found in the expire dict, this means it should also</span></div><div class="line">     * be present in the main dict (safety check). */</div><div class="line">    serverAssertWithInfo(<span class="literal">NULL</span>,key,dictFind(db-&gt;dict,key-&gt;ptr) != <span class="literal">NULL</span>);</div><div class="line">    <span class="keyword">return</span> dictGetSignedIntegerVal(de);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Propagate expires into slaves and the AOF file.</span></div><div class="line"> * When a key expires in the master, a DEL operation for this key is sent</div><div class="line"> * to all the slaves and the AOF file if enabled.</div><div class="line"> *</div><div class="line"> * This way the key expiry is centralized in one place, and since both</div><div class="line"> * AOF and the master-&gt;slave link guarantee operation ordering, everything</div><div class="line"> * will be consistent even if we allow write operations against expiring</div><div class="line"> * keys. */</div><div class="line"><span class="comment">// 发生实效时，向aof以及slave服务器发送删除操作</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">propagateExpire</span><span class="params">(redisDb *db, robj *key, <span class="keyword">int</span> lazy)</span> </span>&#123;</div><div class="line">    robj *argv[<span class="number">2</span>];</div><div class="line"></div><div class="line">    argv[<span class="number">0</span>] = lazy ? shared.unlink : shared.del;</div><div class="line">    argv[<span class="number">1</span>] = key;</div><div class="line">    incrRefCount(argv[<span class="number">0</span>]);</div><div class="line">    incrRefCount(argv[<span class="number">1</span>]);</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (server.aof_state != AOF_OFF)</div><div class="line">        feedAppendOnlyFile(server.delCommand,db-&gt;id,argv,<span class="number">2</span>);</div><div class="line">    replicationFeedSlaves(server.slaves,db-&gt;id,argv,<span class="number">2</span>);</div><div class="line"></div><div class="line">    decrRefCount(argv[<span class="number">0</span>]);</div><div class="line">    decrRefCount(argv[<span class="number">1</span>]);</div><div class="line">&#125;</div><div class="line"><span class="comment">// 数据库中该key在需要时，使它实效</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">expireIfNeeded</span><span class="params">(redisDb *db, robj *key)</span> </span>&#123;</div><div class="line">    <span class="keyword">mstime_t</span> when = getExpire(db,key);</div><div class="line">    <span class="keyword">mstime_t</span> now;</div><div class="line">    <span class="comment">// 不存在expire</span></div><div class="line">    <span class="keyword">if</span> (when &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">/* No expire for this key */</span></div><div class="line"></div><div class="line">    <span class="comment">/* Don't expire anything while loading. It will be done later. */</span></div><div class="line">    <span class="comment">// 如果服务器正在加载，稍后再做</span></div><div class="line">    <span class="keyword">if</span> (server.loading) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* If we are in the context of a Lua script, we claim that time is</span></div><div class="line">     * blocked to when the Lua script started. This way a key can expire</div><div class="line">     * only the first time it is accessed and not in the middle of the</div><div class="line">     * script execution, making propagation to slaves / AOF consistent.</div><div class="line">     * See issue #1525 on Github for more information. */</div><div class="line">    <span class="comment">// 如果是一个lua脚本，那么now为脚本开始时间</span></div><div class="line">    now = server.lua_caller ? server.lua_time_start : mstime();</div><div class="line"></div><div class="line">    <span class="comment">/* If we are running in the context of a slave, return ASAP:</span></div><div class="line">     * the slave key expiration is controlled by the master that will</div><div class="line">     * send us synthesized DEL operations for expired keys.</div><div class="line">     *</div><div class="line">     * Still we try to return the right information to the caller,</div><div class="line">     * that is, 0 if we think the key should be still valid, 1 if</div><div class="line">     * we think the key is expired at this time. */</div><div class="line">    <span class="comment">// 如果是slave那么只返回逻辑是否过期</span></div><div class="line">    <span class="keyword">if</span> (server.masterhost != <span class="literal">NULL</span>) <span class="keyword">return</span> now &gt; when;</div><div class="line"></div><div class="line">    <span class="comment">/* Return when this key has not expired */</span></div><div class="line">    <span class="keyword">if</span> (now &lt;= when) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* Delete the key */</span></div><div class="line">    server.stat_expiredkeys++;</div><div class="line">    propagateExpire(db,key,server.lazyfree_lazy_expire);</div><div class="line">    notifyKeyspaceEvent(NOTIFY_EXPIRED,</div><div class="line">        <span class="string">"expired"</span>,key,db-&gt;id);</div><div class="line">    <span class="keyword">return</span> server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :</div><div class="line">                                         dbSyncDelete(db,key);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>最后一部分是关于获取指令key参数的函数以及对于server来说用散列管理的一个key slot哈希表，可以更快速的获取想要的key，这里不是主体，自行参考源码不多做解释。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/" title="redis源码(13)——db.c篇">https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/源码分析/" rel="tag"># 源码分析</a>
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/nosql/" rel="tag"># nosql</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/18/redis源码-12-——t-zset-c篇/" rel="next" title="redis源码(12)——t_zset.c篇">
+                <i class="fa fa-chevron-left"></i> redis源码(12)——t_zset.c篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/09/26/redis源码-13-——db-c篇/"
+     data-title="redis源码(13)——db.c篇"
+     data-content=""
+     data-url="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/09/26/redis源码-13-——db-c篇/"
+           data-title="redis源码(13)——db.c篇" data-url="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">22</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">18</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"morningXB"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
