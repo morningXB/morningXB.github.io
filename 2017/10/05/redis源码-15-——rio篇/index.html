@@ -1,0 +1,1014 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="源码分析,redis,nosql," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="在介绍rdb以及aof这两种redis备份方式之前，我们先看一下rio这个源文件，这个文件主要针对缓冲区，文件流以及socket三种数据载体的io操作，通过redis的io数据结构rio可以屏蔽底层不同实现，实现数据的读写操作。为rdb以及aof中的快照文件加载写入，以及指令写入加载提供工具。先看rio.h,主要包括了rio数据结构的定义，以及不同载体的文件操作函数的定义，可以看出通过几个静态的函">
+<meta name="keywords" content="源码分析,redis,nosql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码(15)——rio篇">
+<meta property="og:url" content="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="在介绍rdb以及aof这两种redis备份方式之前，我们先看一下rio这个源文件，这个文件主要针对缓冲区，文件流以及socket三种数据载体的io操作，通过redis的io数据结构rio可以屏蔽底层不同实现，实现数据的读写操作。为rdb以及aof中的快照文件加载写入，以及指令写入加载提供工具。先看rio.h,主要包括了rio数据结构的定义，以及不同载体的文件操作函数的定义，可以看出通过几个静态的函">
+<meta property="og:updated_time" content="2017-10-11T05:24:44.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码(15)——rio篇">
+<meta name="twitter:description" content="在介绍rdb以及aof这两种redis备份方式之前，我们先看一下rio这个源文件，这个文件主要针对缓冲区，文件流以及socket三种数据载体的io操作，通过redis的io数据结构rio可以屏蔽底层不同实现，实现数据的读写操作。为rdb以及aof中的快照文件加载写入，以及指令写入加载提供工具。先看rio.h,主要包括了rio数据结构的定义，以及不同载体的文件操作函数的定义，可以看出通过几个静态的函">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/"/>
+
+
+
+
+
+  <title> redis源码(15)——rio篇 | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码(15)——rio篇
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-05T21:52:53+08:00">
+                2017-10-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/10/05/redis源码-15-——rio篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/10/05/redis源码-15-——rio篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在介绍rdb以及aof这两种redis备份方式之前，我们先看一下rio这个源文件，这个文件主要针对缓冲区，文件流以及socket三种数据载体的io操作，通过redis的io数据结构rio可以屏蔽底层不同实现，实现数据的读写操作。为rdb以及aof中的快照文件加载写入，以及指令写入加载提供工具。先看rio.h,<br>主要包括了rio数据结构的定义，以及不同载体的文件操作函数的定义，可以看出通过几个静态的函数，调用不同载体的io操作具体实现，来屏蔽不同载体的操作函数，用户只需要准备好初始化的参数即可，同时也实现了解耦，便于代码的修改以及模块添加。<br><a id="more"></a><br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// redis抽象的io数据结构</span></div><div class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">rio</span> &#123;</span></div><div class="line">    <span class="comment">/* Backend functions.</span></div><div class="line">     * Since this functions do not tolerate short writes or reads the return</div><div class="line">     * value is simplified to: zero on error, non zero on complete success. */</div><div class="line">    <span class="comment">// 对于各种类型数据存储对象的读写移动指针以及刷新的函数指针</span></div><div class="line">    <span class="keyword">size_t</span> (*read)(struct _rio *, <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len);</div><div class="line">    <span class="keyword">size_t</span> (*write)(struct _rio *, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len);</div><div class="line">    <span class="keyword">off_t</span> (*tell)(struct _rio *);</div><div class="line">    <span class="keyword">int</span> (*flush)(struct _rio *);</div><div class="line">    <span class="comment">/* The update_cksum method if not NULL is used to compute the checksum of</span></div><div class="line">     * all the data that was read or written so far. The method should be</div><div class="line">     * designed so that can be called with the current checksum, and the buf</div><div class="line">     * and len fields pointing to the new block of data to add to the checksum</div><div class="line">     * computation. */</div><div class="line">    <span class="comment">// 如果这个方法不为空，用来计算所有被读写数据的checksum</span></div><div class="line">    <span class="keyword">void</span> (*update_cksum)(struct _rio *, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len);</div><div class="line"></div><div class="line">    <span class="comment">/* The current checksum */</span></div><div class="line">    <span class="comment">// 当前的checksum</span></div><div class="line">    <span class="keyword">uint64_t</span> cksum;</div><div class="line"></div><div class="line">    <span class="comment">/* number of bytes read or written */</span></div><div class="line">    <span class="comment">// 读或者写的数据的字节数</span></div><div class="line">    <span class="keyword">size_t</span> processed_bytes;</div><div class="line"></div><div class="line">    <span class="comment">/* maximum single read or write chunk size */</span></div><div class="line">    <span class="comment">// 单次最大读写的块大小</span></div><div class="line">    <span class="keyword">size_t</span> max_processing_chunk;</div><div class="line"></div><div class="line">    <span class="comment">/* Backend-specific vars. */</span></div><div class="line">    <span class="comment">// buffer file以及网络套接字的对象指针</span></div><div class="line">    <span class="keyword">union</span> &#123;</div><div class="line">        <span class="comment">/* In-memory buffer target. */</span></div><div class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></div><div class="line">            sds ptr;</div><div class="line">            <span class="keyword">off_t</span> pos;</div><div class="line">        &#125; buffer;</div><div class="line">        <span class="comment">/* Stdio file pointer target. */</span></div><div class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></div><div class="line">            FILE *fp;</div><div class="line">            <span class="comment">// 最后一次同步后写入的字节数</span></div><div class="line">            <span class="keyword">off_t</span> buffered; <span class="comment">/* Bytes written since last fsync. */</span></div><div class="line">            <span class="comment">// 自动同步的字节数限制</span></div><div class="line">            <span class="keyword">off_t</span> autosync; <span class="comment">/* fsync after 'autosync' bytes written. */</span></div><div class="line">        &#125; file;</div><div class="line">        <span class="comment">/* Multiple FDs target (used to write to N sockets). */</span></div><div class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></div><div class="line">            <span class="comment">// 文件描述符</span></div><div class="line">            <span class="keyword">int</span> *fds;       <span class="comment">/* File descriptors. */</span></div><div class="line">            <span class="comment">// 每一个文件的状态</span></div><div class="line">            <span class="keyword">int</span> *state;     <span class="comment">/* Error state of each fd. 0 (if ok) or errno. */</span></div><div class="line">            <span class="comment">// 描述符数目</span></div><div class="line">            <span class="keyword">int</span> numfds;</div><div class="line">            <span class="comment">// 数据偏移</span></div><div class="line">            <span class="keyword">off_t</span> pos;</div><div class="line">            <span class="comment">// 写入数据</span></div><div class="line">            sds buf;</div><div class="line">        &#125; fdset;</div><div class="line">    &#125; io;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">rio</span> <span class="title">rio</span>;</span></div><div class="line"></div><div class="line"><span class="comment">/* The following functions are our interface with the stream. They'll call the</span></div><div class="line"> * actual implementation of read / write / tell, and will update the checksum</div><div class="line"> * if needed. */</div><div class="line"><span class="comment">// 实现对各种流的写数据功能，在需要时检查checksum，调用其相应载体具体的读写实现</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> size_t <span class="title">rioWrite</span><span class="params">(rio *r, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">while</span> (len) &#123;</div><div class="line">        <span class="comment">// 这一轮写入的数据长度</span></div><div class="line">        <span class="keyword">size_t</span> bytes_to_write = (r-&gt;max_processing_chunk &amp;&amp; r-&gt;max_processing_chunk &lt; len) ? r-&gt;max_processing_chunk : len;</div><div class="line">        <span class="comment">// 如果需要检查cksum</span></div><div class="line">        <span class="keyword">if</span> (r-&gt;update_cksum) r-&gt;update_cksum(r,buf,bytes_to_write);</div><div class="line">        <span class="comment">// 写入数据</span></div><div class="line">        <span class="keyword">if</span> (r-&gt;write(r,buf,bytes_to_write) == <span class="number">0</span>)</div><div class="line">            <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">        <span class="comment">// 修改数据指针</span></div><div class="line">        buf = (<span class="keyword">char</span>*)buf + bytes_to_write;</div><div class="line">        <span class="comment">// 修改写入数据长度</span></div><div class="line">        len -= bytes_to_write;</div><div class="line">        <span class="comment">// 记录写入字节总数</span></div><div class="line">        r-&gt;processed_bytes += bytes_to_write;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"><span class="comment">// 实现各种流的读数据功能</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> size_t <span class="title">rioRead</span><span class="params">(rio *r, <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">while</span> (len) &#123;</div><div class="line">        <span class="comment">// 这一轮读取数据长度</span></div><div class="line">        <span class="keyword">size_t</span> bytes_to_read = (r-&gt;max_processing_chunk &amp;&amp; r-&gt;max_processing_chunk &lt; len) ? r-&gt;max_processing_chunk : len;</div><div class="line">        <span class="keyword">if</span> (r-&gt;read(r,buf,bytes_to_read) == <span class="number">0</span>)</div><div class="line">            <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">        <span class="keyword">if</span> (r-&gt;update_cksum) r-&gt;update_cksum(r,buf,bytes_to_read);</div><div class="line">        <span class="comment">// 跟新buf指针</span></div><div class="line">        buf = (<span class="keyword">char</span>*)buf + bytes_to_read;</div><div class="line">        len -= bytes_to_read;</div><div class="line">        <span class="comment">// 记录读取字节码长度</span></div><div class="line">        r-&gt;processed_bytes += bytes_to_read;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"><span class="comment">// 实现各种流的获取当前指针功能</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> off_t <span class="title">rioTell</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> r-&gt;tell(r);</div><div class="line">&#125;</div><div class="line"><span class="comment">// 实现各种流的刷新缓冲区功能</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">int</span> <span class="title">rioFlush</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> r-&gt;flush(r);</div><div class="line">&#125;</div><div class="line"><span class="comment">// 各种类型的数据载体的rio初始化</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioInitWithFile</span><span class="params">(rio *r, FILE *fp)</span></span>;</div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioInitWithBuffer</span><span class="params">(rio *r, sds s)</span></span>;</div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioInitWithFdset</span><span class="params">(rio *r, <span class="keyword">int</span> *fds, <span class="keyword">int</span> numfds)</span></span>;</div><div class="line"><span class="comment">// fdset的rio资源释放</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioFreeFdset</span><span class="params">(rio *r)</span></span>;</div><div class="line"><span class="comment">// 按照想要的格式写入数据到各种类型的数据载体中</span></div><div class="line"><span class="keyword">size_t</span> rioWriteBulkCount(rio *r, <span class="keyword">char</span> prefix, <span class="keyword">int</span> count);</div><div class="line"><span class="keyword">size_t</span> rioWriteBulkString(rio *r, <span class="keyword">const</span> <span class="keyword">char</span> *buf, <span class="keyword">size_t</span> len);</div><div class="line"><span class="keyword">size_t</span> rioWriteBulkLongLong(rio *r, <span class="keyword">long</span> <span class="keyword">long</span> l);</div><div class="line"><span class="keyword">size_t</span> rioWriteBulkDouble(rio *r, <span class="keyword">double</span> d);</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisObject</span>;</span></div><div class="line"><span class="comment">// 写入一个字符串robj对象，不在rio中实现，因为需要server.h</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">rioWriteBulkObject</span><span class="params">(rio *r, struct redisObject *obj)</span></span>;</div><div class="line"></div><div class="line"><span class="comment">// cknum的跟新函数</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioGenericUpdateChecksum</span><span class="params">(rio *r, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span></span>;</div><div class="line"><span class="comment">// 设置rio自动同步的字节数阈值</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioSetAutoSync</span><span class="params">(rio *r, <span class="keyword">off_t</span> bytes)</span></span>;</div></pre></td></tr></table></figure></p>
+<p>下面是rio.c的代码注释,包含了不同载体的io操作的具体实现，通过三个静态的rio的实例表示三个不同载体的rio实例，拥有不同的io函数，用来初始化用户定义rio结构。<br>对于文件流以及socket提供了刷新缓冲区的操作，通过也通过各自的阈值来判断是否自动刷新缓冲区。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div><div class="line">269</div><div class="line">270</div><div class="line">271</div><div class="line">272</div><div class="line">273</div><div class="line">274</div><div class="line">275</div><div class="line">276</div><div class="line">277</div><div class="line">278</div><div class="line">279</div><div class="line">280</div><div class="line">281</div><div class="line">282</div><div class="line">283</div><div class="line">284</div><div class="line">285</div><div class="line">286</div><div class="line">287</div><div class="line">288</div><div class="line">289</div><div class="line">290</div><div class="line">291</div><div class="line">292</div><div class="line">293</div><div class="line">294</div><div class="line">295</div><div class="line">296</div><div class="line">297</div><div class="line">298</div><div class="line">299</div><div class="line">300</div><div class="line">301</div><div class="line">302</div><div class="line">303</div><div class="line">304</div><div class="line">305</div><div class="line">306</div><div class="line">307</div><div class="line">308</div><div class="line">309</div><div class="line">310</div><div class="line">311</div><div class="line">312</div><div class="line">313</div><div class="line">314</div><div class="line">315</div><div class="line">316</div><div class="line">317</div><div class="line">318</div><div class="line">319</div><div class="line">320</div><div class="line">321</div><div class="line">322</div><div class="line">323</div><div class="line">324</div><div class="line">325</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* ------------------------- Buffer I/O implementation ----------------------- */</span></div><div class="line"><span class="comment">// 对于buffer的io操作的具体实现</span></div><div class="line"><span class="comment">/* Returns 1 or 0 for success/failure. */</span></div><div class="line"><span class="comment">// buffer的数据写入操作</span></div><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">rioBufferWrite</span><span class="params">(rio *r, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    <span class="comment">// 在buffer末尾加上写入数据</span></div><div class="line">    r-&gt;io.buffer.ptr = sdscatlen(r-&gt;io.buffer.ptr,(<span class="keyword">char</span>*)buf,len);</div><div class="line">    <span class="comment">// 修改偏移量到buffer尾部</span></div><div class="line">    r-&gt;io.buffer.pos += len;</div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Returns 1 or 0 for success/failure. */</span></div><div class="line"><span class="comment">// buffer数据的读取操作</span></div><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">rioBufferRead</span><span class="params">(rio *r, <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (sdslen(r-&gt;io.buffer.ptr)-r-&gt;io.buffer.pos &lt; len)</div><div class="line">        <span class="comment">//如果偏移量后的数据长度小于len 则不够读返回0</span></div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">/* not enough buffer to return len bytes. */</span></div><div class="line">    <span class="built_in">memcpy</span>(buf,r-&gt;io.buffer.ptr+r-&gt;io.buffer.pos,len);</div><div class="line">    <span class="comment">// 修改pos后移len位</span></div><div class="line">    r-&gt;io.buffer.pos += len;</div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Returns read/write position in buffer. */</span></div><div class="line"><span class="comment">// buffer的返回当前的偏移量</span></div><div class="line"><span class="function"><span class="keyword">static</span> off_t <span class="title">rioBufferTell</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> r-&gt;io.buffer.pos;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Flushes any buffer to target device if applicable. Returns 1 on success</span></div><div class="line"> * and 0 on failures. */</div><div class="line"><span class="comment">// buffer的刷新缓冲区 其实什么都不要做</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">rioBufferFlush</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    UNUSED(r);</div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">/* Nothing to do, our write just appends to the buffer. */</span></div><div class="line">&#125;</div><div class="line"><span class="comment">// buffer的rio实例</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">const</span> rio rioBufferIO = &#123;</div><div class="line">    rioBufferRead,</div><div class="line">    rioBufferWrite,</div><div class="line">    rioBufferTell,</div><div class="line">    rioBufferFlush,</div><div class="line">    <span class="literal">NULL</span>,           <span class="comment">/* update_checksum */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* current checksum */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* bytes read or written */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* read/write chunk size */</span></div><div class="line">    &#123; &#123; <span class="literal">NULL</span>, <span class="number">0</span> &#125; &#125; <span class="comment">/* union for io-specific vars */</span></div><div class="line">&#125;;</div><div class="line"><span class="comment">// buffer的rio实例初始化</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioInitWithBuffer</span><span class="params">(rio *r, sds s)</span> </span>&#123;</div><div class="line">    *r = rioBufferIO;</div><div class="line">    r-&gt;io.buffer.ptr = s;</div><div class="line">    r-&gt;io.buffer.pos = <span class="number">0</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* --------------------- Stdio file pointer implementation ------------------- */</span></div><div class="line"><span class="comment">// 对于文件流的io操作的具体实现</span></div><div class="line"><span class="comment">/* Returns 1 or 0 for success/failure. */</span></div><div class="line"><span class="comment">// 对文件流写入数据函数</span></div><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">rioFileWrite</span><span class="params">(rio *r, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">size_t</span> retval;</div><div class="line">    <span class="comment">// 写入数据到缓冲区，记录缓冲区数据长度</span></div><div class="line">    retval = fwrite(buf,len,<span class="number">1</span>,r-&gt;io.file.fp);</div><div class="line">    r-&gt;io.file.buffered += len;</div><div class="line">    <span class="comment">// 如果自动同步，并且达到缓冲区达到同步范围</span></div><div class="line">    <span class="keyword">if</span> (r-&gt;io.file.autosync &amp;&amp;</div><div class="line">        r-&gt;io.file.buffered &gt;= r-&gt;io.file.autosync)</div><div class="line">    &#123;</div><div class="line">        <span class="comment">// 刷新缓冲区，缓冲区长度置0，调用fflush刷新到内核缓冲区，调用aof_fsync刷新到disk</span></div><div class="line">        fflush(r-&gt;io.file.fp);</div><div class="line">        aof_fsync(fileno(r-&gt;io.file.fp));</div><div class="line">        r-&gt;io.file.buffered = <span class="number">0</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> retval;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Returns 1 or 0 for success/failure. */</span></div><div class="line"><span class="comment">// 对文件流的读数据</span></div><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">rioFileRead</span><span class="params">(rio *r, <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> fread(buf,len,<span class="number">1</span>,r-&gt;io.file.fp);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Returns read/write position in file. */</span></div><div class="line"><span class="comment">// 返回文件流的当前偏移量</span></div><div class="line"><span class="function"><span class="keyword">static</span> off_t <span class="title">rioFileTell</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> ftello(r-&gt;io.file.fp);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Flushes any buffer to target device if applicable. Returns 1 on success</span></div><div class="line"> * and 0 on failures. */</div><div class="line"><span class="comment">// 刷新文件流的数据缓冲区</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">rioFileFlush</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> (fflush(r-&gt;io.file.fp) == <span class="number">0</span>) ? <span class="number">1</span> : <span class="number">0</span>;</div><div class="line">&#125;</div><div class="line"><span class="comment">// 文件流的rio实例</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">const</span> rio rioFileIO = &#123;</div><div class="line">    rioFileRead,</div><div class="line">    rioFileWrite,</div><div class="line">    rioFileTell,</div><div class="line">    rioFileFlush,</div><div class="line">    <span class="literal">NULL</span>,           <span class="comment">/* update_checksum */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* current checksum */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* bytes read or written */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* read/write chunk size */</span></div><div class="line">    &#123; &#123; <span class="literal">NULL</span>, <span class="number">0</span> &#125; &#125; <span class="comment">/* union for io-specific vars */</span></div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="comment">// 用文件流初始化rio </span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioInitWithFile</span><span class="params">(rio *r, FILE *fp)</span> </span>&#123;</div><div class="line">    *r = rioFileIO;</div><div class="line">    <span class="comment">// 初始化rio属性</span></div><div class="line">    r-&gt;io.file.fp = fp;</div><div class="line">    r-&gt;io.file.buffered = <span class="number">0</span>;</div><div class="line">    r-&gt;io.file.autosync = <span class="number">0</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* ------------------- File descriptors set implementation ------------------- */</span></div><div class="line"><span class="comment">// 对于文件描述符的io操作</span></div><div class="line"><span class="comment">/* Returns 1 or 0 for success/failure.</span></div><div class="line"> * The function returns success as long as we are able to correctly write</div><div class="line"> * to at least one file descriptor.</div><div class="line"> *</div><div class="line"> * When buf is NULL and len is 0, the function performs a flush operation</div><div class="line"> * if there is some pending buffer, so this function is also used in order</div><div class="line"> * to implement rioFdsetFlush(). */</div><div class="line"><span class="comment">// 文件描述符的写入数据操作，所有描述符都失败才返回0，如果buf是NULL并且len是0那么函数作用是刷新缓冲区</span></div><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">rioFdsetWrite</span><span class="params">(rio *r, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">ssize_t</span> retval;</div><div class="line">    <span class="keyword">int</span> j;</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *p = (<span class="keyword">unsigned</span> <span class="keyword">char</span>*) buf;</div><div class="line">    <span class="comment">// 判断是否是刷新操作</span></div><div class="line">    <span class="keyword">int</span> doflush = (buf == <span class="literal">NULL</span> &amp;&amp; len == <span class="number">0</span>);</div><div class="line"></div><div class="line">    <span class="comment">/* To start we always append to our buffer. If it gets larger than</span></div><div class="line">     * a given size, we actually write to the sockets. */</div><div class="line">    <span class="comment">// 将需要写入的数据加入到数据缓冲区</span></div><div class="line">    <span class="keyword">if</span> (len) &#123;</div><div class="line">        r-&gt;io.fdset.buf = sdscatlen(r-&gt;io.fdset.buf,buf,len);</div><div class="line">        len = <span class="number">0</span>; <span class="comment">/* Prevent entering the while below if we don't flush. */</span></div><div class="line">        <span class="comment">// 如果不刷新，不会进入下面的写数据循环</span></div><div class="line">        <span class="keyword">if</span> (sdslen(r-&gt;io.fdset.buf) &gt; PROTO_IOBUF_LEN) doflush = <span class="number">1</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (doflush) &#123;</div><div class="line">        <span class="comment">// 准备好写入的数据以及长度</span></div><div class="line">        p = (<span class="keyword">unsigned</span> <span class="keyword">char</span>*) r-&gt;io.fdset.buf;</div><div class="line">        len = sdslen(r-&gt;io.fdset.buf);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Write in little chunchs so that when there are big writes we</span></div><div class="line">     * parallelize while the kernel is sending data in background to</div><div class="line">     * the TCP socket. */</div><div class="line">    <span class="comment">// 每次最多写入1024字节的数据，这样当写入很大的数据时，我们可以在后台并行处理</span></div><div class="line">    <span class="keyword">while</span>(len) &#123;</div><div class="line">        <span class="keyword">size_t</span> count = len &lt; <span class="number">1024</span> ? len : <span class="number">1024</span>;</div><div class="line">        <span class="keyword">int</span> broken = <span class="number">0</span>;</div><div class="line">        <span class="comment">// 循环写入每一个文件描述符</span></div><div class="line">        <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; r-&gt;io.fdset.numfds; j++) &#123;</div><div class="line">            <span class="keyword">if</span> (r-&gt;io.fdset.state[j] != <span class="number">0</span>) &#123;</div><div class="line">                <span class="comment">/* Skip FDs alraedy in error. */</span></div><div class="line">                <span class="comment">// 如果当前状态不为0 不写入直接跳过</span></div><div class="line">                broken++;</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">/* Make sure to write 'count' bytes to the socket regardless</span></div><div class="line">             * of short writes. */</div><div class="line">            <span class="comment">// 确保写入了count个字节的数据</span></div><div class="line">            <span class="keyword">size_t</span> nwritten = <span class="number">0</span>;</div><div class="line">            <span class="keyword">while</span>(nwritten != count) &#123;</div><div class="line">                <span class="comment">// 写入数据</span></div><div class="line">                retval = write(r-&gt;io.fdset.fds[j],p+nwritten,count-nwritten);</div><div class="line">                <span class="keyword">if</span> (retval &lt;= <span class="number">0</span>) &#123;</div><div class="line">                    <span class="comment">/* With blocking sockets, which is the sole user of this</span></div><div class="line">                     * rio target, EWOULDBLOCK is returned only because of</div><div class="line">                     * the SO_SNDTIMEO socket option, so we translate the error</div><div class="line">                     * into one more recognizable by the user. */</div><div class="line">                    <span class="comment">// 如果写入失败并且是阻塞错误 将errno=ETIMEDOUT</span></div><div class="line">                    <span class="keyword">if</span> (retval == <span class="number">-1</span> &amp;&amp; errno == EWOULDBLOCK) errno = ETIMEDOUT;</div><div class="line">                    <span class="keyword">break</span>;</div><div class="line">                &#125;</div><div class="line">                nwritten += retval;</div><div class="line">            &#125;</div><div class="line">            <span class="comment">// 如果该描述符没有完全写入数据，标记该描述符状态为0</span></div><div class="line">            <span class="keyword">if</span> (nwritten != count) &#123;</div><div class="line">                <span class="comment">/* Mark this FD as broken. */</span></div><div class="line">                r-&gt;io.fdset.state[j] = errno;</div><div class="line">                <span class="keyword">if</span> (r-&gt;io.fdset.state[j] == <span class="number">0</span>) r-&gt;io.fdset.state[j] = EIO;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span> (broken == r-&gt;io.fdset.numfds) <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">/* All the FDs in error. */</span></div><div class="line">        p += count;</div><div class="line">        len -= count;</div><div class="line">        r-&gt;io.fdset.pos += count;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 如果flush需要将buf清空</span></div><div class="line">    <span class="keyword">if</span> (doflush) sdsclear(r-&gt;io.fdset.buf);</div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Returns 1 or 0 for success/failure. */</span></div><div class="line"><span class="comment">// socket不支持读数据</span></div><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">rioFdsetRead</span><span class="params">(rio *r, <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    UNUSED(r);</div><div class="line">    UNUSED(buf);</div><div class="line">    UNUSED(len);</div><div class="line">    <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">/* Error, this target does not support reading. */</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Returns read/write position in file. */</span></div><div class="line"><span class="comment">// 返回当前的文件偏移量</span></div><div class="line"><span class="function"><span class="keyword">static</span> off_t <span class="title">rioFdsetTell</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> r-&gt;io.fdset.pos;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Flushes any buffer to target device if applicable. Returns 1 on success</span></div><div class="line"> * and 0 on failures. */</div><div class="line"><span class="comment">// 刷新buf中数据</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">rioFdsetFlush</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    <span class="comment">/* Our flush is implemented by the write method, that recognizes a</span></div><div class="line">     * buffer set to NULL with a count of zero as a flush request. */</div><div class="line">    <span class="keyword">return</span> rioFdsetWrite(r,<span class="literal">NULL</span>,<span class="number">0</span>);</div><div class="line">&#125;</div><div class="line"><span class="comment">// 描述符的rio实例</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">const</span> rio rioFdsetIO = &#123;</div><div class="line">    rioFdsetRead,</div><div class="line">    rioFdsetWrite,</div><div class="line">    rioFdsetTell,</div><div class="line">    rioFdsetFlush,</div><div class="line">    <span class="literal">NULL</span>,           <span class="comment">/* update_checksum */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* current checksum */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* bytes read or written */</span></div><div class="line">    <span class="number">0</span>,              <span class="comment">/* read/write chunk size */</span></div><div class="line">    &#123; &#123; <span class="literal">NULL</span>, <span class="number">0</span> &#125; &#125; <span class="comment">/* union for io-specific vars */</span></div><div class="line">&#125;;</div><div class="line"><span class="comment">// 文件描述符rio对象初始化</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioInitWithFdset</span><span class="params">(rio *r, <span class="keyword">int</span> *fds, <span class="keyword">int</span> numfds)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> j;</div><div class="line"></div><div class="line">    *r = rioFdsetIO;</div><div class="line">    r-&gt;io.fdset.fds = zmalloc(<span class="keyword">sizeof</span>(<span class="keyword">int</span>)*numfds);</div><div class="line">    r-&gt;io.fdset.state = zmalloc(<span class="keyword">sizeof</span>(<span class="keyword">int</span>)*numfds);</div><div class="line">    <span class="built_in">memcpy</span>(r-&gt;io.fdset.fds,fds,<span class="keyword">sizeof</span>(<span class="keyword">int</span>)*numfds);</div><div class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; numfds; j++) r-&gt;io.fdset.state[j] = <span class="number">0</span>;</div><div class="line">    r-&gt;io.fdset.numfds = numfds;</div><div class="line">    r-&gt;io.fdset.pos = <span class="number">0</span>;</div><div class="line">    r-&gt;io.fdset.buf = sdsempty();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* release the rio stream. */</span></div><div class="line"><span class="comment">// fdset资源释放</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioFreeFdset</span><span class="params">(rio *r)</span> </span>&#123;</div><div class="line">    zfree(r-&gt;io.fdset.fds);</div><div class="line">    zfree(r-&gt;io.fdset.state);</div><div class="line">    sdsfree(r-&gt;io.fdset.buf);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* ---------------------------- Generic functions ---------------------------- */</span></div><div class="line"></div><div class="line"><span class="comment">/* This function can be installed both in memory and file streams when checksum</span></div><div class="line"> * computation is needed. */</div><div class="line"><span class="comment">// 这个函数可以在内存或文件流中使用，当需要checksum时</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioGenericUpdateChecksum</span><span class="params">(rio *r, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> len)</span> </span>&#123;</div><div class="line">    r-&gt;cksum = crc64(r-&gt;cksum,buf,len);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Set the file-based rio object to auto-fsync every 'bytes' file written.</span></div><div class="line"> * By default this is set to zero that means no automatic file sync is</div><div class="line"> * performed.</div><div class="line"> *</div><div class="line"> * This feature is useful in a few contexts since when we rely on OS write</div><div class="line"> * buffers sometimes the OS buffers way too much, resulting in too many</div><div class="line"> * disk I/O concentrated in very little time. When we fsync in an explicit</div><div class="line"> * way instead the I/O pressure is more distributed across time. */</div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">rioSetAutoSync</span><span class="params">(rio *r, <span class="keyword">off_t</span> bytes)</span> </span>&#123;</div><div class="line">    serverAssert(r-&gt;read == rioFileIO.read);</div><div class="line">    r-&gt;io.file.autosync = bytes;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* --------------------------- Higher level interface --------------------------</span></div><div class="line"> *</div><div class="line"> * The following higher level functions use lower level rio.c functions to help</div><div class="line"> * generating the Redis protocol for the Append Only File. */</div><div class="line"></div><div class="line"><span class="comment">/* Write multi bulk count in the format: "*&lt;count&gt;\r\n". */</span></div><div class="line"><span class="keyword">size_t</span> rioWriteBulkCount(rio *r, <span class="keyword">char</span> prefix, <span class="keyword">int</span> count) &#123;</div><div class="line">    <span class="keyword">char</span> cbuf[<span class="number">128</span>];</div><div class="line">    <span class="keyword">int</span> clen;</div><div class="line"></div><div class="line">    cbuf[<span class="number">0</span>] = prefix;</div><div class="line">    clen = <span class="number">1</span>+ll2string(cbuf+<span class="number">1</span>,<span class="keyword">sizeof</span>(cbuf)<span class="number">-1</span>,count);</div><div class="line">    cbuf[clen++] = <span class="string">'\r'</span>;</div><div class="line">    cbuf[clen++] = <span class="string">'\n'</span>;</div><div class="line">    <span class="keyword">if</span> (rioWrite(r,cbuf,clen) == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    <span class="keyword">return</span> clen;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Write binary-safe string in the format: "$&lt;count&gt;\r\n&lt;payload&gt;\r\n". */</span></div><div class="line"><span class="keyword">size_t</span> rioWriteBulkString(rio *r, <span class="keyword">const</span> <span class="keyword">char</span> *buf, <span class="keyword">size_t</span> len) &#123;</div><div class="line">    <span class="keyword">size_t</span> nwritten;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> ((nwritten = rioWriteBulkCount(r,<span class="string">'$'</span>,len)) == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    <span class="keyword">if</span> (len &gt; <span class="number">0</span> &amp;&amp; rioWrite(r,buf,len) == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    <span class="keyword">if</span> (rioWrite(r,<span class="string">"\r\n"</span>,<span class="number">2</span>) == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    <span class="keyword">return</span> nwritten+len+<span class="number">2</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Write a long long value in format: "$&lt;count&gt;\r\n&lt;payload&gt;\r\n". */</span></div><div class="line"><span class="keyword">size_t</span> rioWriteBulkLongLong(rio *r, <span class="keyword">long</span> <span class="keyword">long</span> l) &#123;</div><div class="line">    <span class="keyword">char</span> lbuf[<span class="number">32</span>];</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> llen;</div><div class="line"></div><div class="line">    llen = ll2string(lbuf,<span class="keyword">sizeof</span>(lbuf),l);</div><div class="line">    <span class="keyword">return</span> rioWriteBulkString(r,lbuf,llen);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Write a double value in the format: "$&lt;count&gt;\r\n&lt;payload&gt;\r\n" */</span></div><div class="line"><span class="keyword">size_t</span> rioWriteBulkDouble(rio *r, <span class="keyword">double</span> d) &#123;</div><div class="line">    <span class="keyword">char</span> dbuf[<span class="number">128</span>];</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> dlen;</div><div class="line"></div><div class="line">    dlen = <span class="built_in">snprintf</span>(dbuf,<span class="keyword">sizeof</span>(dbuf),<span class="string">"%.17g"</span>,d);</div><div class="line">    <span class="keyword">return</span> rioWriteBulkString(r,dbuf,dlen);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/" title="redis源码(15)——rio篇">https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/源码分析/" rel="tag"># 源码分析</a>
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/nosql/" rel="tag"># nosql</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/" rel="next" title="redis源码(14)——notify.c和pubsub.c篇">
+                <i class="fa fa-chevron-left"></i> redis源码(14)——notify.c和pubsub.c篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/10/05/redis源码-15-——rio篇/"
+     data-title="redis源码(15)——rio篇"
+     data-content=""
+     data-url="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/10/05/redis源码-15-——rio篇/"
+           data-title="redis源码(15)——rio篇" data-url="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview sidebar-panel sidebar-panel-active">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">24</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">18</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"morningXB"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
