@@ -1,0 +1,1057 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="源码分析,redis,nosql," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="anet简介anet文件主要就是对tcp套接字操作的封装，使它更加符合redis的系统逻辑，同时便于修改。包含socket的bind绑定本地地址，connect连接远程主机ip地址，listen开启监听函数，accept接受远程主机的连接请求，以及write和read对套接字描述符进行读写操作等socket函数。函数定义如下：123456789101112131415161718192021222">
+<meta name="keywords" content="源码分析,redis,nosql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码(18)——anet篇">
+<meta property="og:url" content="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="anet简介anet文件主要就是对tcp套接字操作的封装，使它更加符合redis的系统逻辑，同时便于修改。包含socket的bind绑定本地地址，connect连接远程主机ip地址，listen开启监听函数，accept接受远程主机的连接请求，以及write和read对套接字描述符进行读写操作等socket函数。函数定义如下：123456789101112131415161718192021222">
+<meta property="og:updated_time" content="2017-10-31T12:18:19.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码(18)——anet篇">
+<meta name="twitter:description" content="anet简介anet文件主要就是对tcp套接字操作的封装，使它更加符合redis的系统逻辑，同时便于修改。包含socket的bind绑定本地地址，connect连接远程主机ip地址，listen开启监听函数，accept接受远程主机的连接请求，以及write和read对套接字描述符进行读写操作等socket函数。函数定义如下：123456789101112131415161718192021222">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/"/>
+
+
+
+
+
+  <title> redis源码(18)——anet篇 | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码(18)——anet篇
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-31T19:06:59+08:00">
+                2017-10-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/10/31/redis源码-18-——anet篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/10/31/redis源码-18-——anet篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="anet简介"><a href="#anet简介" class="headerlink" title="anet简介"></a>anet简介</h2><p>anet文件主要就是对tcp套接字操作的封装，使它更加符合redis的系统逻辑，同时便于修改。<br>包含socket的bind绑定本地地址，connect连接远程主机ip地址，listen开启监听函数，accept接受远程主机的连接请求，以及write和read对套接字描述符进行读写操作等socket函数。<br>函数定义如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//tcp连接没有特殊要求 连接是阻塞的</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port)</span></span>;</div><div class="line"><span class="comment">//tcp非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port)</span></span>;</div><div class="line"><span class="comment">//tcp服务器的bind非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockBindConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port, <span class="keyword">char</span> *source_addr)</span></span>;</div><div class="line"><span class="comment">//tcp服务器的bind非阻塞连接并且会失败重连</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockBestEffortBindConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port, <span class="keyword">char</span> *source_addr)</span></span>;</div><div class="line"><span class="comment">//本地套接字阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path)</span></span>;</div><div class="line"><span class="comment">//本地套接字非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixNonBlockConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path)</span></span>;</div><div class="line"><span class="comment">//从套接字中读取count个字节的数据除非遇到文件尾部了</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetRead</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *buf, <span class="keyword">int</span> count)</span></span>;</div><div class="line"><span class="comment">//处理所有主机地址为名称或是ip</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetResolve</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *host, <span class="keyword">char</span> *ipbuf, <span class="keyword">size_t</span> ipbuf_len)</span></span>;</div><div class="line"><span class="comment">//只处理主机地址为ip</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetResolveIP</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *host, <span class="keyword">char</span> *ipbuf, <span class="keyword">size_t</span> ipbuf_len)</span></span>;</div><div class="line"><span class="comment">//tcp中ipv4或ipv6的IP协议服务器套接字处理</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpServer</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> port, <span class="keyword">char</span> *bindaddr, <span class="keyword">int</span> backlog)</span></span>;</div><div class="line"><span class="comment">//tcp中ipv6的IP协议服务器套接字处理</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcp6Server</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> port, <span class="keyword">char</span> *bindaddr, <span class="keyword">int</span> backlog)</span></span>;</div><div class="line"><span class="comment">//unix本地文件服务器套接字处理</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixServer</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path, <span class="keyword">mode_t</span> perm, <span class="keyword">int</span> backlog)</span></span>;</div><div class="line"><span class="comment">//tcp套接字服务器端接收客户端的连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpAccept</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> serversock, <span class="keyword">char</span> *ip, <span class="keyword">size_t</span> ip_len, <span class="keyword">int</span> *port)</span></span>;</div><div class="line"><span class="comment">//本地服务器的接收连接函数 对连接的客户端信息没有存储要求</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixAccept</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> serversock)</span></span>;</div><div class="line"><span class="comment">//往套接字中写入count字节的数据，直到写完或者写满count个字节</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetWrite</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *buf, <span class="keyword">int</span> count)</span></span>;</div><div class="line"><span class="comment">//设置用于通信的描述符的状态 阻塞还是非阻塞</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetNonBlock</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetBlock</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="comment">//设置网络链接nodelay属性 是否关闭Nagle算法</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetEnableTcpNoDelay</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetDisableTcpNoDelay</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="comment">//开启tcp的SO_KEEPALIVE</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpKeepAlive</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="comment">//设置数据传送时限</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetSendTimeout</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd, <span class="keyword">long</span> <span class="keyword">long</span> ms)</span></span>;</div><div class="line"><span class="comment">//根据套接字的描述符获取对方的ip地址以及端口号</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetPeerToString</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *ip, <span class="keyword">size_t</span> ip_len, <span class="keyword">int</span> *port)</span></span>;</div><div class="line"><span class="comment">//设置tcp链接为keep alive去检测对方主机是否崩溃</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetKeepAlive</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd, <span class="keyword">int</span> interval)</span></span>;</div><div class="line"><span class="comment">//根据套接字的描述符获取自己的ip地址以及端口号</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetSockName</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *ip, <span class="keyword">size_t</span> ip_len, <span class="keyword">int</span> *port)</span></span>;</div><div class="line"><span class="comment">//格式化地址以及端口输出</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetFormatAddr</span><span class="params">(<span class="keyword">char</span> *fmt, <span class="keyword">size_t</span> fmt_len, <span class="keyword">char</span> *ip, <span class="keyword">int</span> port)</span></span>;</div><div class="line"><span class="comment">//传入套接字描述符，返回对方套接字格式化的端口以及地址字符串</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetFormatPeer</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *fmt, <span class="keyword">size_t</span> fmt_len)</span></span>;</div><div class="line"><span class="comment">//根据套接字的描述符获取自己的ip地址以及端口号</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetFormatSock</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *fmt, <span class="keyword">size_t</span> fmt_len)</span></span>;</div></pre></td></tr></table></figure></p>
+<a id="more"></a>
+<h2 id="connect以及bind"><a href="#connect以及bind" class="headerlink" title="connect以及bind"></a>connect以及bind</h2><p>相关代码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">define</span> ANET_CONNECT_NONE 0 <span class="comment">//默认套接字阻塞</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> ANET_CONNECT_NONBLOCK 1<span class="comment">//创建非阻塞套接字</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> ANET_CONNECT_BE_BINDING 2 <span class="comment">/* Best effort binding. 优先绑定本地地址，失败后连接远程地址*/</span></span></div><div class="line"><span class="comment">//套接字远程tcp连接</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">anetTcpGenericConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port,</span></span></div><div class="line">                                 <span class="keyword">char</span> *source_addr, <span class="keyword">int</span> flags)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> s = ANET_ERR, rv;</div><div class="line">    <span class="keyword">char</span> portstr[<span class="number">6</span>];  <span class="comment">/* strlen("65535") + 1; */</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">addrinfo</span> <span class="title">hints</span>, *<span class="title">servinfo</span>, *<span class="title">bservinfo</span>, *<span class="title">p</span>, *<span class="title">b</span>;</span></div><div class="line"></div><div class="line">    <span class="built_in">snprintf</span>(portstr,<span class="keyword">sizeof</span>(portstr),<span class="string">"%d"</span>,port);</div><div class="line">    <span class="built_in">memset</span>(&amp;hints,<span class="number">0</span>,<span class="keyword">sizeof</span>(hints));</div><div class="line">    hints.ai_family = AF_UNSPEC;</div><div class="line">    hints.ai_socktype = SOCK_STREAM;</div><div class="line">    <span class="comment">//获取连接的目标地址端口的类型 创建本地的套接字</span></div><div class="line">    <span class="keyword">if</span> ((rv = getaddrinfo(addr,portstr,&amp;hints,&amp;servinfo)) != <span class="number">0</span>) &#123;</div><div class="line">        anetSetError(err, <span class="string">"%s"</span>, gai_strerror(rv));</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">for</span> (p = servinfo; p != <span class="literal">NULL</span>; p = p-&gt;ai_next) &#123;</div><div class="line">        <span class="comment">/* Try to create the socket and to connect it.</span></div><div class="line">         * If we fail in the socket() call, or on connect(), we retry with</div><div class="line">         * the next entry in servinfo. */</div><div class="line">        <span class="comment">//尝试创建本地套接字并连接 如果成功则退出 否则尝试下一个目标套接字实体</span></div><div class="line">        <span class="keyword">if</span> ((s = socket(p-&gt;ai_family,p-&gt;ai_socktype,p-&gt;ai_protocol)) == <span class="number">-1</span>)<span class="comment">//创建本地套接字</span></div><div class="line">            <span class="keyword">continue</span>;</div><div class="line">        <span class="keyword">if</span> (anetSetReuseAddr(err,s) == ANET_ERR) <span class="keyword">goto</span> error;<span class="comment">//设置reuse以便及时打开以及关闭</span></div><div class="line">        <span class="keyword">if</span> (flags &amp; ANET_CONNECT_NONBLOCK &amp;&amp; anetNonBlock(err,s) != ANET_OK)<span class="comment">//设置非阻塞</span></div><div class="line">            <span class="keyword">goto</span> error;</div><div class="line">        <span class="keyword">if</span> (source_addr) &#123;<span class="comment">//如果有源地址代表是服务器则需要bind本地地址</span></div><div class="line">            <span class="keyword">int</span> bound = <span class="number">0</span>;</div><div class="line">            <span class="comment">/* Using getaddrinfo saves us from self-determining IPv4 vs IPv6 */</span></div><div class="line">            <span class="keyword">if</span> ((rv = getaddrinfo(source_addr, <span class="literal">NULL</span>, &amp;hints, &amp;bservinfo)) != <span class="number">0</span>)</div><div class="line">            &#123;</div><div class="line">                anetSetError(err, <span class="string">"%s"</span>, gai_strerror(rv));</div><div class="line">                <span class="keyword">goto</span> error;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">for</span> (b = bservinfo; b != <span class="literal">NULL</span>; b = b-&gt;ai_next) &#123;</div><div class="line">                <span class="keyword">if</span> (bind(s,b-&gt;ai_addr,b-&gt;ai_addrlen) != <span class="number">-1</span>) &#123;<span class="comment">//绑定本地地址</span></div><div class="line">                    bound = <span class="number">1</span>;</div><div class="line">                    <span class="keyword">break</span>;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            freeaddrinfo(bservinfo);</div><div class="line">            <span class="keyword">if</span> (!bound) &#123;</div><div class="line">                anetSetError(err, <span class="string">"bind: %s"</span>, strerror(errno));</div><div class="line">                <span class="keyword">goto</span> error;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span> (connect(s,p-&gt;ai_addr,p-&gt;ai_addrlen) == <span class="number">-1</span>) &#123;<span class="comment">//连接目标地址端口</span></div><div class="line">            <span class="comment">/* If the socket is non-blocking, it is ok for connect() to</span></div><div class="line">             * return an EINPROGRESS error here. */</div><div class="line">            <span class="comment">//如果套接字非阻塞并且连接返回EINPROGRESS，返回当前占用的套接字</span></div><div class="line">            <span class="keyword">if</span> (errno == EINPROGRESS &amp;&amp; flags &amp; ANET_CONNECT_NONBLOCK)</div><div class="line">                <span class="keyword">goto</span> end;</div><div class="line">            close(s);</div><div class="line">            s = ANET_ERR;</div><div class="line">            <span class="keyword">continue</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* If we ended an iteration of the for loop without errors, we</span></div><div class="line">         * have a connected socket. Let's return to the caller. */</div><div class="line">        <span class="comment">//连接成功可以退出了</span></div><div class="line">        <span class="keyword">goto</span> end;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (p == <span class="literal">NULL</span>)</div><div class="line">        anetSetError(err, <span class="string">"creating socket: %s"</span>, strerror(errno));</div><div class="line"></div><div class="line">error:</div><div class="line">    <span class="keyword">if</span> (s != ANET_ERR) &#123;</div><div class="line">        close(s);</div><div class="line">        s = ANET_ERR;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">end:</div><div class="line">    freeaddrinfo(servinfo);</div><div class="line"></div><div class="line">    <span class="comment">/* Handle best effort binding: if a binding address was used, but it is</span></div><div class="line">     * not possible to create a socket, try again without a binding address. */</div><div class="line">    <span class="comment">//处理best effort binding，如果一个绑定地址被占用，但是不可能创建一个套接字，不用bind地址再次尝试</span></div><div class="line">    <span class="keyword">if</span> (s == ANET_ERR &amp;&amp; source_addr &amp;&amp; (flags &amp; ANET_CONNECT_BE_BINDING)) &#123;</div><div class="line">        <span class="keyword">return</span> anetTcpGenericConnect(err,addr,port,<span class="literal">NULL</span>,flags);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">return</span> s;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">//tcp连接没有特殊要求 连接是阻塞的</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> anetTcpGenericConnect(err,addr,port,<span class="literal">NULL</span>,ANET_CONNECT_NONE);</div><div class="line">&#125;</div><div class="line"><span class="comment">//tcp非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> anetTcpGenericConnect(err,addr,port,<span class="literal">NULL</span>,ANET_CONNECT_NONBLOCK);</div><div class="line">&#125;</div><div class="line"><span class="comment">//tcp服务器的bind非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockBindConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port,</span></span></div><div class="line">                               <span class="keyword">char</span> *source_addr)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> anetTcpGenericConnect(err,addr,port,source_addr,</div><div class="line">            ANET_CONNECT_NONBLOCK);</div><div class="line">&#125;</div><div class="line"><span class="comment">//tcp服务器的bind非阻塞连接并且会失败重连</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockBestEffortBindConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port,</span></span></div><div class="line">                                         <span class="keyword">char</span> *source_addr)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> anetTcpGenericConnect(err,addr,port,source_addr,</div><div class="line">            ANET_CONNECT_NONBLOCK|ANET_CONNECT_BE_BINDING);</div><div class="line">&#125;</div><div class="line"><span class="comment">//本地套接字连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixGenericConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path, <span class="keyword">int</span> flags)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> s;</div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_un</span> <span class="title">sa</span>;</span></div><div class="line">    <span class="comment">//创建一个流数据的本地套接字 用于进程之间的数据交换</span></div><div class="line">    <span class="keyword">if</span> ((s = anetCreateSocket(err,AF_LOCAL)) == ANET_ERR)</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line"></div><div class="line">    sa.sun_family = AF_LOCAL;</div><div class="line">    <span class="built_in">strncpy</span>(sa.sun_path,path,<span class="keyword">sizeof</span>(sa.sun_path)<span class="number">-1</span>);</div><div class="line">    <span class="keyword">if</span> (flags &amp; ANET_CONNECT_NONBLOCK) &#123;<span class="comment">//设置是否非阻塞</span></div><div class="line">        <span class="keyword">if</span> (anetNonBlock(err,s) != ANET_OK)</div><div class="line">            <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (connect(s,(struct sockaddr*)&amp;sa,<span class="keyword">sizeof</span>(sa)) == <span class="number">-1</span>) &#123;<span class="comment">//套接字连接</span></div><div class="line">        <span class="keyword">if</span> (errno == EINPROGRESS &amp;&amp;</div><div class="line">            flags &amp; ANET_CONNECT_NONBLOCK)<span class="comment">//如果连接非阻塞并且失败了 返回当前正在被占用的s</span></div><div class="line">            <span class="keyword">return</span> s;</div><div class="line"></div><div class="line">        anetSetError(err, <span class="string">"connect: %s"</span>, strerror(errno));</div><div class="line">        close(s);</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> s;</div><div class="line">&#125;</div><div class="line"><span class="comment">//本地套接字阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> anetUnixGenericConnect(err,path,ANET_CONNECT_NONE);</div><div class="line">&#125;</div><div class="line"><span class="comment">//本地套接字非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixNonBlockConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> anetUnixGenericConnect(err,path,ANET_CONNECT_NONBLOCK);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="accept"><a href="#accept" class="headerlink" title="accept"></a>accept</h2><p>//接收连接的处理函数<br>static int anetGenericAccept(char <em>err, int s, struct sockaddr </em>sa, socklen_t <em>len) {<br>    int fd;<br>    while(1) {<br>        fd = accept(s,sa,len);//接收连接<br>        if (fd == -1) {<br>            if (errno == EINTR)//被中断继续接收<br>                continue;<br>            else {<br>                //没有连接或者超时<br>                anetSetError(err, “accept: %s”, strerror(errno));<br>                return ANET_ERR;<br>            }<br>        }<br>        break;<br>    }<br>    return fd;<br>}<br>//tcp套接字服务器端接收客户端的连接<br>int anetTcpAccept(char </em>err, int s, char <em>ip, size_t ip_len, int </em>port) {<br>    int fd;<br>    struct sockaddr_storage sa;//用来存储客户端的地址消息<br>    socklen_t salen = sizeof(sa);<br>    if ((fd = anetGenericAccept(err,s,(struct sockaddr*)&amp;sa,&amp;salen)) == -1)//接收客户端连接<br>        return ANET_ERR;</p>
+<pre><code>if (sa.ss_family == AF_INET) {
+    struct sockaddr_in *s = (struct sockaddr_in *)&amp;sa;
+    if (ip) inet_ntop(AF_INET,(void*)&amp;(s-&gt;sin_addr),ip,ip_len);//转换地址消息存储到ip指针数组中
+    if (port) *port = ntohs(s-&gt;sin_port);//转换端口到port中
+} else {
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *)&amp;sa;
+    if (ip) inet_ntop(AF_INET6,(void*)&amp;(s-&gt;sin6_addr),ip,ip_len);
+    if (port) *port = ntohs(s-&gt;sin6_port);
+}
+return fd;
+</code></pre><p>}<br>//本地服务器的接收连接函数 对连接的客户端信息没有存储要求<br>int anetUnixAccept(char <em>err, int s) {<br>    int fd;<br>    struct sockaddr_un sa;<br>    socklen_t salen = sizeof(sa);<br>    if ((fd = anetGenericAccept(err,s,(struct sockaddr</em>)&amp;sa,&amp;salen)) == -1)<br>        return ANET_ERR;</p>
+<pre><code>return fd;
+</code></pre><p>}</p>
+<h2 id="write以及read"><a href="#write以及read" class="headerlink" title="write以及read"></a>write以及read</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* Like read(2) but make sure 'count' is read before to return</span></div><div class="line"> * (unless error or EOF condition is encountered) */</div><div class="line"><span class="comment">//从套接字中读取count个字节的数据除非遇到文件尾部了</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetRead</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *buf, <span class="keyword">int</span> count)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">ssize_t</span> nread, totlen = <span class="number">0</span>;</div><div class="line">    <span class="keyword">while</span>(totlen != count) &#123;</div><div class="line">        nread = read(fd,buf,count-totlen);</div><div class="line">        <span class="keyword">if</span> (nread == <span class="number">0</span>) <span class="keyword">return</span> totlen;<span class="comment">//文件读完了</span></div><div class="line">        <span class="keyword">if</span> (nread == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;<span class="comment">//读取错误</span></div><div class="line">        totlen += nread;</div><div class="line">        buf += nread;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> totlen;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/* Like write(2) but make sure 'count' is written before to return</span></div><div class="line"> * (unless error is encountered) */</div><div class="line"><span class="comment">//往套接字中写入count字节的数据，直到写完或者写满count个字节</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetWrite</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *buf, <span class="keyword">int</span> count)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">ssize_t</span> nwritten, totlen = <span class="number">0</span>;</div><div class="line">    <span class="keyword">while</span>(totlen != count) &#123;</div><div class="line">        nwritten = write(fd,buf,count-totlen);</div><div class="line">        <span class="keyword">if</span> (nwritten == <span class="number">0</span>) <span class="keyword">return</span> totlen;<span class="comment">//数据全部写入</span></div><div class="line">        <span class="keyword">if</span> (nwritten == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;<span class="comment">//数据写入错误</span></div><div class="line">        totlen += nwritten;</div><div class="line">        buf += nwritten;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> totlen;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="套接字相关属性设置"><a href="#套接字相关属性设置" class="headerlink" title="套接字相关属性设置"></a>套接字相关属性设置</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//设置网络链接nodelay属性 是否关闭Nagle算法</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">anetSetTcpNoDelay</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd, <span class="keyword">int</span> val)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">if</span> (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &amp;val, <span class="keyword">sizeof</span>(val)) == <span class="number">-1</span>)</div><div class="line">    &#123;</div><div class="line">        anetSetError(err, <span class="string">"setsockopt TCP_NODELAY: %s"</span>, strerror(errno));</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> ANET_OK;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在这里讲一下一个套接字首发的处理算法Nagle，发送端会累积很多个小的数据块之后才发送，或者收到来自接收端的ack发送，这样做的目的是为减少网络两端的传送次数，减少网络负载。<br>然而默认网络节点还采用另一种算法Delay算法，即接受端不会立即发送ack，而是累积到足够多的ack或者数据后一起发送给发送端。<br>这样两个算法相互作用，当执行write-write-read的操作时就会出现发送端延迟第二个write的情况，导致read被阻塞，默认的阻塞时间为40ms，所以设置nodelay属性取消算法Nagle，使得服务器可以及时响应。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//设置tcp链接为keep alive去检测对方主机是否崩溃</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetKeepAlive</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd, <span class="keyword">int</span> interval)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> val = <span class="number">1</span>;</div><div class="line">    <span class="comment">//开启SO_KEEPALIVE</span></div><div class="line">    <span class="keyword">if</span> (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &amp;val, <span class="keyword">sizeof</span>(val)) == <span class="number">-1</span>)</div><div class="line">    &#123;</div><div class="line">        anetSetError(err, <span class="string">"setsockopt SO_KEEPALIVE: %s"</span>, strerror(errno));</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> __linux__</span></div><div class="line">    <span class="comment">/* Default settings are more or less garbage, with the keepalive time</span></div><div class="line">     * set to 7200 by default on Linux. Modify settings to make the feature</div><div class="line">     * actually useful. */</div><div class="line"></div><div class="line">    <span class="comment">/* Send first probe after interval. */</span></div><div class="line">    <span class="comment">//如果是linux系统那么设置一些特殊的属性</span></div><div class="line">    <span class="comment">//tcp_keepalive_intval，保活探测消息的发送频率。默认值为75s。</span></div><div class="line">    <span class="comment">//发送频率tcp_keepalive_intvl乘以发送次数tcp_keepalive_probes，就得到了从开始探测直到放弃探测确定连接断开的时间，大约为11min。</span></div><div class="line">    <span class="comment">//tcp_keepalive_probes，TCP发送保活探测消息以确定连接是否已断开的次数。默认值为9（次）。</span></div><div class="line">    <span class="comment">//注意：只有设置了SO_KEEPALIVE套接口选项后才会发送保活探测消息。</span></div><div class="line">    <span class="comment">//tcp_keepalive_time，在TCP保活打开的情况下，最后一次数据交换到TCP发送第一个保活探测消息的时间，即允许的持续空闲时间。默认值为7200s（2h）。</span></div><div class="line">    val = interval;</div><div class="line">    <span class="keyword">if</span> (setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &amp;val, <span class="keyword">sizeof</span>(val)) &lt; <span class="number">0</span>) &#123;</div><div class="line">        anetSetError(err, <span class="string">"setsockopt TCP_KEEPIDLE: %s\n"</span>, strerror(errno));</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Send next probes after the specified interval. Note that we set the</span></div><div class="line">     * delay as interval / 3, as we send three probes before detecting</div><div class="line">     * an error (see the next setsockopt call). */</div><div class="line">    val = interval/<span class="number">3</span>;</div><div class="line">    <span class="keyword">if</span> (val == <span class="number">0</span>) val = <span class="number">1</span>;</div><div class="line">    <span class="keyword">if</span> (setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &amp;val, <span class="keyword">sizeof</span>(val)) &lt; <span class="number">0</span>) &#123;</div><div class="line">        anetSetError(err, <span class="string">"setsockopt TCP_KEEPINTVL: %s\n"</span>, strerror(errno));</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Consider the socket in error state after three we send three ACK</span></div><div class="line">     * probes without getting a reply. */</div><div class="line">    val = <span class="number">3</span>;</div><div class="line">    <span class="keyword">if</span> (setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &amp;val, <span class="keyword">sizeof</span>(val)) &lt; <span class="number">0</span>) &#123;</div><div class="line">        anetSetError(err, <span class="string">"setsockopt TCP_KEEPCNT: %s\n"</span>, strerror(errno));</div><div class="line">        <span class="keyword">return</span> ANET_ERR;</div><div class="line">    &#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">else</span></span></div><div class="line">    ((<span class="keyword">void</span>) interval); <span class="comment">/* Avoid unused var warning for non Linux systems. */</span></div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">    <span class="keyword">return</span> ANET_OK;</div><div class="line">&#125;</div><div class="line">开启监听对方主机，检测是否奔溃，TCP_KEEPIDLE为第一次发送probe的时间延迟，之后每个TCP_KEEPINTVL的时长发送一次probe，发送TCP_KEEPCNT次probe后任然没有回应，确定对方已经奔溃断开连接，如果之前得到一次回应，重新检测。</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/" title="redis源码(18)——anet篇">https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/源码分析/" rel="tag"># 源码分析</a>
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/nosql/" rel="tag"># nosql</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/10/21/redis源码-17-——aof篇/" rel="next" title="redis源码(17)——aof篇">
+                <i class="fa fa-chevron-left"></i> redis源码(17)——aof篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/10/31/redis源码-18-——anet篇/"
+     data-title="redis源码(18)——anet篇"
+     data-content=""
+     data-url="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/10/31/redis源码-18-——anet篇/"
+           data-title="redis源码(18)——anet篇" data-url="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">27</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">18</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#anet简介"><span class="nav-number">1.</span> <span class="nav-text">anet简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#connect以及bind"><span class="nav-number">2.</span> <span class="nav-text">connect以及bind</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#accept"><span class="nav-number">3.</span> <span class="nav-text">accept</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#write以及read"><span class="nav-number">4.</span> <span class="nav-text">write以及read</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#套接字相关属性设置"><span class="nav-number">5.</span> <span class="nav-text">套接字相关属性设置</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"morningXB"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
