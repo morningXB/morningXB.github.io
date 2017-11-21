@@ -1,0 +1,1051 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="源码分析,redis,nosql," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="networking文件简介前面讲过的anet文件是对底层的网络操作的函数的包装，networking文件中则是涉及到逻辑层的网络部分，利用之前包装过的函数加上逻辑实现，主要实现的功能有客户端的创建释放，以及接受客户端连接的请求处理函数，还有接受客户端的请求并处理，以及回应客户端的请求。其中客户端连接创建一个可读事件，回应客户端请求创建一个可写事件，接受客户端请求创建可读事件。 客户端的连接处理在">
+<meta name="keywords" content="源码分析,redis,nosql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码(20)——networking.c篇">
+<meta property="og:url" content="https://morningXB.github.io/2017/11/13/redis源码-20-——networking-c篇/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="networking文件简介前面讲过的anet文件是对底层的网络操作的函数的包装，networking文件中则是涉及到逻辑层的网络部分，利用之前包装过的函数加上逻辑实现，主要实现的功能有客户端的创建释放，以及接受客户端连接的请求处理函数，还有接受客户端的请求并处理，以及回应客户端的请求。其中客户端连接创建一个可读事件，回应客户端请求创建一个可写事件，接受客户端请求创建可读事件。 客户端的连接处理在">
+<meta property="og:updated_time" content="2017-11-21T12:28:57.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码(20)——networking.c篇">
+<meta name="twitter:description" content="networking文件简介前面讲过的anet文件是对底层的网络操作的函数的包装，networking文件中则是涉及到逻辑层的网络部分，利用之前包装过的函数加上逻辑实现，主要实现的功能有客户端的创建释放，以及接受客户端连接的请求处理函数，还有接受客户端的请求并处理，以及回应客户端的请求。其中客户端连接创建一个可读事件，回应客户端请求创建一个可写事件，接受客户端请求创建可读事件。 客户端的连接处理在">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2017/11/13/redis源码-20-——networking-c篇/"/>
+
+
+
+
+
+  <title> redis源码(20)——networking.c篇 | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/11/13/redis源码-20-——networking-c篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码(20)——networking.c篇
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-13T18:47:18+08:00">
+                2017-11-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/11/13/redis源码-20-——networking-c篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/11/13/redis源码-20-——networking-c篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="networking文件简介"><a href="#networking文件简介" class="headerlink" title="networking文件简介"></a>networking文件简介</h2><p>前面讲过的anet文件是对底层的网络操作的函数的包装，networking文件中则是涉及到逻辑层的网络部分，利用之前包装过的函数加上逻辑实现，主要实现的功能有客户端的创建释放，以及接受客户端连接的请求处理函数，还有接受客户端的请求并处理，以及回应客户端的请求。其中客户端连接创建一个可读事件，回应客户端请求创建一个可写事件，接受客户端请求创建可读事件。</p>
+<h2 id="客户端的连接处理"><a href="#客户端的连接处理" class="headerlink" title="客户端的连接处理"></a>客户端的连接处理</h2><p>在server文件的main函数中会创建客户端的连接事件，为server的网络端口文件描述符创建可读事件，用来监听客户端的连接，在networking中有连接事件的处理函数，连接分为tcp连接和本地连接：acceptTcpHandler和acceptUnixHandler。<br>下面就是这两个函数：<br><a id="more"></a><br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//接收tcp连接的处理函数</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">acceptTcpHandler</span><span class="params">(aeEventLoop *el, <span class="keyword">int</span> fd, <span class="keyword">void</span> *privdata, <span class="keyword">int</span> mask)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> cport, cfd, max = MAX_ACCEPTS_PER_CALL;	<span class="comment">//每次call的最大连接数</span></div><div class="line">    <span class="keyword">char</span> cip[NET_IP_STR_LEN];<span class="comment">//连接的ip地址</span></div><div class="line">    UNUSED(el);</div><div class="line">    UNUSED(mask);</div><div class="line">    UNUSED(privdata);</div><div class="line"></div><div class="line">    <span class="keyword">while</span>(max--) &#123;</div><div class="line">        cfd = anetTcpAccept(server.neterr, fd, cip, <span class="keyword">sizeof</span>(cip), &amp;cport);<span class="comment">//返回用于通信的描述符</span></div><div class="line">        <span class="keyword">if</span> (cfd == ANET_ERR) &#123;</div><div class="line">            <span class="keyword">if</span> (errno != EWOULDBLOCK)</div><div class="line">                serverLog(LL_WARNING,</div><div class="line">                    <span class="string">"Accepting client connection: %s"</span>, server.neterr);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">        serverLog(LL_VERBOSE,<span class="string">"Accepted %s:%d"</span>, cip, cport);</div><div class="line">        acceptCommonHandler(cfd,<span class="number">0</span>,cip);<span class="comment">//连接的通常处理函数</span></div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">//接收本地连接的处理函数</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">acceptUnixHandler</span><span class="params">(aeEventLoop *el, <span class="keyword">int</span> fd, <span class="keyword">void</span> *privdata, <span class="keyword">int</span> mask)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> cfd, max = MAX_ACCEPTS_PER_CALL;<span class="comment">//每次call的最大连接数</span></div><div class="line">    UNUSED(el);</div><div class="line">    UNUSED(mask);</div><div class="line">    UNUSED(privdata);</div><div class="line"></div><div class="line">    <span class="keyword">while</span>(max--) &#123;</div><div class="line">        cfd = anetUnixAccept(server.neterr, fd);<span class="comment">//本地连接返回进程fd</span></div><div class="line">        <span class="keyword">if</span> (cfd == ANET_ERR) &#123;</div><div class="line">            <span class="keyword">if</span> (errno != EWOULDBLOCK)</div><div class="line">                serverLog(LL_WARNING,</div><div class="line">                    <span class="string">"Accepting client connection: %s"</span>, server.neterr);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">        serverLog(LL_VERBOSE,<span class="string">"Accepted connection to %s"</span>, server.unixsocket);</div><div class="line">        acceptCommonHandler(cfd,CLIENT_UNIX_SOCKET,<span class="literal">NULL</span>);<span class="comment">//连接的通常处理函数</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到一个常规处理函数acceptCommonHandler，用来在server中创建client数据结构，保存ip地址，port端口，数据缓冲区buf等通信信息。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//接收连接处理函数...</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">acceptCommonHandler</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> flags, <span class="keyword">char</span> *ip)</span> </span>&#123;</div><div class="line">    client *c;</div><div class="line">    <span class="keyword">if</span> ((c = createClient(fd)) == <span class="literal">NULL</span>) &#123;<span class="comment">//创建client客户端</span></div><div class="line">        serverLog(LL_WARNING,</div><div class="line">            <span class="string">"Error registering fd event for the new client: %s (fd=%d)"</span>,</div><div class="line">            strerror(errno),fd);</div><div class="line">        close(fd); <span class="comment">/* May be already closed, just ignore errors */</span></div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">/* If maxclient directive is set and this is one client more... close the</span></div><div class="line">     * connection. Note that we create the client instead to check before</div><div class="line">     * for this condition, since now the socket is already set in non-blocking</div><div class="line">     * mode and we can send an error for free using the Kernel I/O */</div><div class="line">    <span class="keyword">if</span> (listLength(server.clients) &gt; server.maxclients) &#123;<span class="comment">//检查是否超过最大client连接数</span></div><div class="line">        <span class="keyword">char</span> *err = <span class="string">"-ERR max number of clients reached\r\n"</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* That's a best effort error message, don't check write errors */</span></div><div class="line">        <span class="keyword">if</span> (write(c-&gt;fd,err,<span class="built_in">strlen</span>(err)) == <span class="number">-1</span>) &#123;<span class="comment">//传回错误信息</span></div><div class="line">            <span class="comment">/* Nothing to do, Just to avoid the warning... */</span></div><div class="line">        &#125;</div><div class="line">        server.stat_rejected_conn++;<span class="comment">//拒绝连接数加一</span></div><div class="line">        freeClient(c);<span class="comment">//释放创建的客户端</span></div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* If the server is running in protected mode (the default) and there</span></div><div class="line">     * is no password set, nor a specific interface is bound, we don't accept</div><div class="line">     * requests from non loopback interfaces. Instead we try to explain the</div><div class="line">     * user what to do to fix it if needed. */</div><div class="line">    <span class="comment">//如果在保护状态加上没有密码认证，那么不接受本地回环接口</span></div><div class="line">    <span class="keyword">if</span> (server.protected_mode &amp;&amp;</div><div class="line">        server.bindaddr_count == <span class="number">0</span> &amp;&amp;</div><div class="line">        server.requirepass == <span class="literal">NULL</span> &amp;&amp;</div><div class="line">        !(flags &amp; CLIENT_UNIX_SOCKET) &amp;&amp;</div><div class="line">        ip != <span class="literal">NULL</span>)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">if</span> (<span class="built_in">strcmp</span>(ip,<span class="string">"127.0.0.1"</span>) &amp;&amp; <span class="built_in">strcmp</span>(ip,<span class="string">"::1"</span>)) &#123;</div><div class="line">            <span class="keyword">char</span> *err =</div><div class="line">                <span class="string">"-DENIED Redis is running in protected mode because protected "</span></div><div class="line">                <span class="string">"mode is enabled, no bind address was specified, no "</span></div><div class="line">                <span class="string">"authentication password is requested to clients. In this mode "</span></div><div class="line">                <span class="string">"connections are only accepted from the loopback interface. "</span></div><div class="line">                <span class="string">"If you want to connect from external computers to Redis you "</span></div><div class="line">                <span class="string">"may adopt one of the following solutions: "</span></div><div class="line">                <span class="string">"1) Just disable protected mode sending the command "</span></div><div class="line">                <span class="string">"'CONFIG SET protected-mode no' from the loopback interface "</span></div><div class="line">                <span class="string">"by connecting to Redis from the same host the server is "</span></div><div class="line">                <span class="string">"running, however MAKE SURE Redis is not publicly accessible "</span></div><div class="line">                <span class="string">"from internet if you do so. Use CONFIG REWRITE to make this "</span></div><div class="line">                <span class="string">"change permanent. "</span></div><div class="line">                <span class="string">"2) Alternatively you can just disable the protected mode by "</span></div><div class="line">                <span class="string">"editing the Redis configuration file, and setting the protected "</span></div><div class="line">                <span class="string">"mode option to 'no', and then restarting the server. "</span></div><div class="line">                <span class="string">"3) If you started the server manually just for testing, restart "</span></div><div class="line">                <span class="string">"it with the '--protected-mode no' option. "</span></div><div class="line">                <span class="string">"4) Setup a bind address or an authentication password. "</span></div><div class="line">                <span class="string">"NOTE: You only need to do one of the above things in order for "</span></div><div class="line">                <span class="string">"the server to start accepting connections from the outside.\r\n"</span>;</div><div class="line">            <span class="keyword">if</span> (write(c-&gt;fd,err,<span class="built_in">strlen</span>(err)) == <span class="number">-1</span>) &#123;<span class="comment">//发送错误信息</span></div><div class="line">                <span class="comment">/* Nothing to do, Just to avoid the warning... */</span></div><div class="line">            &#125;</div><div class="line">            server.stat_rejected_conn++;</div><div class="line">            freeClient(c);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    server.stat_numconnections++;<span class="comment">//增加连接数</span></div><div class="line">    c-&gt;flags |= flags;<span class="comment">//设置连接的属性</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="客户端的创建释放"><a href="#客户端的创建释放" class="headerlink" title="客户端的创建释放"></a>客户端的创建释放</h2><p>在上面接受客户端的连接请求处理中， 需要创建client保存信息，那么就有创建client以及释放client函数：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//！！！！创建一个客户端</span></div><div class="line"><span class="function">client *<span class="title">createClient</span><span class="params">(<span class="keyword">int</span> fd)</span> </span>&#123;</div><div class="line">    client *c = zmalloc(<span class="keyword">sizeof</span>(client));</div><div class="line"></div><div class="line">    <span class="comment">/* passing -1 as fd it is possible to create a non connected client.</span></div><div class="line">     * This is useful since all the commands needs to be executed</div><div class="line">     * in the context of a client. When commands are executed in other</div><div class="line">     * contexts (for instance a Lua script) we need a non connected client. */</div><div class="line">    <span class="comment">//所有的指令都需要在一个client上下文下执行，这样我们可以创建一个不需要连接的伪终端来执行指令脚本</span></div><div class="line">    <span class="keyword">if</span> (fd != <span class="number">-1</span>) &#123;</div><div class="line">        anetNonBlock(<span class="literal">NULL</span>,fd);<span class="comment">//使套接字非阻塞</span></div><div class="line">        anetEnableTcpNoDelay(<span class="literal">NULL</span>,fd);<span class="comment">//设置nodelay防止两种算法互相干扰导致延迟</span></div><div class="line">        <span class="keyword">if</span> (server.tcpkeepalive)<span class="comment">//设置keepalive检测对方服务器是否奔溃退出连接</span></div><div class="line">            anetKeepAlive(<span class="literal">NULL</span>,fd,server.tcpkeepalive);</div><div class="line">        <span class="keyword">if</span> (aeCreateFileEvent(server.el,fd,AE_READABLE,</div><div class="line">            readQueryFromClient, c) == AE_ERR) <span class="comment">//创建一个套接字的读事件，读取来自客户端的指令</span></div><div class="line">        &#123;</div><div class="line">            close(fd);</div><div class="line">            zfree(c);</div><div class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//初始化变量</span></div><div class="line">    selectDb(c,<span class="number">0</span>);<span class="comment">//选择默认数据库</span></div><div class="line">    c-&gt;id = server.next_client_id++;<span class="comment">//设置client的id</span></div><div class="line">    c-&gt;fd = fd;<span class="comment">//设置通信文件描述符</span></div><div class="line">    c-&gt;name = <span class="literal">NULL</span>;<span class="comment">//client名字</span></div><div class="line">    c-&gt;bufpos = <span class="number">0</span>;<span class="comment">//请求缓冲区偏移</span></div><div class="line">    c-&gt;querybuf = sdsempty();<span class="comment">//初始化请求缓冲区</span></div><div class="line">    c-&gt;querybuf_peak = <span class="number">0</span>;<span class="comment">//请求缓冲区大小峰值</span></div><div class="line">    c-&gt;reqtype = <span class="number">0</span>;<span class="comment">//请求类型</span></div><div class="line">    c-&gt;argc = <span class="number">0</span>;<span class="comment">//参数个数</span></div><div class="line">    c-&gt;argv = <span class="literal">NULL</span>;	<span class="comment">//参数指针</span></div><div class="line">    c-&gt;cmd = c-&gt;lastcmd = <span class="literal">NULL</span>;<span class="comment">//当前以及最后一次的指令名称</span></div><div class="line">    c-&gt;multibulklen = <span class="number">0</span>;<span class="comment">//设置未读指令的数目</span></div><div class="line">    c-&gt;bulklen = <span class="number">-1</span>;<span class="comment">//读入参数的长度</span></div><div class="line">    c-&gt;sentlen = <span class="number">0</span>;<span class="comment">//reply信息的总长度</span></div><div class="line">    c-&gt;flags = <span class="number">0</span>;<span class="comment">//client状态</span></div><div class="line">    c-&gt;ctime = c-&gt;lastinteraction = server.unixtime;<span class="comment">//最近一次交互事件</span></div><div class="line">    c-&gt;authenticated = <span class="number">0</span>;<span class="comment">//是否认证</span></div><div class="line">    c-&gt;replstate = REPL_STATE_NONE;<span class="comment">//副本状态</span></div><div class="line">    c-&gt;repl_put_online_on_ack = <span class="number">0</span>;<span class="comment">//副本在线回馈信息</span></div><div class="line">    c-&gt;reploff = <span class="number">0</span>;<span class="comment">//副本偏移</span></div><div class="line">    c-&gt;repl_ack_off = <span class="number">0</span>;<span class="comment">//通过ack命令接收到的偏移量</span></div><div class="line">    c-&gt;repl_ack_time = <span class="number">0</span>;<span class="comment">//通过ack命令接收到的偏移量所用的时间</span></div><div class="line">    c-&gt;slave_listening_port = <span class="number">0</span>;<span class="comment">//从节点的端口号</span></div><div class="line">    c-&gt;slave_ip[<span class="number">0</span>] = <span class="string">'\0'</span>;<span class="comment">//从节点ip</span></div><div class="line">    c-&gt;slave_capa = SLAVE_CAPA_NONE;<span class="comment">//从节点的功能</span></div><div class="line">    c-&gt;reply = listCreate();<span class="comment">//创建回复链表</span></div><div class="line">    c-&gt;reply_bytes = <span class="number">0</span>;<span class="comment">//回复链表的字节数</span></div><div class="line">    c-&gt;obuf_soft_limit_reached_time = <span class="number">0</span>;<span class="comment">//回复缓冲区的内存大小软限制</span></div><div class="line">    listSetFreeMethod(c-&gt;reply,freeClientReplyValue);<span class="comment">//设置释放函数</span></div><div class="line">    listSetDupMethod(c-&gt;reply,dupClientReplyValue);<span class="comment">//设置复制函数</span></div><div class="line">    c-&gt;btype = BLOCKED_NONE;<span class="comment">//阻塞类型</span></div><div class="line">    c-&gt;bpop.timeout = <span class="number">0</span>;<span class="comment">//阻塞时限</span></div><div class="line">    c-&gt;bpop.keys = dictCreate(&amp;objectKeyPointerValueDictType,<span class="literal">NULL</span>);<span class="comment">//初始化造成阻塞的字典</span></div><div class="line">    c-&gt;bpop.target = <span class="literal">NULL</span>;<span class="comment">//阻塞中，用于push目标key</span></div><div class="line">    c-&gt;bpop.numreplicas = <span class="number">0</span>;<span class="comment">//阻塞状态</span></div><div class="line">    c-&gt;bpop.reploffset = <span class="number">0</span>;<span class="comment">//要达到的复制偏移量</span></div><div class="line">    c-&gt;woff = <span class="number">0</span>;<span class="comment">//全局偏移</span></div><div class="line">    c-&gt;watched_keys = listCreate();<span class="comment">//监视的key链表</span></div><div class="line">    c-&gt;pubsub_channels = dictCreate(&amp;objectKeyPointerValueDictType,<span class="literal">NULL</span>);<span class="comment">//订阅的频道</span></div><div class="line">    c-&gt;pubsub_patterns = listCreate();<span class="comment">//订阅的模式</span></div><div class="line">    c-&gt;peerid = <span class="literal">NULL</span>;<span class="comment">//记录对方的ip：port</span></div><div class="line">    listSetFreeMethod(c-&gt;pubsub_patterns,decrRefCountVoid);<span class="comment">//设置模式链表释放方法</span></div><div class="line">    listSetMatchMethod(c-&gt;pubsub_patterns,listMatchObjects);<span class="comment">//设置模式链表匹配方法</span></div><div class="line">    <span class="keyword">if</span> (fd != <span class="number">-1</span>) listAddNodeTail(server.clients,c);<span class="comment">//如果不是伪client，将正真的客户端放入服务器客户端列表中</span></div><div class="line">    initClientMultiState(c);<span class="comment">//初始化事务状态</span></div><div class="line">    <span class="keyword">return</span> c;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>下面是释放客户端，释放客户端分为解除客户端所有的引用以及释放所有客户端的空间，释放分为立即释放和异步释放，立即释放即调用函数就释放空间，而异步释放将client放入即将释放链表中，在serverCon循环中会调用函数将空间释放。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//移除服务器上关于特定的客户端的所有可见的引用不包括Pub/Sub channels</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">unlinkClient</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    listNode *ln;</div><div class="line"></div><div class="line">    <span class="comment">/* If this is marked as current client unset it. */</span></div><div class="line">    <span class="keyword">if</span> (server.current_client == c) server.current_client = <span class="literal">NULL</span>;<span class="comment">//如果是当前client，移除当前client</span></div><div class="line"></div><div class="line">    <span class="comment">/* Certain operations must be done only if the client has an active socket.</span></div><div class="line">     * If the client was already unlinked or if it's a "fake client" the</div><div class="line">     * fd is already set to -1. */</div><div class="line">    <span class="keyword">if</span> (c-&gt;fd != <span class="number">-1</span>) &#123;</div><div class="line">        <span class="comment">/* Remove from the list of active clients. */</span></div><div class="line">        <span class="comment">//删除服务器中客户端链表中的client</span></div><div class="line">        ln = listSearchKey(server.clients,c);</div><div class="line">        serverAssert(ln != <span class="literal">NULL</span>);</div><div class="line">        listDelNode(server.clients,ln);</div><div class="line"></div><div class="line">        <span class="comment">/* Unregister async I/O handlers and close the socket. */</span></div><div class="line">        <span class="comment">//移除关于client的事件</span></div><div class="line">        aeDeleteFileEvent(server.el,c-&gt;fd,AE_READABLE);</div><div class="line">        aeDeleteFileEvent(server.el,c-&gt;fd,AE_WRITABLE);</div><div class="line">        close(c-&gt;fd);</div><div class="line">        c-&gt;fd = <span class="number">-1</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Remove from the list of pending writes if needed. */</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_PENDING_WRITE) &#123;</div><div class="line">        <span class="comment">//如果需要从待写的队列中删除client</span></div><div class="line">        ln = listSearchKey(server.clients_pending_write,c);</div><div class="line">        serverAssert(ln != <span class="literal">NULL</span>);</div><div class="line">        listDelNode(server.clients_pending_write,ln);</div><div class="line">        c-&gt;flags &amp;= ~CLIENT_PENDING_WRITE;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* When client was just unblocked because of a blocking operation,</span></div><div class="line">     * remove it from the list of unblocked clients. */</div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_UNBLOCKED) &#123;<span class="comment">//从阻塞列表中删除client</span></div><div class="line">        ln = listSearchKey(server.unblocked_clients,c);</div><div class="line">        serverAssert(ln != <span class="literal">NULL</span>);</div><div class="line">        listDelNode(server.unblocked_clients,ln);</div><div class="line">        c-&gt;flags &amp;= ~CLIENT_UNBLOCKED;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">//立即释放客户端空间</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">freeClient</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    listNode *ln;</div><div class="line">    <span class="comment">//如果是连接的master服务器那么需要检查客户端的状态</span></div><div class="line">    <span class="keyword">if</span> (server.master &amp;&amp; c-&gt;flags &amp; CLIENT_MASTER) &#123;</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Connection with master lost."</span>);</div><div class="line">        <span class="keyword">if</span> (!(c-&gt;flags &amp; (CLIENT_CLOSE_AFTER_REPLY|</div><div class="line">                          CLIENT_CLOSE_ASAP|</div><div class="line">                          CLIENT_BLOCKED|</div><div class="line">                          CLIENT_UNBLOCKED)))</div><div class="line">        &#123;<span class="comment">//暂时不释放空间</span></div><div class="line">            replicationCacheMaster(c);<span class="comment">//处理master主机断开连接</span></div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Log link disconnection with slave */</span></div><div class="line">    <span class="comment">//日志打印slave服务器的断开</span></div><div class="line">    <span class="keyword">if</span> ((c-&gt;flags &amp; CLIENT_SLAVE) &amp;&amp; !(c-&gt;flags &amp; CLIENT_MONITOR)) &#123;</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Connection with slave %s lost."</span>,</div><div class="line">            replicationGetSlaveName(c));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Free the query buffer */</span></div><div class="line">    sdsfree(c-&gt;querybuf);<span class="comment">//释放查询语句缓冲区</span></div><div class="line">    c-&gt;querybuf = <span class="literal">NULL</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* Deallocate structures used to block on blocking ops. */</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_BLOCKED) unblockClient(c);<span class="comment">//解开阻塞</span></div><div class="line">    dictRelease(c-&gt;bpop.keys);<span class="comment">//释放关于阻塞的字典空间</span></div><div class="line"></div><div class="line">    <span class="comment">/* UNWATCH all the keys */</span></div><div class="line">    unwatchAllKeys(c);<span class="comment">//unwatch所有的key</span></div><div class="line">    listRelease(c-&gt;watched_keys);</div><div class="line"></div><div class="line">    <span class="comment">/* Unsubscribe from all the pubsub channels */</span></div><div class="line">    <span class="comment">//退订所有的频道以及模式</span></div><div class="line">    pubsubUnsubscribeAllChannels(c,<span class="number">0</span>);</div><div class="line">    pubsubUnsubscribeAllPatterns(c,<span class="number">0</span>);</div><div class="line">    dictRelease(c-&gt;pubsub_channels);</div><div class="line">    listRelease(c-&gt;pubsub_patterns);</div><div class="line"></div><div class="line">    <span class="comment">/* Free data structures. */</span></div><div class="line">    <span class="comment">//释放reply数据结构</span></div><div class="line">    listRelease(c-&gt;reply);</div><div class="line">    freeClientArgv(c);</div><div class="line"></div><div class="line">    <span class="comment">/* Unlink the client: this will close the socket, remove the I/O</span></div><div class="line">     * handlers, and remove references of the client from different</div><div class="line">     * places where active clients may be referenced. */</div><div class="line">    <span class="comment">//移除所有的引用</span></div><div class="line">    unlinkClient(c);</div><div class="line"></div><div class="line">    <span class="comment">/* Master/slave cleanup Case 1:</span></div><div class="line">     * we lost the connection with a slave. */</div><div class="line">    <span class="comment">//解决一个从服务器的客户端断开连接</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_SLAVE) &#123;</div><div class="line">        <span class="keyword">if</span> (c-&gt;replstate == SLAVE_STATE_SEND_BULK) &#123;</div><div class="line">            <span class="keyword">if</span> (c-&gt;repldbfd != <span class="number">-1</span>) close(c-&gt;repldbfd);</div><div class="line">            <span class="keyword">if</span> (c-&gt;replpreamble) sdsfree(c-&gt;replpreamble);</div><div class="line">        &#125;</div><div class="line">        <span class="built_in">list</span> *l = (c-&gt;flags &amp; CLIENT_MONITOR) ? server.monitors : server.slaves;</div><div class="line">        ln = listSearchKey(l,c);</div><div class="line">        serverAssert(ln != <span class="literal">NULL</span>);</div><div class="line">        listDelNode(l,ln);</div><div class="line">        <span class="comment">/* We need to remember the time when we started to have zero</span></div><div class="line">         * attached slaves, as after some time we'll free the replication</div><div class="line">         * backlog. */</div><div class="line">        <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_SLAVE &amp;&amp; listLength(server.slaves) == <span class="number">0</span>)</div><div class="line">            server.repl_no_slaves_since = server.unixtime;</div><div class="line">        refreshGoodSlavesCount();<span class="comment">//跟新存活的slave数目</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Master/slave cleanup Case 2:</span></div><div class="line">     * we lost the connection with the master. */</div><div class="line">    <span class="comment">//如果是一个主服务器的客户端断开连接</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_MASTER) replicationHandleMasterDisconnection();</div><div class="line"></div><div class="line">    <span class="comment">/* If this client was scheduled for async freeing we need to remove it</span></div><div class="line">     * from the queue. */</div><div class="line">    <span class="comment">//加入到异步释放队列了</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_CLOSE_ASAP) &#123;</div><div class="line">        ln = listSearchKey(server.clients_to_close,c);</div><div class="line">        serverAssert(ln != <span class="literal">NULL</span>);</div><div class="line">        listDelNode(server.clients_to_close,ln);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Release other dynamically allocated client structure fields,</span></div><div class="line">     * and finally release the client structure itself. */</div><div class="line">    <span class="comment">//释放一些其他的数据结构空间</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;name) decrRefCount(c-&gt;name);</div><div class="line">    zfree(c-&gt;argv);</div><div class="line">    freeClientMultiState(c);</div><div class="line">    sdsfree(c-&gt;peerid);</div><div class="line">    zfree(c);</div><div class="line">&#125;</div><div class="line"><span class="comment">//异步释放客户端，异步释放防止正在往客户端写数据这样释放客户端不安全，每一次服务器loop都会处理这些clients</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">freeClientAsync</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_CLOSE_ASAP || c-&gt;flags &amp; CLIENT_LUA) <span class="keyword">return</span>;<span class="comment">//已经即将释放状态或者是伪客户端不存在不安全问题</span></div><div class="line">    c-&gt;flags |= CLIENT_CLOSE_ASAP;</div><div class="line">    listAddNodeTail(server.clients_to_close,c);</div><div class="line">&#125;</div><div class="line"><span class="comment">//强制从即将释放客户端列表中即可释放所有客户端</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">freeClientsInAsyncFreeQueue</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</div><div class="line">    <span class="keyword">while</span> (listLength(server.clients_to_close)) &#123;<span class="comment">//遍历即将释放客户端列表</span></div><div class="line">        listNode *ln = listFirst(server.clients_to_close);</div><div class="line">        client *c = listNodeValue(ln);</div><div class="line"></div><div class="line">        c-&gt;flags &amp;= ~CLIENT_CLOSE_ASAP;</div><div class="line">        freeClient(c);<span class="comment">//即可释放客户端</span></div><div class="line">        listDelNode(server.clients_to_close,ln);<span class="comment">//从列表中删除</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="接受客户端请求"><a href="#接受客户端请求" class="headerlink" title="接受客户端请求"></a>接受客户端请求</h2><p>追寻客户端的请求，可以看到在创建client时，有添加一个客户端fd的可读事件，在client发送指令后，server通过可读事件读取指令到缓冲区，下面我们看这个可读事件的处理函数readQueryFromClient：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//从客户端读取查询语句 存放在缓冲区中待处理</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">readQueryFromClient</span><span class="params">(aeEventLoop *el, <span class="keyword">int</span> fd, <span class="keyword">void</span> *privdata, <span class="keyword">int</span> mask)</span> </span>&#123;</div><div class="line">    client *c = (client*) privdata;</div><div class="line">    <span class="keyword">int</span> nread, readlen;</div><div class="line">    <span class="keyword">size_t</span> qblen;</div><div class="line">    UNUSED(el);</div><div class="line">    UNUSED(mask);</div><div class="line"></div><div class="line">    readlen = PROTO_IOBUF_LEN;  <span class="comment">//16k的io缓冲区大小</span></div><div class="line">    <span class="comment">/* If this is a multi bulk request, and we are processing a bulk reply</span></div><div class="line">     * that is large enough, try to maximize the probability that the query</div><div class="line">     * buffer contains exactly the SDS string representing the object, even</div><div class="line">     * at the risk of requiring more read(2) calls. This way the function</div><div class="line">     * processMultiBulkBuffer() can avoid copying buffers to create the</div><div class="line">     * Redis Object representing the argument. */</div><div class="line">    <span class="comment">//如果是多条指令的根据请求的要求确定读取的长度</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;reqtype == PROTO_REQ_MULTIBULK &amp;&amp; c-&gt;multibulklen &amp;&amp; c-&gt;bulklen != <span class="number">-1</span></div><div class="line">        &amp;&amp; c-&gt;bulklen &gt;= PROTO_MBULK_BIG_ARG)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">int</span> remaining = (<span class="keyword">unsigned</span>)(c-&gt;bulklen+<span class="number">2</span>)-sdslen(c-&gt;querybuf);</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (remaining &lt; readlen) readlen = remaining;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    qblen = sdslen(c-&gt;querybuf);</div><div class="line">    <span class="keyword">if</span> (c-&gt;querybuf_peak &lt; qblen) c-&gt;querybuf_peak = qblen;<span class="comment">//更新peak长度</span></div><div class="line">    c-&gt;querybuf = sdsMakeRoomFor(c-&gt;querybuf, readlen);<span class="comment">//为querybuf开辟空间</span></div><div class="line">    nread = read(fd, c-&gt;querybuf+qblen, readlen);<span class="comment">//读取数据到querybuf</span></div><div class="line">    <span class="keyword">if</span> (nread == <span class="number">-1</span>) &#123;<span class="comment">//出错处理</span></div><div class="line">        <span class="keyword">if</span> (errno == EAGAIN) &#123;</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            serverLog(LL_VERBOSE, <span class="string">"Reading from client: %s"</span>,strerror(errno));</div><div class="line">            freeClient(c);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (nread == <span class="number">0</span>) &#123;</div><div class="line">        serverLog(LL_VERBOSE, <span class="string">"Client closed connection"</span>);</div><div class="line">        freeClient(c);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    sdsIncrLen(c-&gt;querybuf,nread);<span class="comment">//增加querybuf长度</span></div><div class="line">    c-&gt;lastinteraction = server.unixtime;<span class="comment">//跟新交互时间</span></div><div class="line">    <span class="comment">//下面是replication部分</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_MASTER) &#123;</div><div class="line">        c-&gt;reploff += nread;</div><div class="line">        <span class="comment">//传递来自master的信息到subslave</span></div><div class="line">        replicationFeedSlavesFromMasterStream(server.slaves,</div><div class="line">                c-&gt;querybuf+qblen,nread);</div><div class="line">    &#125;</div><div class="line">    server.stat_net_input_bytes += nread;</div><div class="line">    <span class="keyword">if</span> (sdslen(c-&gt;querybuf) &gt; server.client_max_querybuf_len) &#123;<span class="comment">//超出最大长度</span></div><div class="line">        sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();</div><div class="line"></div><div class="line">        bytes = sdscatrepr(bytes,c-&gt;querybuf,<span class="number">64</span>);</div><div class="line">        <span class="comment">//将客户信息以及查询语句保存打印</span></div><div class="line">        serverLog(LL_WARNING,<span class="string">"Closing client that reached max query buffer length: %s (qbuf initial bytes: %s)"</span>, ci, bytes);</div><div class="line">        sdsfree(ci);</div><div class="line">        sdsfree(bytes);</div><div class="line">        freeClient(c);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//处理输入缓冲区的语句</span></div><div class="line">    processInputBuffer(c);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在processInputBuffer函数中，对缓冲区中的指令进行解析，redis中有两种请求，一种是通过telent一种的redis-cli，所以有两种指令协议，当然也有两种协议解析，函数分别是processMultibulkBuffer和processInlineBuffer，两个函数都是将指令解析后存入到argc和args中，等待执行，下面看processInputBuffer函数。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//处理querybuffer中的指令 分两种协议</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">processInputBuffer</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    server.current_client = c;</div><div class="line">    <span class="comment">/* Keep processing while there is something in the input buffer */</span></div><div class="line">    <span class="keyword">while</span>(sdslen(c-&gt;querybuf)) &#123;</div><div class="line">        <span class="comment">/* Return if clients are paused. */</span></div><div class="line">        <span class="comment">//cilent停止</span></div><div class="line">        <span class="keyword">if</span> (!(c-&gt;flags &amp; CLIENT_SLAVE) &amp;&amp; clientsArePaused()) <span class="keyword">break</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* Immediately abort if the client is in the middle of something. */</span></div><div class="line">        <span class="comment">//client阻塞状态</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_BLOCKED) <span class="keyword">break</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* CLIENT_CLOSE_AFTER_REPLY closes the connection once the reply is</span></div><div class="line">         * written to the client. Make sure to not let the reply grow after</div><div class="line">         * this flag has been set (i.e. don't process more commands).</div><div class="line">         *</div><div class="line">         * The same applies for clients we want to terminate ASAP. */</div><div class="line">        <span class="comment">//即将关闭</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;flags &amp; (CLIENT_CLOSE_AFTER_REPLY|CLIENT_CLOSE_ASAP)) <span class="keyword">break</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* Determine request type when unknown. */</span></div><div class="line">        <span class="comment">//决定是哪一种协议请求</span></div><div class="line">        <span class="keyword">if</span> (!c-&gt;reqtype) &#123;</div><div class="line">            <span class="keyword">if</span> (c-&gt;querybuf[<span class="number">0</span>] == <span class="string">'*'</span>) &#123;</div><div class="line">                c-&gt;reqtype = PROTO_REQ_MULTIBULK;</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                c-&gt;reqtype = PROTO_REQ_INLINE;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">//处理argc以及argv</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;reqtype == PROTO_REQ_INLINE) &#123;</div><div class="line">            <span class="comment">//内连协议请求 处理来自telnet的请求</span></div><div class="line">            <span class="keyword">if</span> (processInlineBuffer(c) != C_OK) <span class="keyword">break</span>;</div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (c-&gt;reqtype == PROTO_REQ_MULTIBULK) &#123;</div><div class="line">            <span class="comment">//处理多条请求</span></div><div class="line">            <span class="keyword">if</span> (processMultibulkBuffer(c) != C_OK) <span class="keyword">break</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            serverPanic(<span class="string">"Unknown request type"</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* Multibulk processing could see a &lt;= 0 length. */</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;argc == <span class="number">0</span>) &#123;</div><div class="line">            resetClient(c);<span class="comment">//重置client进行下一个指令</span></div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">/* Only reset the client when the command was executed. */</span></div><div class="line">            <span class="keyword">if</span> (processCommand(c) == C_OK)<span class="comment">//处理指令</span></div><div class="line">                resetClient(c);<span class="comment">//完成后重置client</span></div><div class="line">            <span class="comment">/* freeMemoryIfNeeded may flush slave output buffers. This may result</span></div><div class="line">             * into a slave, that may be the active client, to be freed. */</div><div class="line">            <span class="keyword">if</span> (server.current_client == <span class="literal">NULL</span>) <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    server.current_client = <span class="literal">NULL</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见在解析完指令后执行了processCommand来执行指令。</p>
+<h2 id="回应客户端"><a href="#回应客户端" class="headerlink" title="回应客户端"></a>回应客户端</h2><p>在每次serverCon的循环中就会调用handleClientsWithPendingWrites函数，查看是否有需要回复的client，如果存在那么增加client的fd的可写事件，在事件处理时就会触发事件，写入缓冲区或者list中的reply。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">handleClientsWithPendingWrites</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</div><div class="line">    listIter li;</div><div class="line">    listNode *ln;</div><div class="line">    <span class="keyword">int</span> processed = listLength(server.clients_pending_write);</div><div class="line"></div><div class="line">    listRewind(server.clients_pending_write,&amp;li);</div><div class="line">    <span class="comment">//循环等待回应的client列表</span></div><div class="line">    <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">        client *c = listNodeValue(ln);</div><div class="line">        c-&gt;flags &amp;= ~CLIENT_PENDING_WRITE;</div><div class="line">        listDelNode(server.clients_pending_write,ln);</div><div class="line"></div><div class="line">        <span class="comment">/* Try to write buffers to the client socket. */</span></div><div class="line">        <span class="keyword">if</span> (writeToClient(c-&gt;fd,c,<span class="number">0</span>) == C_ERR) <span class="keyword">continue</span>;<span class="comment">//回复client</span></div><div class="line"></div><div class="line">        <span class="comment">/* If there is nothing left, do nothing. Otherwise install</span></div><div class="line">         * the write handler. */</div><div class="line">        <span class="comment">//如果没有回复了不做事，否则增加可写事件</span></div><div class="line">        <span class="keyword">if</span> (clientHasPendingReplies(c) &amp;&amp;</div><div class="line">            aeCreateFileEvent(server.el, c-&gt;fd, AE_WRITABLE,</div><div class="line">                sendReplyToClient, c) == AE_ERR)</div><div class="line">        &#123;</div><div class="line">            freeClientAsync(c);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> processed;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见writeToClient函数就是往clients发送reply，在sendReplyToClient中，是为了在处理writeToClient时又有新的数据加入缓冲区中没有及时入里所以添加可写事件。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//写事件的处理器 当有回复的数据时创建这个事件，然后当套接字可写时调用该函数 进行数据写到相关的client</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">sendReplyToClient</span><span class="params">(aeEventLoop *el, <span class="keyword">int</span> fd, <span class="keyword">void</span> *privdata, <span class="keyword">int</span> mask)</span> </span>&#123;</div><div class="line">    UNUSED(el);</div><div class="line">    UNUSED(mask);</div><div class="line">    writeToClient(fd,privdata,<span class="number">1</span>);<span class="comment">//往套接字中写信息</span></div><div class="line">&#125;</div><div class="line"><span class="comment">//将output中的数据写给客户端，返回ok表示client任然有效 返回错误表示client已经释放了</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">writeToClient</span><span class="params">(<span class="keyword">int</span> fd, client *c, <span class="keyword">int</span> handler_installed)</span> </span>&#123;</div><div class="line">    <span class="keyword">ssize_t</span> nwritten = <span class="number">0</span>, totwritten = <span class="number">0</span>;</div><div class="line">    <span class="keyword">size_t</span> objlen;</div><div class="line">    sds o;</div><div class="line"></div><div class="line">    <span class="keyword">while</span>(clientHasPendingReplies(c)) &#123;<span class="comment">//直到没有待发送的reply信息</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;bufpos &gt; <span class="number">0</span>) &#123;</div><div class="line">            nwritten = write(fd,c-&gt;buf+c-&gt;sentlen,c-&gt;bufpos-c-&gt;sentlen);<span class="comment">//发送信息</span></div><div class="line">            <span class="keyword">if</span> (nwritten &lt;= <span class="number">0</span>) <span class="keyword">break</span>;<span class="comment">//发送失败</span></div><div class="line">            c-&gt;sentlen += nwritten;</div><div class="line">            totwritten += nwritten;</div><div class="line"></div><div class="line">            <span class="comment">/* If the buffer was sent, set bufpos to zero to continue with</span></div><div class="line">             * the remainder of the reply. */</div><div class="line">            <span class="comment">//发送完毕了</span></div><div class="line">            <span class="keyword">if</span> ((<span class="keyword">int</span>)c-&gt;sentlen == c-&gt;bufpos) &#123;</div><div class="line">                c-&gt;bufpos = <span class="number">0</span>;</div><div class="line">                c-&gt;sentlen = <span class="number">0</span>;</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            o = listNodeValue(listFirst(c-&gt;reply));</div><div class="line">            objlen = sdslen(o);</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (objlen == <span class="number">0</span>) &#123;<span class="comment">//如果长度为0直接删除</span></div><div class="line">                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            nwritten = write(fd, o + c-&gt;sentlen, objlen - c-&gt;sentlen);<span class="comment">//发送reply信息</span></div><div class="line">            <span class="keyword">if</span> (nwritten &lt;= <span class="number">0</span>) <span class="keyword">break</span>;</div><div class="line">            c-&gt;sentlen += nwritten;</div><div class="line">            totwritten += nwritten;</div><div class="line"></div><div class="line">            <span class="comment">/* If we fully sent the object on head go to the next one */</span></div><div class="line">            <span class="keyword">if</span> (c-&gt;sentlen == objlen) &#123;<span class="comment">//表示一个节点的reply发送完毕</span></div><div class="line">                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));</div><div class="line">                c-&gt;sentlen = <span class="number">0</span>;</div><div class="line">                c-&gt;reply_bytes -= objlen;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">/* Note that we avoid to send more than NET_MAX_WRITES_PER_EVENT</span></div><div class="line">         * bytes, in a single threaded server it's a good idea to serve</div><div class="line">         * other clients as well, even if a very large request comes from</div><div class="line">         * super fast link that is always able to accept data (in real world</div><div class="line">         * scenario think about 'KEYS *' against the loopback interface).</div><div class="line">         *</div><div class="line">         * However if we are over the maxmemory limit we ignore that and</div><div class="line">         * just deliver as much data as it is possible to deliver. */</div><div class="line">        server.stat_net_output_bytes += totwritten;</div><div class="line">        <span class="keyword">if</span> (totwritten &gt; NET_MAX_WRITES_PER_EVENT &amp;&amp;<span class="comment">//发送信息的总体大小限制</span></div><div class="line">            (server.maxmemory == <span class="number">0</span> ||</div><div class="line">             zmalloc_used_memory() &lt; server.maxmemory)) <span class="keyword">break</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (nwritten == <span class="number">-1</span>) &#123;</div><div class="line">        <span class="keyword">if</span> (errno == EAGAIN) &#123;</div><div class="line">            nwritten = <span class="number">0</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            serverLog(LL_VERBOSE,</div><div class="line">                <span class="string">"Error writing to client: %s"</span>, strerror(errno));</div><div class="line">            freeClient(c);</div><div class="line">            <span class="keyword">return</span> C_ERR;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (totwritten &gt; <span class="number">0</span>) &#123;</div><div class="line">        <span class="comment">/* For clients representing masters we don't count sending data</span></div><div class="line">         * as an interaction, since we always send REPLCONF ACK commands</div><div class="line">         * that take some time to just fill the socket output buffer.</div><div class="line">         * We just rely on data / pings received for timeout detection. */</div><div class="line">        <span class="comment">//更新交互时间 注意来自master的传递不算是交互</span></div><div class="line">        <span class="keyword">if</span> (!(c-&gt;flags &amp; CLIENT_MASTER)) c-&gt;lastinteraction = server.unixtime;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (!clientHasPendingReplies(c)) &#123;</div><div class="line">        c-&gt;sentlen = <span class="number">0</span>;</div><div class="line">        <span class="comment">//是否删除这个可写事件</span></div><div class="line">        <span class="keyword">if</span> (handler_installed) aeDeleteFileEvent(server.el,c-&gt;fd,AE_WRITABLE);</div><div class="line"></div><div class="line">        <span class="comment">/* Close connection after entire reply has been sent. */</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_CLOSE_AFTER_REPLY) &#123;</div><div class="line">            freeClient(c);</div><div class="line">            <span class="keyword">return</span> C_ERR;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> C_OK;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在每次指令执行完毕都会有相应的addReply函数来将指令添加到client的回复缓冲区中，在调用底层的reply函数时需要调用prepareClientToWrite函数来做一些状态检查以及将client添加到待写入信息的list中。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//准备好向客户端的套接字写入数据</span></div><div class="line"><span class="comment">//每一次客户端的回复创建完毕后都要调用，在往客户端输出端添加数据之前，如果函数返回错误那么不应该append数据了</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">prepareClientToWrite</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    <span class="comment">/* If it's the Lua client we always return ok without installing any</span></div><div class="line">     * handler since there is no socket at all. */</div><div class="line">    <span class="comment">//如果是脚本客户端没有套接字直接返回ok</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; (CLIENT_LUA|CLIENT_MODULE)) <span class="keyword">return</span> C_OK;</div><div class="line"></div><div class="line">    <span class="comment">/* CLIENT REPLY OFF / SKIP handling: don't send replies. */</span></div><div class="line">    <span class="comment">//如果客户端关闭回复或者忽略回复直接返回错误</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; (CLIENT_REPLY_OFF|CLIENT_REPLY_SKIP)) <span class="keyword">return</span> C_ERR;</div><div class="line"></div><div class="line">    <span class="comment">/* Masters don't receive replies, unless CLIENT_MASTER_FORCE_REPLY flag</span></div><div class="line">     * is set. */</div><div class="line">    <span class="comment">//master客户端并且不强制接收回复那么返回错误</span></div><div class="line">    <span class="keyword">if</span> ((c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;</div><div class="line">        !(c-&gt;flags &amp; CLIENT_MASTER_FORCE_REPLY)) <span class="keyword">return</span> C_ERR;</div><div class="line">    <span class="comment">//aof虚拟客户端 不接受回复</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;fd &lt;= <span class="number">0</span>) <span class="keyword">return</span> C_ERR; <span class="comment">/* Fake client for AOF loading. */</span></div><div class="line"></div><div class="line">    <span class="comment">/* Schedule the client to write the output buffers to the socket only</span></div><div class="line">     * if not already done (there were no pending writes already and the client</div><div class="line">     * was yet not flagged), and, for slaves, if the slave can actually</div><div class="line">     * receive writes at this stage. */</div><div class="line">    <span class="comment">//如果客户端没有待传输的回复并且没有</span></div><div class="line">    <span class="keyword">if</span> (!clientHasPendingReplies(c) &amp;&amp;</div><div class="line">        !(c-&gt;flags &amp; CLIENT_PENDING_WRITE) &amp;&amp;</div><div class="line">        (c-&gt;replstate == REPL_STATE_NONE ||</div><div class="line">         (c-&gt;replstate == SLAVE_STATE_ONLINE &amp;&amp; !c-&gt;repl_put_online_on_ack)))</div><div class="line">    &#123;</div><div class="line">        <span class="comment">/* Here instead of installing the write handler, we just flag the</span></div><div class="line">         * client and put it into a list of clients that have something</div><div class="line">         * to write to the socket. This way before re-entering the event</div><div class="line">         * loop, we can try to directly write to the client sockets avoiding</div><div class="line">         * a system call. We'll only really install the write handler if</div><div class="line">         * we'll not be able to write the whole reply at once. */</div><div class="line">        c-&gt;flags |= CLIENT_PENDING_WRITE;</div><div class="line">        listAddNodeHead(server.clients_pending_write,c);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Authorize the caller to queue in the output buffer of this client. */</span></div><div class="line">    <span class="keyword">return</span> C_OK;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在回复缓冲的信息大小达到限制后就会忘reply_list中写入信息，在往list中写入信息的函数最后都要执行asyncCloseClientOnOutputBufferLimitReached函数来检查总体回复的大小是否达到限制。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//异步的关闭client当输出缓冲区限制达到时</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">asyncCloseClientOnOutputBufferLimitReached</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    serverAssert(c-&gt;reply_bytes &lt; SIZE_MAX-(<span class="number">1024</span>*<span class="number">64</span>));</div><div class="line">    <span class="keyword">if</span> (c-&gt;reply_bytes == <span class="number">0</span> || c-&gt;flags &amp; CLIENT_CLOSE_ASAP) <span class="keyword">return</span>;<span class="comment">//如果reply的list中信息大小为0或者即将异步关闭直接返回</span></div><div class="line">    <span class="keyword">if</span> (checkClientOutputBufferLimits(c)) &#123;<span class="comment">//如果缓冲区达到限制大小</span></div><div class="line">        sds client = catClientInfoString(sdsempty(),c);</div><div class="line">        freeClientAsync(c);<span class="comment">//异步释放client</span></div><div class="line">        serverLog(LL_WARNING,<span class="string">"Client %s scheduled to be closed ASAP for overcoming of output buffer limits."</span>, client);</div><div class="line">        sdsfree(client);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">//如果client达到一个软或硬的限制返回非0，否则返回0，同时会跟新检测soft限制的状态</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">checkClientOutputBufferLimits</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> soft = <span class="number">0</span>, hard = <span class="number">0</span>, class;</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> used_mem = getClientOutputBufferMemoryUsage(c);</div><div class="line"></div><div class="line">    <span class="class"><span class="keyword">class</span> = <span class="title">getClientType</span>(<span class="title">c</span>);</span></div><div class="line">    <span class="comment">/* For the purpose of output buffer limiting, masters are handled</span></div><div class="line">     * like normal clients. */</div><div class="line">    <span class="comment">//如果client是master那么当作normal来处理</span></div><div class="line">    <span class="keyword">if</span> (class == CLIENT_TYPE_MASTER) <span class="class"><span class="keyword">class</span> = <span class="title">CLIENT_TYPE_NORMAL</span>;</span></div><div class="line">    <span class="comment">//判断soft以及hard的限制是否达到</span></div><div class="line">    <span class="keyword">if</span> (server.client_obuf_limits[class].hard_limit_bytes &amp;&amp;</div><div class="line">        used_mem &gt;= server.client_obuf_limits[class].hard_limit_bytes)</div><div class="line">        hard = <span class="number">1</span>;</div><div class="line">    <span class="keyword">if</span> (server.client_obuf_limits[class].soft_limit_bytes &amp;&amp;</div><div class="line">        used_mem &gt;= server.client_obuf_limits[class].soft_limit_bytes)</div><div class="line">        soft = <span class="number">1</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* We need to check if the soft limit is reached continuously for the</span></div><div class="line">     * specified amount of seconds. */</div><div class="line">    <span class="comment">//如果soft达标，检查是否是第一次或者不是第一次但是距离上次限制在限制时间内，那么不记录这次达标</span></div><div class="line">    <span class="keyword">if</span> (soft) &#123;</div><div class="line">        <span class="keyword">if</span> (c-&gt;obuf_soft_limit_reached_time == <span class="number">0</span>) &#123;</div><div class="line">            c-&gt;obuf_soft_limit_reached_time = server.unixtime;</div><div class="line">            soft = <span class="number">0</span>; <span class="comment">/* First time we see the soft limit reached */</span></div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">time_t</span> elapsed = server.unixtime - c-&gt;obuf_soft_limit_reached_time;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (elapsed &lt;=</div><div class="line">                server.client_obuf_limits[class].soft_limit_seconds) &#123;</div><div class="line">                soft = <span class="number">0</span>; <span class="comment">/* The client still did not reached the max number of</span></div><div class="line">                             seconds for the soft limit to be considered</div><div class="line">                             reached. */</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        c-&gt;obuf_soft_limit_reached_time = <span class="number">0</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> soft || hard;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见client缓冲区溢出的软机制，即当超出限制但是距离上次溢出时间较短，那么会给它一定时间来处理reply，而不是直接释放client。</p>
+<h2 id="关于客户端命令"><a href="#关于客户端命令" class="headerlink" title="关于客户端命令"></a>关于客户端命令</h2><p>client指令：<br>CLIENT KILL [ip:port] [ID client-id] [TYPE normal|master|slave|pubsub] [ADDR ip:port] [SKIPME yes/no]<br>CLIENT GETNAME<br>CLIENT LIST<br>CLIENT PAUSE timeout<br>CLIENT REPLY ON|OFF|SKIP<br>CLIENT SETNAME connection-name<br>下面参照源码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// client 命令的实现</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">clientCommand</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    listNode *ln;</div><div class="line">    listIter li;</div><div class="line">    client *client;</div><div class="line"></div><div class="line">    <span class="comment">//  CLIENT LIST 的实现</span></div><div class="line">    <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,<span class="string">"list"</span>) &amp;&amp; c-&gt;argc == <span class="number">2</span>) &#123;</div><div class="line">        <span class="comment">/* CLIENT LIST */</span></div><div class="line">        <span class="comment">// 获取所有的client信息</span></div><div class="line">        sds o = getAllClientsInfoString();</div><div class="line">        <span class="comment">// 添加到到输入缓冲区中</span></div><div class="line">        addReplyBulkCBuffer(c,o,sdslen(o));</div><div class="line">        sdsfree(o);</div><div class="line">    <span class="comment">// CLIENT REPLY ON|OFF|SKIP 命令实现</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,<span class="string">"reply"</span>) &amp;&amp; c-&gt;argc == <span class="number">3</span>) &#123;</div><div class="line">        <span class="comment">/* CLIENT REPLY ON|OFF|SKIP */</span></div><div class="line">        <span class="comment">// 如果是 ON</span></div><div class="line">        <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">2</span>]-&gt;ptr,<span class="string">"on"</span>)) &#123;</div><div class="line">            <span class="comment">// 取消 off 和 skip 的标志</span></div><div class="line">            c-&gt;flags &amp;= ~(CLIENT_REPLY_SKIP|CLIENT_REPLY_OFF);</div><div class="line">            <span class="comment">// 回复 +OK</span></div><div class="line">            addReply(c,shared.ok);</div><div class="line">        <span class="comment">// 如果是 OFF</span></div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">2</span>]-&gt;ptr,<span class="string">"off"</span>)) &#123;</div><div class="line">            <span class="comment">// 打开 OFF标志</span></div><div class="line">            c-&gt;flags |= CLIENT_REPLY_OFF;</div><div class="line">        <span class="comment">// 如果是 SKIP</span></div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">2</span>]-&gt;ptr,<span class="string">"skip"</span>)) &#123;</div><div class="line">            <span class="comment">// 没有设置 OFF 则设置 SKIP 标志</span></div><div class="line">            <span class="keyword">if</span> (!(c-&gt;flags &amp; CLIENT_REPLY_OFF))</div><div class="line">                c-&gt;flags |= CLIENT_REPLY_SKIP_NEXT;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            addReply(c,shared.syntaxerr);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">    <span class="comment">//  CLIENT KILL [ip:port] [ID client-id] [TYPE normal | master | slave | pubsub] [ADDR ip:port] [SKIPME yes / no]</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,<span class="string">"kill"</span>)) &#123;</div><div class="line">        <span class="comment">/* CLIENT KILL &lt;ip:port&gt;</span></div><div class="line">         * CLIENT KILL &lt;option&gt; [value] ... &lt;option&gt; [value] */</div><div class="line">        <span class="keyword">char</span> *addr = <span class="literal">NULL</span>;</div><div class="line">        <span class="keyword">int</span> type = <span class="number">-1</span>;</div><div class="line">        <span class="keyword">uint64_t</span> id = <span class="number">0</span>;</div><div class="line">        <span class="keyword">int</span> skipme = <span class="number">1</span>;</div><div class="line">        <span class="keyword">int</span> killed = <span class="number">0</span>, close_this_client = <span class="number">0</span>;</div><div class="line"></div><div class="line">        <span class="comment">// CLIENT KILL addr:port只能通过地址杀死client，旧版本兼容</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;argc == <span class="number">3</span>) &#123;</div><div class="line">            <span class="comment">/* Old style syntax: CLIENT KILL &lt;addr&gt; */</span></div><div class="line">            addr = c-&gt;argv[<span class="number">2</span>]-&gt;ptr;</div><div class="line">            skipme = <span class="number">0</span>; <span class="comment">/* With the old form, you can kill yourself. */</span></div><div class="line">        <span class="comment">// 新版本可以根据[ID client-id] [master|normal|slave|pubsub] [ADDR ip:port] [SKIPME yes/no]杀死client</span></div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (c-&gt;argc &gt; <span class="number">3</span>) &#123;</div><div class="line">            <span class="keyword">int</span> i = <span class="number">2</span>; <span class="comment">/* Next option index. */</span></div><div class="line"></div><div class="line">            <span class="comment">/* New style syntax: parse options. */</span></div><div class="line">            <span class="comment">// 解析语法</span></div><div class="line">            <span class="keyword">while</span>(i &lt; c-&gt;argc) &#123;</div><div class="line">                <span class="keyword">int</span> moreargs = c-&gt;argc &gt; i+<span class="number">1</span>;</div><div class="line"></div><div class="line">                <span class="comment">// CLIENT KILL [ID client-id]</span></div><div class="line">                <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i]-&gt;ptr,<span class="string">"id"</span>) &amp;&amp; moreargs) &#123;</div><div class="line">                    <span class="keyword">long</span> <span class="keyword">long</span> tmp;</div><div class="line">                    <span class="comment">// 获取client的ID</span></div><div class="line">                    <span class="keyword">if</span> (getLongLongFromObjectOrReply(c,c-&gt;argv[i+<span class="number">1</span>],&amp;tmp,<span class="literal">NULL</span>)</div><div class="line">                        != C_OK) <span class="keyword">return</span>;</div><div class="line">                    id = tmp;</div><div class="line">                <span class="comment">// CLIENT KILL TYPE type, 这里的 type 可以是 [master|normal|slave|pubsub]</span></div><div class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i]-&gt;ptr,<span class="string">"type"</span>) &amp;&amp; moreargs) &#123;</div><div class="line">                    <span class="comment">// 获取client的类型，[master|normal|slave|pubsub]四种之一</span></div><div class="line">                    type = getClientTypeByName(c-&gt;argv[i+<span class="number">1</span>]-&gt;ptr);</div><div class="line">                    <span class="keyword">if</span> (type == <span class="number">-1</span>) &#123;</div><div class="line">                        addReplyErrorFormat(c,<span class="string">"Unknown client type '%s'"</span>,</div><div class="line">                            (<span class="keyword">char</span>*) c-&gt;argv[i+<span class="number">1</span>]-&gt;ptr);</div><div class="line">                        <span class="keyword">return</span>;</div><div class="line">                    &#125;</div><div class="line">                <span class="comment">// CLIENT KILL [ADDR ip:port]</span></div><div class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i]-&gt;ptr,<span class="string">"addr"</span>) &amp;&amp; moreargs) &#123;</div><div class="line">                    <span class="comment">// 获取ip:port</span></div><div class="line">                    addr = c-&gt;argv[i+<span class="number">1</span>]-&gt;ptr;</div><div class="line">                <span class="comment">// CLIENT KILL [SKIPME yes/no]</span></div><div class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i]-&gt;ptr,<span class="string">"skipme"</span>) &amp;&amp; moreargs) &#123;</div><div class="line">                    <span class="comment">// 如果是yes，设置设置skipme，调用该命令的客户端将不会被杀死</span></div><div class="line">                    <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i+<span class="number">1</span>]-&gt;ptr,<span class="string">"yes"</span>)) &#123;</div><div class="line">                        skipme = <span class="number">1</span>;</div><div class="line">                    <span class="comment">// 设置为no会影响到还会杀死调用该命令的客户端。</span></div><div class="line">                    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[i+<span class="number">1</span>]-&gt;ptr,<span class="string">"no"</span>)) &#123;</div><div class="line">                        skipme = <span class="number">0</span>;</div><div class="line">                    &#125; <span class="keyword">else</span> &#123;</div><div class="line">                        addReply(c,shared.syntaxerr);</div><div class="line">                        <span class="keyword">return</span>;</div><div class="line">                    &#125;</div><div class="line">                &#125; <span class="keyword">else</span> &#123;</div><div class="line">                    addReply(c,shared.syntaxerr);</div><div class="line">                    <span class="keyword">return</span>;</div><div class="line">                &#125;</div><div class="line">                i += <span class="number">2</span>;</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            addReply(c,shared.syntaxerr);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* Iterate clients killing all the matching clients. */</span></div><div class="line">        listRewind(server.clients,&amp;li);</div><div class="line">        <span class="comment">// 迭代所有的client节点</span></div><div class="line">        <span class="keyword">while</span> ((ln = listNext(&amp;li)) != <span class="literal">NULL</span>) &#123;</div><div class="line">            client = listNodeValue(ln);</div><div class="line">            <span class="comment">// 比较当前client和这四类信息，如果有一个不符合就跳过本层循环，否则就比较下一个信息</span></div><div class="line">            <span class="keyword">if</span> (addr &amp;&amp; <span class="built_in">strcmp</span>(getClientPeerId(client),addr) != <span class="number">0</span>) <span class="keyword">continue</span>;</div><div class="line">            <span class="keyword">if</span> (type != <span class="number">-1</span> &amp;&amp; getClientType(client) != type) <span class="keyword">continue</span>;</div><div class="line">            <span class="keyword">if</span> (id != <span class="number">0</span> &amp;&amp; client-&gt;id != id) <span class="keyword">continue</span>;</div><div class="line">            <span class="keyword">if</span> (c == client &amp;&amp; skipme) <span class="keyword">continue</span>;</div><div class="line"></div><div class="line">            <span class="comment">/* Kill it. */</span></div><div class="line">            <span class="comment">// 杀死当前的client</span></div><div class="line">            <span class="keyword">if</span> (c == client) &#123;</div><div class="line">                close_this_client = <span class="number">1</span>;</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                freeClient(client);</div><div class="line">            &#125;</div><div class="line">            <span class="comment">// 计算杀死client的个数</span></div><div class="line">            killed++;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* Reply according to old/new format. */</span></div><div class="line">        <span class="comment">// 回复client信息</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;argc == <span class="number">3</span>) &#123;</div><div class="line">            <span class="comment">// 没找到符合信息的</span></div><div class="line">            <span class="keyword">if</span> (killed == <span class="number">0</span>)</div><div class="line">                addReplyError(c,<span class="string">"No such client"</span>);</div><div class="line">            <span class="keyword">else</span></div><div class="line">                addReply(c,shared.ok);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">// 发送杀死的个数</span></div><div class="line">            addReplyLongLong(c,killed);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* If this client has to be closed, flag it as CLOSE_AFTER_REPLY</span></div><div class="line">         * only after we queued the reply to its output buffers. */</div><div class="line">        <span class="keyword">if</span> (close_this_client) c-&gt;flags |= CLIENT_CLOSE_AFTER_REPLY;</div><div class="line">    <span class="comment">//  CLIENT SETNAME connection-name</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,<span class="string">"setname"</span>) &amp;&amp; c-&gt;argc == <span class="number">3</span>) &#123;</div><div class="line">        <span class="keyword">int</span> j, len = sdslen(c-&gt;argv[<span class="number">2</span>]-&gt;ptr);</div><div class="line">        <span class="keyword">char</span> *p = c-&gt;argv[<span class="number">2</span>]-&gt;ptr;</div><div class="line"></div><div class="line">        <span class="comment">/* Setting the client name to an empty string actually removes</span></div><div class="line">         * the current name. */</div><div class="line">        <span class="comment">// 设置名字为空</span></div><div class="line">        <span class="keyword">if</span> (len == <span class="number">0</span>) &#123;</div><div class="line">            <span class="comment">// 先释放掉原来的名字</span></div><div class="line">            <span class="keyword">if</span> (c-&gt;name) decrRefCount(c-&gt;name);</div><div class="line">            c-&gt;name = <span class="literal">NULL</span>;</div><div class="line">            addReply(c,shared.ok);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* Otherwise check if the charset is ok. We need to do this otherwise</span></div><div class="line">         * CLIENT LIST format will break. You should always be able to</div><div class="line">         * split by space to get the different fields. */</div><div class="line">        <span class="comment">// 检查名字格式是否正确</span></div><div class="line">        <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; len; j++) &#123;</div><div class="line">            <span class="keyword">if</span> (p[j] &lt; <span class="string">'!'</span> || p[j] &gt; <span class="string">'~'</span>) &#123; <span class="comment">/* ASCII is assumed. */</span></div><div class="line">                addReplyError(c,</div><div class="line">                    <span class="string">"Client names cannot contain spaces, "</span></div><div class="line">                    <span class="string">"newlines or special characters."</span>);</div><div class="line">                <span class="keyword">return</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">// 释放原来的名字</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;name) decrRefCount(c-&gt;name);</div><div class="line">        <span class="comment">// 设置新名字</span></div><div class="line">        c-&gt;name = c-&gt;argv[<span class="number">2</span>];</div><div class="line">        incrRefCount(c-&gt;name);</div><div class="line">        addReply(c,shared.ok);</div><div class="line">    <span class="comment">//  CLIENT GETNAME</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,<span class="string">"getname"</span>) &amp;&amp; c-&gt;argc == <span class="number">2</span>) &#123;</div><div class="line">        <span class="comment">// 回复名字</span></div><div class="line">        <span class="keyword">if</span> (c-&gt;name)</div><div class="line">            addReplyBulk(c,c-&gt;name);</div><div class="line">        <span class="keyword">else</span></div><div class="line">            addReply(c,shared.nullbulk);</div><div class="line">    <span class="comment">//  CLIENT PAUSE timeout</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,<span class="string">"pause"</span>) &amp;&amp; c-&gt;argc == <span class="number">3</span>) &#123;</div><div class="line">        <span class="keyword">long</span> <span class="keyword">long</span> duration;</div><div class="line"></div><div class="line">        <span class="comment">// 以毫秒为单位将等待时间保存在duration中</span></div><div class="line">        <span class="keyword">if</span> (getTimeoutFromObjectOrReply(c,c-&gt;argv[<span class="number">2</span>],&amp;duration,UNIT_MILLISECONDS)</div><div class="line">                                        != C_OK) <span class="keyword">return</span>;</div><div class="line">        <span class="comment">// 暂停client</span></div><div class="line">        pauseClients(duration);</div><div class="line">        addReply(c,shared.ok);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        addReplyError(c, <span class="string">"Syntax error, try CLIENT (LIST | KILL | GETNAME | SETNAME | PAUSE | REPLY)"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2017/11/13/redis源码-20-——networking-c篇/" title="redis源码(20)——networking.c篇">https://morningXB.github.io/2017/11/13/redis源码-20-——networking-c篇/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/源码分析/" rel="tag"># 源码分析</a>
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/nosql/" rel="tag"># nosql</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/10/31/redis源码-19-——ae篇/" rel="next" title="redis源码(19)——ae篇">
+                <i class="fa fa-chevron-left"></i> redis源码(19)——ae篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/11/13/redis源码-20-——networking-c篇/"
+     data-title="redis源码(20)——networking.c篇"
+     data-content=""
+     data-url="https://morningXB.github.io/2017/11/13/redis源码-20-——networking-c篇/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/11/13/redis源码-20-——networking-c篇/"
+           data-title="redis源码(20)——networking.c篇" data-url="https://morningXB.github.io/2017/11/13/redis源码-20-——networking-c篇/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">29</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">18</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#networking文件简介"><span class="nav-number">1.</span> <span class="nav-text">networking文件简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#客户端的连接处理"><span class="nav-number">2.</span> <span class="nav-text">客户端的连接处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#客户端的创建释放"><span class="nav-number">3.</span> <span class="nav-text">客户端的创建释放</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接受客户端请求"><span class="nav-number">4.</span> <span class="nav-text">接受客户端请求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#回应客户端"><span class="nav-number">5.</span> <span class="nav-text">回应客户端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于客户端命令"><span class="nav-number">6.</span> <span class="nav-text">关于客户端命令</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"morningXB"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
