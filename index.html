@@ -444,24 +444,19 @@
 
       
         
-          
-            <p>Docker分为ce和ee分别是社区版本和企业版本，只是用的仓库url不同而已。<br>系统配置ubuntu14.04 </p>
+          <p>Docker分为ce和ee分别是社区版本和企业版本，只是用的仓库url不同而已。<br>系统配置ubuntu14.04 </p>
 <ol>
 <li>删除之前的版本<br>sudo apt-get remove docker docker-engine docker.io</li>
 <li>尽量使用aufs<br>sudo apt-get update<br>sudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual</li>
 <li>安装仓库<br>sudo apt-get update<br>sudo apt-get install apt-transport-https ca-certificates curl software-properties-common //允许apt使用https仓库</li>
-<li>添加GPG-key<br>curl -fsSL <a href="https://download.docker.com/linux/ubuntu/gpg" target="_blank" rel="external">https://download.docker.com/linux/ubuntu/gpg</a> | sudo apt-key add -</li>
-<li>确认key的序列码<br>sudo apt-key fingerprint 0EBFCD88<br>pub 4096R/0EBFCD88 2017-02-22<br>Key fingerprint = 9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88<br>uid Docker Release (CE deb) <a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#111;&#x3a;&#100;&#x6f;&#99;&#107;&#101;&#x72;&#64;&#100;&#111;&#99;&#x6b;&#x65;&#114;&#x2e;&#x63;&#111;&#109;">&#100;&#x6f;&#99;&#107;&#101;&#x72;&#64;&#100;&#111;&#99;&#x6b;&#x65;&#114;&#x2e;&#x63;&#111;&#109;</a><br>sub 4096R/F273FCD8 2017-02-22</li>
-<li>设置稳定仓库url<br>sudo add-apt-repository “deb [arch=amd64] <a href="https://download.docker.com/linux/ubuntu" target="_blank" rel="external">https://download.docker.com/linux/ubuntu</a> $(lsb_release -cs) stable”</li>
-<li>安装最新版本docker<br>sudo apt-get update<br>sudo apt-get install docker-ce</li>
-<li>列出docker版本list<br>apt-cache madsion docker-ce</li>
-<li>安装特定版本docker<br>sudo apt-get install docker-ce=<version></version></li>
-<li>测试是否安装成功，一般需要重启系统<br>sudo docker run hello-world</li>
-<li>更新docker<br>sudo apt-get update<br>repeat the abow installing steps<br>12卸载docker，以及删除docker相关文件<br>sudo apt-get purge docker-ce<br>sudo rm –rf /var/lib/docker</li>
-</ol>
-<p>参考网址：<br><a href="https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#uninstall-docker-ce" target="_blank" rel="external">https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#uninstall-docker-ce</a></p>
-
-          
+<li>添加GPG-key<br>curl -fsSL <a href="https://download.docker.com/linux/ubuntu/gpg" target="_blank" rel="external">https://download.docker.com/linux/ubuntu/gpg</a> | sudo apt-key add -
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/11/21/Docker-Install/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -565,8 +560,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/docker/" itemprop="url" rel="index">
-                    <span itemprop="name">docker</span>
+                  <a href="/categories/Docker/" itemprop="url" rel="index">
+                    <span itemprop="name">Docker</span>
                   </a>
                 </span>
 
@@ -611,14 +606,15 @@
 
       
         
-          
-            
-<h2 id="什么是Docker"><a href="#什么是Docker" class="headerlink" title="什么是Docker"></a>什么是Docker</h2><p>Docker是一个能够把开发的应用程序自动部署到容器上的开源引擎。<br>与其他容器不同，Docker在虚拟执行环境下增加了一个程序部署引擎，可以快速将开发程序打包部署到容器内，用于测试和生产，实现一处打包到处运行。<br>特点：<br>1）    提供一个简单轻量的建模模式，即操作简单<br>2）    职责的逻辑分离，减少开发与运维人员的交互<br>3）    快速高效的开发周期<br>4）    鼓励使用面向服务的架构，即一个容器运行一个应用，即一个环境提供一个服务</p>
-<h2 id="Docker组件"><a href="#Docker组件" class="headerlink" title="Docker组件"></a>Docker组件</h2><p>1）    Docker客户端和服务器<br>Docker提供典型的C/S模式服务，在宿主机（服务器）上运行的Docker守护进程（Docker引擎），接受来自本机或远程的Client（客户端）的请求，完成操作，并且管理宿主机中的Docker容器们。<br><img src="/2017/11/21/What-is-Docker/docker01.png" alt="docker01.png" title=""><br>2）    Docker镜像<br>Docker镜像相当于Docker容器的源代码，通过镜像可以构建一个配置完毕的运行环境，相当于操作系统的iso，但是Docker中的镜像轻便短小。<br>3）    Docker Registry<br>用来保存用户的镜像，可以公开或私有，官方提供的Registry中，有很多已经配置完毕的镜像，包括数据库的容器镜像，Web程序的容器镜像等。<br>4）    Docker容器<br>Docker容器就是一个虚拟的运行环境，一个服务器可以有多个容器，一个容器可以运行多个程序，互不干扰，容器相当软件的集装箱，通过容器的运输，可减少出现测试通过，但在实际生产环境Bug的情况。</p>
-<h2 id="Docker技术组件"><a href="#Docker技术组件" class="headerlink" title="Docker技术组件"></a>Docker技术组件</h2><p>1）    一个原生的Linux容器<br>2）    Linux的内核命名空间namespace<br>3）    每个容器有自己的root目录<br>4）    每个容器运行在自己的进程环境下<br>5）    每个容器间的IP相互隔离<br>6）    cpu与内存资源也相互独立<br>7）    日志，容器的标准输入输出会写入log，用于排错<br>8）    每个容器提供一个伪tty，提供交互shell</p>
-<h2 id="Docker的管理"><a href="#Docker的管理" class="headerlink" title="Docker的管理"></a>Docker的管理</h2><p>Docker的管理，不同于操作系统镜像的管理，复杂多变，Docker镜像可以实现自身的迭代，并且镜像短小轻便，销毁重建的投入也不多。</p>
-
-          
+          <img src="/2017/11/21/What-is-Docker/docker02.jpg" alt="docker02.jpg" title="">
+<h2 id="什么是Docker"><a href="#什么是Docker" class="headerlink" title="什么是Docker"></a>什么是Docker</h2><p>Docker是一个能够把开发的应用程序自动部署到容器上的开源引擎。<br>与其他容器不同，Docker在虚拟执行环境下增加了一个程序部署引擎，可以快速将开发程序打包部署到容器内，用于测试和生产，实现一处打包到处运行。<br>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/11/21/What-is-Docker/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1183,7 +1179,7 @@
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-count">8</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
@@ -1194,7 +1190,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">21</span>
+                <span class="site-state-item-count">20</span>
                 <span class="site-state-item-name">标签</span>
               </a>
             </div>
