@@ -1,0 +1,1057 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="源码分析,redis,nosql," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="redis副本简介为了防止单点数据库崩溃等意外情况导致数据丢失，所以采用副本机制来提高系统的数据可用性，建立主从服务器机制，允许从服务器获取主服务器的状态，之后成这一过程为同步操作，在redis2.8之后引入了部分同步操作，在此之前当主从连接断开重连之后，需要对主从进行全局同步，可能在断开期间的指令数据很少，所以必定会降低主服务器的性能，部分同步即通过唯一表示的副本操作id来判定，是新的主服务器还">
+<meta name="keywords" content="源码分析,redis,nosql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码(21)——replication.c篇">
+<meta property="og:url" content="https://morningXB.github.io/2017/11/22/redis源码-21-——replication-c篇/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="redis副本简介为了防止单点数据库崩溃等意外情况导致数据丢失，所以采用副本机制来提高系统的数据可用性，建立主从服务器机制，允许从服务器获取主服务器的状态，之后成这一过程为同步操作，在redis2.8之后引入了部分同步操作，在此之前当主从连接断开重连之后，需要对主从进行全局同步，可能在断开期间的指令数据很少，所以必定会降低主服务器的性能，部分同步即通过唯一表示的副本操作id来判定，是新的主服务器还">
+<meta property="og:updated_time" content="2017-11-27T11:19:47.446Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码(21)——replication.c篇">
+<meta name="twitter:description" content="redis副本简介为了防止单点数据库崩溃等意外情况导致数据丢失，所以采用副本机制来提高系统的数据可用性，建立主从服务器机制，允许从服务器获取主服务器的状态，之后成这一过程为同步操作，在redis2.8之后引入了部分同步操作，在此之前当主从连接断开重连之后，需要对主从进行全局同步，可能在断开期间的指令数据很少，所以必定会降低主服务器的性能，部分同步即通过唯一表示的副本操作id来判定，是新的主服务器还">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2017/11/22/redis源码-21-——replication-c篇/"/>
+
+
+
+
+
+  <title> redis源码(21)——replication.c篇 | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/11/22/redis源码-21-——replication-c篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码(21)——replication.c篇
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-22T20:44:11+08:00">
+                2017-11-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/11/22/redis源码-21-——replication-c篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/11/22/redis源码-21-——replication-c篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="redis副本简介"><a href="#redis副本简介" class="headerlink" title="redis副本简介"></a>redis副本简介</h2><p>为了防止单点数据库崩溃等意外情况导致数据丢失，所以采用副本机制来提高系统的数据可用性，建立主从服务器机制，允许从服务器获取主服务器的状态，之后成这一过程为同步操作，在redis2.8之后引入了部分同步操作，在此之前当主从连接断开重连之后，需要对主从进行全局同步，可能在断开期间的指令数据很少，所以必定会降低主服务器的性能，部分同步即通过唯一表示的副本操作id来判定，是新的主服务器还是之前断开的服务器，如果是之前的旧主服务器，那么从上次断开的偏移处重新开始同步，在master服务器中有replicationbacklog作为副本缓冲区，在指令传播时，也将指令存储到缓冲物中，但是缓冲区的大小时有限的，所以超过了缓冲区的大小，就必须强制进行全局同步操作。<br>redis的同步操作是异步执行的，所以同步期间可以继续执行其他指令。<br>redis的全局同步分为磁盘同步以及套接字同步，磁盘同步即将rdb文件写入磁盘，然后从磁盘读儒内存，通过套接字发送给从服务器，套接字同步即直接通过套接字发送给从服务器。<br><a id="more"></a></p>
+<h2 id="replicationCron函数"><a href="#replicationCron函数" class="headerlink" title="replicationCron函数"></a>replicationCron函数</h2><p>replicationCron函数为时间事件处理函数，在函数中有对master的连接同步，有对slave服务器的同步，以及相应的心跳机制。</p>
+<h3 id="与master相关"><a href="#与master相关" class="headerlink" title="与master相关"></a>与master相关</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//复制的时间处理函数每一秒钟被调用一次</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">replicationCron</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</div><div class="line">    <span class="keyword">static</span> <span class="keyword">long</span> <span class="keyword">long</span> replication_cron_loops = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="comment">//.......超时行为监测程序省略</span></div><div class="line"></div><div class="line">    <span class="comment">/* Check if we should connect to a MASTER */</span></div><div class="line">    <span class="comment">//连接master主机</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_CONNECT) &#123;</div><div class="line">        serverLog(LL_NOTICE,<span class="string">"Connecting to MASTER %s:%d"</span>,</div><div class="line">            server.masterhost, server.masterport);</div><div class="line">        <span class="keyword">if</span> (connectWithMaster() == C_OK) &#123;<span class="comment">//连接，创建事件，开始异步的连接以及副本同步</span></div><div class="line">            serverLog(LL_NOTICE,<span class="string">"MASTER &lt;-&gt; SLAVE sync started"</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">   <span class="comment">//......心跳机制 给master发送ack+offset</span></div><div class="line">   <span class="comment">//......心跳机制 监测slave服务器</span></div><div class="line">   <span class="comment">//......slave的同步操作</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可见检测到slave的状态为REPL_STATE_CONNECT，表示当前服务器已经执行了slaveof指令函数，发起了主从机制建立，所以异步开始连接master服务器，调用connectWithMaster函数。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//连接master主机</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">connectWithMaster</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> fd;</div><div class="line"></div><div class="line">    fd = anetTcpNonBlockBestEffortBindConnect(<span class="literal">NULL</span>,</div><div class="line">        server.masterhost,server.masterport,NET_FIRST_BIND_ADDR);<span class="comment">//建立tcp连接</span></div><div class="line">    <span class="keyword">if</span> (fd == <span class="number">-1</span>) &#123;</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Unable to connect to MASTER: %s"</span>,</div><div class="line">            strerror(errno));</div><div class="line">        <span class="keyword">return</span> C_ERR;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,<span class="literal">NULL</span>) ==</div><div class="line">            AE_ERR)</div><div class="line">    &#123;<span class="comment">//创建描述符的可读可写事件 处理函数为syncWithMaster 这里开始异步连接，主从服务器之间进行一些信息交换以及连接检测</span></div><div class="line">        close(fd);</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Can't create readable event for SYNC"</span>);</div><div class="line">        <span class="keyword">return</span> C_ERR;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    server.repl_transfer_lastio = server.unixtime;</div><div class="line">    server.repl_transfer_s = fd;</div><div class="line">    server.repl_state = REPL_STATE_CONNECTING;<span class="comment">//修改同步状态</span></div><div class="line">    <span class="keyword">return</span> C_OK;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在connectWithMaster函数中，主要就是创建主从之间的tcp连接返回套接字描述符，并且创建一个可读可写事件，为下面的主从通信准备，处理函数为syncWithMaster。</p>
+<h3 id="心跳检测"><a href="#心跳检测" class="headerlink" title="心跳检测"></a>心跳检测</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//不断地传送ack给master，不会定期给不支持PSYNC以及副本偏移的master传送ack</span></div><div class="line"> <span class="keyword">if</span> (server.masterhost &amp;&amp; server.master &amp;&amp;</div><div class="line">     !(server.master-&gt;flags &amp; CLIENT_PRE_PSYNC))</div><div class="line">     replicationSendAck();<span class="comment">//发送ack指令</span></div><div class="line"></div><div class="line"> listIter li;</div><div class="line"> listNode *ln;</div><div class="line"> robj *ping_argv[<span class="number">1</span>];</div><div class="line"></div><div class="line"> <span class="comment">//发送一个ping指令给slaves</span></div><div class="line"> <span class="keyword">if</span> ((replication_cron_loops % server.repl_ping_slave_period) == <span class="number">0</span> &amp;&amp;</div><div class="line">     listLength(server.slaves))</div><div class="line"> &#123;</div><div class="line">     ping_argv[<span class="number">0</span>] = createStringObject(<span class="string">"PING"</span>,<span class="number">4</span>);</div><div class="line">     replicationFeedSlaves(server.slaves, server.slaveseldb,</div><div class="line">         ping_argv, <span class="number">1</span>);</div><div class="line">     decrRefCount(ping_argv[<span class="number">0</span>]);</div><div class="line"> &#125;</div><div class="line"></div><div class="line"><span class="comment">//给真在等待rdb或者rdb写完发送指令数据的slave发送一个换行符，更新ack时间，避免超时</span></div><div class="line"> listRewind(server.slaves,&amp;li);</div><div class="line"> <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">     client *slave = ln-&gt;value;</div><div class="line"></div><div class="line">     <span class="keyword">int</span> is_presync =</div><div class="line">         (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START ||</div><div class="line">         (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_END &amp;&amp;</div><div class="line">          server.rdb_child_type != RDB_CHILD_TYPE_SOCKET));</div><div class="line"></div><div class="line">     <span class="keyword">if</span> (is_presync) &#123;</div><div class="line">         <span class="keyword">if</span> (write(slave-&gt;fd, <span class="string">"\n"</span>, <span class="number">1</span>) == <span class="number">-1</span>) &#123;</div><div class="line">             <span class="comment">/* Don't worry about socket errors, it's just a ping. */</span></div><div class="line">         &#125;</div><div class="line">     &#125;</div><div class="line"> &#125;</div><div class="line"></div><div class="line"> <span class="comment">//断开连接超时的slaves</span></div><div class="line"> <span class="keyword">if</span> (listLength(server.slaves)) &#123;</div><div class="line">     listIter li;</div><div class="line">     listNode *ln;</div><div class="line"></div><div class="line">     listRewind(server.slaves,&amp;li);</div><div class="line">     <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">         client *slave = ln-&gt;value;</div><div class="line"></div><div class="line">         <span class="keyword">if</span> (slave-&gt;replstate != SLAVE_STATE_ONLINE) <span class="keyword">continue</span>;</div><div class="line">         <span class="keyword">if</span> (slave-&gt;flags &amp; CLIENT_PRE_PSYNC) <span class="keyword">continue</span>;</div><div class="line">         <span class="keyword">if</span> ((server.unixtime - slave-&gt;repl_ack_time) &gt; server.repl_timeout)</div><div class="line">         &#123;</div><div class="line">             serverLog(LL_WARNING, <span class="string">"Disconnecting timedout slave: %s"</span>,</div><div class="line">                 replicationGetSlaveName(slave));</div><div class="line">             freeClient(slave);</div><div class="line">         &#125;</div><div class="line">     &#125;</div><div class="line"> &#125;</div></pre></td></tr></table></figure>
+<p>心跳机制分为，master节点给slave节点发送ping指令，并且发送一个换行符，更新ack时间，避免由于等待rdb导致误以为失联；slave节点定期给master节点发送自己的offset；对于主从交互超时的节点断开释放client。</p>
+<h2 id="replication-slave流程"><a href="#replication-slave流程" class="headerlink" title="replication-slave流程"></a>replication-slave流程</h2><p>建立主从机制很简单，三种方式：<br>1.通过运行时通过slaveof masterip masterport指令<br>2.在redis.config配置文件中配置slaveof masterip masterport<br>3.在server启动时在启动指令后面加上–slaveof masterip masterport<br>这是第一步，不断通过哪一种方式slave服务器都会执行slaveofCommand函数；<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//设置服务器的master服务器ip以及端口仅此而已</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">slaveofCommand</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    <span class="comment">/* 在群集模式中不允许使用主节点的当前地址自动配置复制 */</span></div><div class="line">    <span class="keyword">if</span> (server.cluster_enabled) &#123;</div><div class="line">        addReplyError(c,<span class="string">"SLAVEOF not allowed in cluster mode."</span>);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">/* 特殊的no one指令将slave变成一个master */</span></div><div class="line">    <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">1</span>]-&gt;ptr,<span class="string">"no"</span>) &amp;&amp;</div><div class="line">        !strcasecmp(c-&gt;argv[<span class="number">2</span>]-&gt;ptr,<span class="string">"one"</span>)) &#123;</div><div class="line">        <span class="keyword">if</span> (server.masterhost) &#123;</div><div class="line">            replicationUnsetMaster();<span class="comment">//解除slave服务器的master</span></div><div class="line">            <span class="comment">//........</span></div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">long</span> port;</div><div class="line">        <span class="keyword">if</span> ((getLongFromObjectOrReply(c, c-&gt;argv[<span class="number">2</span>], &amp;port, <span class="literal">NULL</span>) != C_OK))</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        <span class="comment">//已经连接上指定的master服务器</span></div><div class="line">        <span class="keyword">if</span> (server.masterhost &amp;&amp; !strcasecmp(server.masterhost,c-&gt;argv[<span class="number">1</span>]-&gt;ptr)</div><div class="line">            &amp;&amp; server.masterport == port) &#123;</div><div class="line">           <span class="comment">//.........</span></div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">//之前没有连接过或者连接一个新的master服务器</span></div><div class="line">        replicationSetMaster(c-&gt;argv[<span class="number">1</span>]-&gt;ptr, port);<span class="comment">//设置服务器的master</span></div><div class="line">        sds client = catClientInfoString(sdsempty(),c);</div><div class="line">        <span class="comment">//........</span></div><div class="line">    &#125;</div><div class="line">    addReply(c,shared.ok);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在slaveof指令实现中，主要就是设置slave的masterip以及masrerport这两个参数，具体看replicationUnsetMaster以及replicationSetMaster函数；<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* 设置slave的master服务器的ip以及port*/</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">replicationSetMaster</span><span class="params">(<span class="keyword">char</span> *ip, <span class="keyword">int</span> port)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> was_master = server.masterhost == <span class="literal">NULL</span>;</div><div class="line"></div><div class="line">    sdsfree(server.masterhost);</div><div class="line">    server.masterhost = sdsnew(ip);</div><div class="line">    server.masterport = port;</div><div class="line">    <span class="keyword">if</span> (server.master) &#123;<span class="comment">//释放原来的client</span></div><div class="line">        freeClient(server.master);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//断开所有阻塞状态的client</span></div><div class="line">    disconnectAllBlockedClients(); <span class="comment">/* Clients blocked in master, now slave. */</span></div><div class="line">    <span class="comment">//断开所有的slaves服务器，强制重新同步</span></div><div class="line">    disconnectSlaves();</div><div class="line">    <span class="comment">//取消该节点的复制行为</span></div><div class="line">    cancelReplicationHandshake();</div><div class="line">    <span class="keyword">if</span> (was_master) replicationCacheMasterUsingMyself();<span class="comment">//缓存master状态</span></div><div class="line">    server.repl_state = REPL_STATE_CONNECT;</div><div class="line">    server.repl_down_since = <span class="number">0</span>;</div><div class="line">&#125;</div><div class="line"><span class="comment">/* 取消副本操作，设置自己为master */</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">replicationUnsetMaster</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (server.masterhost == <span class="literal">NULL</span>) <span class="keyword">return</span>; <span class="comment">/* Nothing to do. */</span></div><div class="line">    sdsfree(server.masterhost);</div><div class="line">    server.masterhost = <span class="literal">NULL</span>;</div><div class="line">   	<span class="comment">//转换副本id</span></div><div class="line">    shiftReplicationId();</div><div class="line">    <span class="keyword">if</span> (server.master) freeClient(server.master);</div><div class="line">    replicationDiscardCachedMaster();<span class="comment">//抛弃master缓存</span></div><div class="line">    cancelReplicationHandshake();<span class="comment">//取消副本行为</span></div><div class="line">    <span class="comment">//断开所有slave连接</span></div><div class="line">    disconnectSlaves();</div><div class="line">    server.repl_state = REPL_STATE_NONE;</div><div class="line">    <span class="comment">//重置selectid为-1</span></div><div class="line">    server.slaveseldb = <span class="number">-1</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见上面函数主要工作就是设置新的masterip以及masterport，并且在没有正式连接之前创建master-client并将作为缓存master，以及断开所有的slave重新同步。<br>在设置了masterip以及port之后，server就会异步进行同步操作了，在serverCron中会执行replicationCron函数，作为时间事件循环调用。<br>通过replicationCron函数中主从连接，并且创建的可读可写函数，syncWithMaster函数，于是触发套接字的可写函数，开始主从之间的通信，在开始同步之前，需要进行连接检测以及副本配置信息传递。<br>下面看syncWithMaster函数：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div><div class="line">269</div><div class="line">270</div><div class="line">271</div><div class="line">272</div><div class="line">273</div><div class="line">274</div><div class="line">275</div><div class="line">276</div><div class="line">277</div><div class="line">278</div><div class="line">279</div><div class="line">280</div><div class="line">281</div><div class="line">282</div><div class="line">283</div><div class="line">284</div><div class="line">285</div><div class="line">286</div><div class="line">287</div><div class="line">288</div><div class="line">289</div><div class="line">290</div><div class="line">291</div><div class="line">292</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//当主从连接上后，先触发可写事件，执行该处理函数，之后触发可读函数触发</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">syncWithMaster</span><span class="params">(aeEventLoop *el, <span class="keyword">int</span> fd, <span class="keyword">void</span> *privdata, <span class="keyword">int</span> mask)</span> </span>&#123;</div><div class="line">    <span class="keyword">char</span> tmpfile[<span class="number">256</span>], *err = <span class="literal">NULL</span>;</div><div class="line">    <span class="keyword">int</span> dfd = <span class="number">-1</span>, maxtries = <span class="number">5</span>;</div><div class="line">    <span class="keyword">int</span> sockerr = <span class="number">0</span>, psync_result;</div><div class="line">    <span class="keyword">socklen_t</span> errlen = <span class="keyword">sizeof</span>(sockerr);</div><div class="line">    UNUSED(el);</div><div class="line">    UNUSED(privdata);</div><div class="line">    UNUSED(mask);</div><div class="line"></div><div class="line">    <span class="comment">/* If this event fired after the user turned the instance into a master</span></div><div class="line">     * with SLAVEOF NO ONE we must just return ASAP. */</div><div class="line">    <span class="comment">//如果事件触发在执行SLAVEOF NO ONE之后我们关闭fd，立即返回</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_NONE) &#123;</div><div class="line">        close(fd);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Check for errors in the socket: after a non blocking connect() we</span></div><div class="line">     * may find that the socket is in error state. */</div><div class="line">    <span class="comment">//检查网络连接套接字是否错误</span></div><div class="line">    <span class="keyword">if</span> (getsockopt(fd, SOL_SOCKET, SO_ERROR, &amp;sockerr, &amp;errlen) == <span class="number">-1</span>)</div><div class="line">        sockerr = errno;</div><div class="line">    <span class="keyword">if</span> (sockerr) &#123;</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Error condition on socket for SYNC: %s"</span>,</div><div class="line">            strerror(sockerr));</div><div class="line">        <span class="keyword">goto</span> error;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Send a PING to check the master is able to reply without errors. */</span></div><div class="line">    <span class="comment">//先发送一个PING检查master是否能够返回没有错误的reply</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_CONNECTING) &#123;</div><div class="line">        serverLog(LL_NOTICE,<span class="string">"Non blocking connect for SYNC fired the event."</span>);</div><div class="line">        <span class="comment">/* Delete the writable event so that the readable event remains</span></div><div class="line">         * registered and we can wait for the PONG reply. */</div><div class="line">        aeDeleteFileEvent(server.el,fd,AE_WRITABLE);<span class="comment">//删除可写事件只在第一次触发用到</span></div><div class="line">        server.repl_state = REPL_STATE_RECEIVE_PONG;<span class="comment">//修改状态为等待接受ping回复</span></div><div class="line">        <span class="comment">/* Send the PING, don't check for errors at all, we have the timeout</span></div><div class="line">         * that will take care about this. */</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="string">"PING"</span>,<span class="literal">NULL</span>);<span class="comment">//发送ping</span></div><div class="line">        <span class="keyword">if</span> (err) <span class="keyword">goto</span> write_error;</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Receive the PONG command. */</span></div><div class="line">    <span class="comment">//可读事件触发，接受master发回的pong消息 </span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_PONG) &#123;</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="literal">NULL</span>);</div><div class="line"></div><div class="line">        <span class="comment">/* We accept only two replies as valid, a positive +PONG reply</span></div><div class="line">         * (we just check for "+") or an authentication error.</div><div class="line">         * Note that older versions of Redis replied with "operation not</div><div class="line">         * permitted" instead of using a proper error code, so we test</div><div class="line">         * both. */</div><div class="line">        <span class="keyword">if</span> (err[<span class="number">0</span>] != <span class="string">'+'</span> &amp;&amp;</div><div class="line">            <span class="built_in">strncmp</span>(err,<span class="string">"-NOAUTH"</span>,<span class="number">7</span>) != <span class="number">0</span> &amp;&amp;</div><div class="line">            <span class="built_in">strncmp</span>(err,<span class="string">"-ERR operation not permitted"</span>,<span class="number">28</span>) != <span class="number">0</span>)</div><div class="line">        &#123;<span class="comment">//检测错误回复</span></div><div class="line">            serverLog(LL_WARNING,<span class="string">"Error reply to PING from master: '%s'"</span>,err);</div><div class="line">            sdsfree(err);</div><div class="line">            <span class="keyword">goto</span> error;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            serverLog(LL_NOTICE,</div><div class="line">                <span class="string">"Master replied to PING, replication can continue..."</span>);</div><div class="line">        &#125;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_SEND_AUTH;<span class="comment">//设置为master认证状态</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* AUTH with the master if required. */</span></div><div class="line">    <span class="comment">//如果有需要和master主机认证</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_SEND_AUTH) &#123;</div><div class="line">        <span class="keyword">if</span> (server.masterauth) &#123;<span class="comment">//如果需要认证，发送master的auth信息</span></div><div class="line">            err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="string">"AUTH"</span>,server.masterauth,<span class="literal">NULL</span>);</div><div class="line">            <span class="keyword">if</span> (err) <span class="keyword">goto</span> write_error;</div><div class="line">            server.repl_state = REPL_STATE_RECEIVE_AUTH;<span class="comment">//修改状态为等待接受认证信息返回</span></div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;<span class="comment">//如果不需要认证直接发送端口</span></div><div class="line">            server.repl_state = REPL_STATE_SEND_PORT;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Receive AUTH reply. */</span></div><div class="line">    <span class="comment">//接受auth消息回复</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_AUTH) &#123;</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="literal">NULL</span>);</div><div class="line">        <span class="keyword">if</span> (err[<span class="number">0</span>] == <span class="string">'-'</span>) &#123;<span class="comment">//认证失败</span></div><div class="line">            serverLog(LL_WARNING,<span class="string">"Unable to AUTH to MASTER: %s"</span>,err);</div><div class="line">            sdsfree(err);</div><div class="line">            <span class="keyword">goto</span> error;</div><div class="line">        &#125;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_SEND_PORT;<span class="comment">//认证成功进入端口发送状态</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Set the slave port, so that Master's INFO command can list the</span></div><div class="line">     * slave listening port correctly. */</div><div class="line">    <span class="comment">//发送slave端口到master，这样master的info指令才能列出slave监听的端口</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_SEND_PORT) &#123;</div><div class="line">        sds port = sdsfromlonglong(server.slave_announce_port ?</div><div class="line">            server.slave_announce_port : server.port);</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="string">"REPLCONF"</span>,</div><div class="line">                <span class="string">"listening-port"</span>,port, <span class="literal">NULL</span>);<span class="comment">//发送端口消息给master</span></div><div class="line">        sdsfree(port);</div><div class="line">        <span class="keyword">if</span> (err) <span class="keyword">goto</span> write_error;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_RECEIVE_PORT;<span class="comment">//修改状态为等待接受port消息的回复消息</span></div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Receive REPLCONF listening-port reply. */</span></div><div class="line">    <span class="comment">//接受REPLCONF listening-port的回复</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_PORT) &#123;</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="literal">NULL</span>);</div><div class="line">        <span class="comment">/* Ignore the error if any, not all the Redis versions support</span></div><div class="line">         * REPLCONF listening-port. */</div><div class="line">        <span class="keyword">if</span> (err[<span class="number">0</span>] == <span class="string">'-'</span>) &#123;<span class="comment">//如果错误info，忽略不是所有的redis版本都支持配置监听端口</span></div><div class="line">            serverLog(LL_NOTICE,<span class="string">"(Non critical) Master does not understand "</span></div><div class="line">                                <span class="string">"REPLCONF listening-port: %s"</span>, err);</div><div class="line">        &#125;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_SEND_IP;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Skip REPLCONF ip-address if there is no slave-announce-ip option set. */</span></div><div class="line">    <span class="comment">//如果没有slave-announce-ip那么忽略ip发送</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_SEND_IP &amp;&amp;</div><div class="line">        server.slave_announce_ip == <span class="literal">NULL</span>)</div><div class="line">    &#123;</div><div class="line">            server.repl_state = REPL_STATE_SEND_CAPA;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Set the slave ip, so that Master's INFO command can list the</span></div><div class="line">     * slave IP address port correctly in case of port forwarding or NAT. */</div><div class="line">    <span class="comment">//发送slave的ip信息</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_SEND_IP) &#123;</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="string">"REPLCONF"</span>,</div><div class="line">                <span class="string">"ip-address"</span>,server.slave_announce_ip, <span class="literal">NULL</span>);</div><div class="line">        <span class="keyword">if</span> (err) <span class="keyword">goto</span> write_error;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_RECEIVE_IP;</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Receive REPLCONF ip-address reply. */</span></div><div class="line">    <span class="comment">//接受REPLCONF ip-address信息的回复</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_IP) &#123;</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="literal">NULL</span>);</div><div class="line">        <span class="comment">/* Ignore the error if any, not all the Redis versions support</span></div><div class="line">         * REPLCONF listening-port. */</div><div class="line">        <span class="keyword">if</span> (err[<span class="number">0</span>] == <span class="string">'-'</span>) &#123;<span class="comment">//同样可以忽略 不是所有版本redis都支持</span></div><div class="line">            serverLog(LL_NOTICE,<span class="string">"(Non critical) Master does not understand "</span></div><div class="line">                                <span class="string">"REPLCONF ip-address: %s"</span>, err);</div><div class="line">        &#125;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_SEND_CAPA;<span class="comment">//发送slave能力</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Inform the master of our (slave) capabilities.</span></div><div class="line">     *</div><div class="line">     * EOF: supports EOF-style RDB transfer for diskless replication.</div><div class="line">     * PSYNC2: supports PSYNC v2, so understands +CONTINUE &lt;new repl ID&gt;.</div><div class="line">     *</div><div class="line">     * The master will ignore capabilities it does not understand. */</div><div class="line">    <span class="comment">//发送slave的能力信息</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_SEND_CAPA) &#123;</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="string">"REPLCONF"</span>,</div><div class="line">                <span class="string">"capa"</span>,<span class="string">"eof"</span>,<span class="string">"capa"</span>,<span class="string">"psync2"</span>,<span class="literal">NULL</span>);<span class="comment">//发送两种能力rdb以及部分同步</span></div><div class="line">        <span class="keyword">if</span> (err) <span class="keyword">goto</span> write_error;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_RECEIVE_CAPA;</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Receive CAPA reply. */</span></div><div class="line">    <span class="comment">//接受capa的回复信息</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_CAPA) &#123;</div><div class="line">        err = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="literal">NULL</span>);</div><div class="line">        <span class="comment">/* Ignore the error if any, not all the Redis versions support</span></div><div class="line">         * REPLCONF capa. */</div><div class="line">        <span class="keyword">if</span> (err[<span class="number">0</span>] == <span class="string">'-'</span>) &#123;<span class="comment">//同样可以忽略 不是所有版本redis都支持</span></div><div class="line">            serverLog(LL_NOTICE,<span class="string">"(Non critical) Master does not understand "</span></div><div class="line">                                  <span class="string">"REPLCONF capa: %s"</span>, err);</div><div class="line">        &#125;</div><div class="line">        sdsfree(err);</div><div class="line">        server.repl_state = REPL_STATE_SEND_PSYNC;<span class="comment">//修改为发送部分同步请求状态</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Try a partial resynchonization. If we don't have a cached master</span></div><div class="line">     * slaveTryPartialResynchronization() will at least try to use PSYNC</div><div class="line">     * to start a full resynchronization so that we get the master run id</div><div class="line">     * and the global offset, to try a partial resync at the next</div><div class="line">     * reconnection attempt. */</div><div class="line">    <span class="comment">//首先尝试部分同步，如果之前没有同步过那么执行全局同步，知道run id以及全局offset之后，在下一次同步Hong进行部分同步。</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state == REPL_STATE_SEND_PSYNC) &#123;</div><div class="line">        <span class="keyword">if</span> (slaveTryPartialResynchronization(fd,<span class="number">0</span>) == PSYNC_WRITE_ERROR) &#123;<span class="comment">//slave尝试部分同步</span></div><div class="line">            err = sdsnew(<span class="string">"Write error sending the PSYNC command."</span>);</div><div class="line">            <span class="keyword">goto</span> write_error;</div><div class="line">        &#125;</div><div class="line">        server.repl_state = REPL_STATE_RECEIVE_PSYNC;</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* If reached this point, we should be in REPL_STATE_RECEIVE_PSYNC. */</span></div><div class="line">    <span class="keyword">if</span> (server.repl_state != REPL_STATE_RECEIVE_PSYNC) &#123;<span class="comment">//到达这里判断，如果不是REPL_STATE_RECEIVE_PSYNC，表示同步错误</span></div><div class="line">        serverLog(LL_WARNING,<span class="string">"syncWithMaster(): state machine error, "</span></div><div class="line">                             <span class="string">"state should be RECEIVE_PSYNC but is %d"</span>,</div><div class="line">                             server.repl_state);</div><div class="line">        <span class="keyword">goto</span> error;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    psync_result = slaveTryPartialResynchronization(fd,<span class="number">1</span>);</div><div class="line">    <span class="keyword">if</span> (psync_result == PSYNC_WAIT_REPLY) <span class="keyword">return</span>; <span class="comment">/* Try again later... */</span></div><div class="line"></div><div class="line">    <span class="comment">/* If the master is in an transient error, we should try to PSYNC</span></div><div class="line">     * from scratch later, so go to the error path. This happens when</div><div class="line">     * the server is loading the dataset or is not connected with its</div><div class="line">     * master and so forth. */</div><div class="line">    <span class="keyword">if</span> (psync_result == PSYNC_TRY_LATER) <span class="keyword">goto</span> error;</div><div class="line"></div><div class="line">    <span class="comment">/* Note: if PSYNC does not return WAIT_REPLY, it will take care of</span></div><div class="line">     * uninstalling the read handler from the file descriptor. */</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (psync_result == PSYNC_CONTINUE) &#123;</div><div class="line">        serverLog(LL_NOTICE, <span class="string">"MASTER &lt;-&gt; SLAVE sync: Master accepted a Partial Resynchronization."</span>);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* PSYNC failed or is not supported: we want our slaves to resync with us</span></div><div class="line">     * as well, if we have any sub-slaves. The master may transfer us an</div><div class="line">     * entirely different data set and we have no way to incrementally feed</div><div class="line">     * our slaves after that. */</div><div class="line">    disconnectSlaves(); <span class="comment">/* Force our slaves to resync with us as well. */</span></div><div class="line">    freeReplicationBacklog(); <span class="comment">/* Don't allow our chained slaves to PSYNC. */</span></div><div class="line"></div><div class="line">    <span class="comment">/* Fall back to SYNC if needed. Otherwise psync_result == PSYNC_FULLRESYNC</span></div><div class="line">     * and the server.master_replid and master_initial_offset are</div><div class="line">     * already populated. */</div><div class="line">    <span class="keyword">if</span> (psync_result == PSYNC_NOT_SUPPORTED) &#123;</div><div class="line">        serverLog(LL_NOTICE,<span class="string">"Retrying with SYNC..."</span>);</div><div class="line">        <span class="keyword">if</span> (syncWrite(fd,<span class="string">"SYNC\r\n"</span>,<span class="number">6</span>,server.repl_syncio_timeout*<span class="number">1000</span>) == <span class="number">-1</span>) &#123;</div><div class="line">            serverLog(LL_WARNING,<span class="string">"I/O error writing to MASTER: %s"</span>,</div><div class="line">                strerror(errno));</div><div class="line">            <span class="keyword">goto</span> error;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Prepare a suitable temp file for bulk transfer */</span></div><div class="line">    <span class="keyword">while</span>(maxtries--) &#123;</div><div class="line">        <span class="built_in">snprintf</span>(tmpfile,<span class="number">256</span>,</div><div class="line">            <span class="string">"temp-%d.%ld.rdb"</span>,(<span class="keyword">int</span>)server.unixtime,(<span class="keyword">long</span> <span class="keyword">int</span>)getpid());</div><div class="line">        dfd = open(tmpfile,O_CREAT|O_WRONLY|O_EXCL,<span class="number">0644</span>);</div><div class="line">        <span class="keyword">if</span> (dfd != <span class="number">-1</span>) <span class="keyword">break</span>;</div><div class="line">        sleep(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (dfd == <span class="number">-1</span>) &#123;</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Opening the temp file needed for MASTER &lt;-&gt; SLAVE synchronization: %s"</span>,strerror(errno));</div><div class="line">        <span class="keyword">goto</span> error;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Setup the non blocking download of the bulk file. */</span></div><div class="line">    <span class="keyword">if</span> (aeCreateFileEvent(server.el,fd, AE_READABLE,readSyncBulkPayload,<span class="literal">NULL</span>)</div><div class="line">            == AE_ERR)</div><div class="line">    &#123;</div><div class="line">        serverLog(LL_WARNING,</div><div class="line">            <span class="string">"Can't create readable event for SYNC: %s (fd=%d)"</span>,</div><div class="line">            strerror(errno),fd);</div><div class="line">        <span class="keyword">goto</span> error;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    server.repl_state = REPL_STATE_TRANSFER;</div><div class="line">    server.repl_transfer_size = <span class="number">-1</span>;</div><div class="line">    server.repl_transfer_read = <span class="number">0</span>;</div><div class="line">    server.repl_transfer_last_fsync_off = <span class="number">0</span>;</div><div class="line">    server.repl_transfer_fd = dfd;</div><div class="line">    server.repl_transfer_lastio = server.unixtime;</div><div class="line">    server.repl_transfer_tmpfile = zstrdup(tmpfile);</div><div class="line">    <span class="keyword">return</span>;</div><div class="line"></div><div class="line">error:</div><div class="line">    aeDeleteFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE);</div><div class="line">    <span class="keyword">if</span> (dfd != <span class="number">-1</span>) close(dfd);</div><div class="line">    close(fd);</div><div class="line">    server.repl_transfer_s = <span class="number">-1</span>;</div><div class="line">    server.repl_state = REPL_STATE_CONNECT;</div><div class="line">    <span class="keyword">return</span>;</div><div class="line"></div><div class="line">write_error: <span class="comment">/* Handle sendSynchronousCommand(SYNC_CMD_WRITE) errors. */</span></div><div class="line">    serverLog(LL_WARNING,<span class="string">"Sending command to master in replication handshake: %s"</span>, err);</div><div class="line">    sdsfree(err);</div><div class="line">    <span class="keyword">goto</span> error;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在syncWithMaster函数中分为两个部分，一部分是通信部分，一部分是同步部分。<br>通信部分的主要步骤如下：先发送master一个ping指令，master在接到ping指令之后，回应slave消息，如果回应pong进行下一步，否则连接失败，如果需要服务器认证，发送auth+认证消息给master，master检查是否认证通过，返回相应的信息，如果错误连接失败，如果成功下一步，否则直接下一步，发送replconf指令配置port，ip，以及capa，所有完成后状态变为REPL_STATE_SEND_PSYNC，即准备进行同步。<br>即将开始同步首先会执行slaveTryPartialResynchronization函数尝试进行部分同步操作。<br>slaveTryPartialResynchronization函数分为两个部分，读以及写，读就是读取runid以及offset，写就是同步操作。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//slave服务器尝试进行部分同步</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">slaveTryPartialResynchronization</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> read_reply)</span> </span>&#123;</div><div class="line">    <span class="keyword">char</span> *psync_replid;</div><div class="line">    <span class="keyword">char</span> psync_offset[<span class="number">32</span>];</div><div class="line">    sds reply;</div><div class="line"></div><div class="line">    <span class="comment">/* Writing half */</span></div><div class="line">    <span class="comment">//写入部分当read_reply=0时</span></div><div class="line">    <span class="keyword">if</span> (!read_reply) &#123;</div><div class="line">        <span class="comment">/* Initially set master_initial_offset to -1 to mark the current</span></div><div class="line">         * master run_id and offset as not valid. Later if we'll be able to do</div><div class="line">         * a FULL resync using the PSYNC command we'll set the offset at the</div><div class="line">         * right value, so that this information will be propagated to the</div><div class="line">         * client structure representing the master into server.master. */</div><div class="line">        <span class="comment">//先初始化master_initial_offset以及psync_replid，如果有cache的话，如果没有初始化成特定字符</span></div><div class="line">        <span class="comment">//下面master可以通过这个状态来判断进行全局同步还是部分同步</span></div><div class="line">        server.master_initial_offset = <span class="number">-1</span>;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (server.cached_master) &#123;</div><div class="line">            psync_replid = server.cached_master-&gt;replid;</div><div class="line">            <span class="built_in">snprintf</span>(psync_offset,<span class="keyword">sizeof</span>(psync_offset),<span class="string">"%lld"</span>, server.cached_master-&gt;reploff+<span class="number">1</span>);</div><div class="line">            serverLog(LL_NOTICE,<span class="string">"Trying a partial resynchronization (request %s:%s)."</span>, psync_replid, psync_offset);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            serverLog(LL_NOTICE,<span class="string">"Partial resynchronization not possible (no cached master)"</span>);</div><div class="line">            psync_replid = <span class="string">"?"</span>;</div><div class="line">            <span class="built_in">memcpy</span>(psync_offset,<span class="string">"-1"</span>,<span class="number">3</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* Issue the PSYNC command */</span></div><div class="line">        <span class="comment">//发送同步请求消息</span></div><div class="line">        reply = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="string">"PSYNC"</span>,psync_replid,psync_offset,<span class="literal">NULL</span>);</div><div class="line">        <span class="keyword">if</span> (reply != <span class="literal">NULL</span>) &#123;</div><div class="line">            serverLog(LL_WARNING,<span class="string">"Unable to send PSYNC to master: %s"</span>,reply);</div><div class="line">            sdsfree(reply);</div><div class="line">            aeDeleteFileEvent(server.el,fd,AE_READABLE);<span class="comment">//副作用删除了可读事件</span></div><div class="line">            <span class="keyword">return</span> PSYNC_WRITE_ERROR;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> PSYNC_WAIT_REPLY;<span class="comment">//等待回应</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Reading half */</span></div><div class="line">    reply = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="literal">NULL</span>);</div><div class="line">    <span class="keyword">if</span> (sdslen(reply) == <span class="number">0</span>) &#123;<span class="comment">//回复空信息继续等待</span></div><div class="line">        <span class="comment">/* The master may send empty newlines after it receives PSYNC</span></div><div class="line">         * and before to reply, just to keep the connection alive. */</div><div class="line">        sdsfree(reply);</div><div class="line">        <span class="keyword">return</span> PSYNC_WAIT_REPLY;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    aeDeleteFileEvent(server.el,fd,AE_READABLE);<span class="comment">//先删除可读事件，接受同步消息</span></div><div class="line"></div><div class="line">    <span class="keyword">if</span> (!<span class="built_in">strncmp</span>(reply,<span class="string">"+FULLRESYNC"</span>,<span class="number">11</span>)) &#123;<span class="comment">//全局同步之前的初始化设置</span></div><div class="line">        <span class="keyword">char</span> *replid = <span class="literal">NULL</span>, *offset = <span class="literal">NULL</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* FULL RESYNC, parse the reply in order to extract the run id</span></div><div class="line">         * and the replication offset. */</div><div class="line">        replid = <span class="built_in">strchr</span>(reply,<span class="string">' '</span>);</div><div class="line">        <span class="keyword">if</span> (replid) &#123;</div><div class="line">            replid++;</div><div class="line">            offset = <span class="built_in">strchr</span>(replid,<span class="string">' '</span>);</div><div class="line">            <span class="keyword">if</span> (offset) offset++;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span> (!replid || !offset || (offset-replid<span class="number">-1</span>) != CONFIG_RUN_ID_SIZE) &#123;</div><div class="line">            serverLog(LL_WARNING,<span class="comment">//报告FULLRESYNC信息错误，初始化runid为0，确保下一个PSYNCs失败</span></div><div class="line">                <span class="string">"Master replied with wrong +FULLRESYNC syntax."</span>);</div><div class="line">            <span class="comment">/* This is an unexpected condition, actually the +FULLRESYNC</span></div><div class="line">             * reply means that the master supports PSYNC, but the reply</div><div class="line">             * format seems wrong. To stay safe we blank the master</div><div class="line">             * replid to make sure next PSYNCs will fail. */</div><div class="line">            <span class="built_in">memset</span>(server.master_replid,<span class="number">0</span>,CONFIG_RUN_ID_SIZE+<span class="number">1</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">//设置runid以及初始化offset</span></div><div class="line">            <span class="built_in">memcpy</span>(server.master_replid, replid, offset-replid<span class="number">-1</span>);</div><div class="line">            server.master_replid[CONFIG_RUN_ID_SIZE] = <span class="string">'\0'</span>;</div><div class="line">            server.master_initial_offset = strtoll(offset,<span class="literal">NULL</span>,<span class="number">10</span>);</div><div class="line">            serverLog(LL_NOTICE,<span class="string">"Full resync from master: %s:%lld"</span>,</div><div class="line">                server.master_replid,</div><div class="line">                server.master_initial_offset);</div><div class="line">        &#125;</div><div class="line">        <span class="comment">/* We are going to full resync, discard the cached master structure. */</span></div><div class="line">        replicationDiscardCachedMaster();<span class="comment">//开始全局同步了丢弃缓存的master信息</span></div><div class="line">        sdsfree(reply);</div><div class="line">        <span class="keyword">return</span> PSYNC_FULLRESYNC;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (!<span class="built_in">strncmp</span>(reply,<span class="string">"+CONTINUE"</span>,<span class="number">9</span>)) &#123;<span class="comment">//局部同步前的准备</span></div><div class="line">        <span class="comment">/* Partial resync was accepted. */</span></div><div class="line">        serverLog(LL_NOTICE,</div><div class="line">            <span class="string">"Successful partial resynchronization with master."</span>);</div><div class="line"></div><div class="line">        <span class="comment">/* Check the new replication ID advertised by the master. If it</span></div><div class="line">         * changed, we need to set the new ID as primary ID, and set or</div><div class="line">         * secondary ID as the old master ID up to the current offset, so</div><div class="line">         * that our sub-slaves will be able to PSYNC with us after a</div><div class="line">         * disconnection. */</div><div class="line">        <span class="keyword">char</span> *start = reply+<span class="number">10</span>;</div><div class="line">        <span class="keyword">char</span> *end = reply+<span class="number">9</span>;</div><div class="line">        <span class="keyword">while</span>(end[<span class="number">0</span>] != <span class="string">'\r'</span> &amp;&amp; end[<span class="number">0</span>] != <span class="string">'\n'</span> &amp;&amp; end[<span class="number">0</span>] != <span class="string">'\0'</span>) end++;</div><div class="line">        <span class="keyword">if</span> (end-start == CONFIG_RUN_ID_SIZE) &#123;</div><div class="line">            <span class="keyword">char</span> <span class="keyword">new</span>[CONFIG_RUN_ID_SIZE+<span class="number">1</span>];</div><div class="line">            <span class="built_in">memcpy</span>(<span class="keyword">new</span>,start,CONFIG_RUN_ID_SIZE);</div><div class="line">            <span class="keyword">new</span>[CONFIG_RUN_ID_SIZE] = <span class="string">'\0'</span>;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (<span class="built_in">strcmp</span>(<span class="keyword">new</span>,server.cached_master-&gt;replid)) &#123;</div><div class="line">                <span class="comment">/* Master ID changed. */</span></div><div class="line">                serverLog(LL_WARNING,<span class="string">"Master replication ID changed to %s"</span>,<span class="keyword">new</span>);</div><div class="line"></div><div class="line">                <span class="comment">/* Set the old ID as our ID2, up to the current offset+1. */</span></div><div class="line">                <span class="built_in">memcpy</span>(server.replid2,server.cached_master-&gt;replid,</div><div class="line">                    <span class="keyword">sizeof</span>(server.replid2));</div><div class="line">                server.second_replid_offset = server.master_repl_offset+<span class="number">1</span>;</div><div class="line"></div><div class="line">                <span class="comment">/* Update the cached master ID and our own primary ID to the</span></div><div class="line">                 * new one. */</div><div class="line">                <span class="built_in">memcpy</span>(server.replid,<span class="keyword">new</span>,<span class="keyword">sizeof</span>(server.replid));</div><div class="line">                <span class="built_in">memcpy</span>(server.cached_master-&gt;replid,<span class="keyword">new</span>,<span class="keyword">sizeof</span>(server.replid));</div><div class="line"></div><div class="line">                <span class="comment">/* Disconnect all the sub-slaves: they need to be notified. */</span></div><div class="line">                <span class="comment">//主机换了新的master 断开所有的slaves主机 需要重新通知</span></div><div class="line">                disconnectSlaves();</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* Setup the replication to continue. */</span></div><div class="line">        <span class="comment">//设置复制继续</span></div><div class="line">        sdsfree(reply);</div><div class="line">        replicationResurrectCachedMaster(fd);<span class="comment">//重新设置新的master以及cachemaster</span></div><div class="line">        <span class="keyword">return</span> PSYNC_CONTINUE;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* If we reach this point we received either an error (since the master does</span></div><div class="line">     * not understand PSYNC or because it is in a special state and cannot</div><div class="line">     * serve our request), or an unexpected reply from the master.</div><div class="line">     *</div><div class="line">     * Return PSYNC_NOT_SUPPORTED on errors we don't understand, otherwise</div><div class="line">     * return PSYNC_TRY_LATER if we believe this is a transient error. */</div><div class="line">    <span class="comment">//如果执行到这里意味着同步失败了</span></div><div class="line">    <span class="keyword">if</span> (!<span class="built_in">strncmp</span>(reply,<span class="string">"-NOMASTERLINK"</span>,<span class="number">13</span>) ||</div><div class="line">        !<span class="built_in">strncmp</span>(reply,<span class="string">"-LOADING"</span>,<span class="number">8</span>))<span class="comment">//暂时不能同步，稍后尝试</span></div><div class="line">    &#123;</div><div class="line">        serverLog(LL_NOTICE,</div><div class="line">            <span class="string">"Master is currently unable to PSYNC "</span></div><div class="line">            <span class="string">"but should be in the future: %s"</span>, reply);</div><div class="line">        sdsfree(reply);</div><div class="line">        <span class="keyword">return</span> PSYNC_TRY_LATER;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (<span class="built_in">strncmp</span>(reply,<span class="string">"-ERR"</span>,<span class="number">4</span>)) &#123;<span class="comment">//消息错误</span></div><div class="line">        <span class="comment">/* If it's not an error, log the unexpected event. */</span></div><div class="line">        serverLog(LL_WARNING,</div><div class="line">            <span class="string">"Unexpected reply to PSYNC from master: %s"</span>, reply);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//不支持部分同步</span></div><div class="line">        serverLog(LL_NOTICE,</div><div class="line">            <span class="string">"Master does not support PSYNC or is in "</span></div><div class="line">            <span class="string">"error state (reply: %s)"</span>, reply);</div><div class="line">    &#125;</div><div class="line">    sdsfree(reply);</div><div class="line">    replicationDiscardCachedMaster();</div><div class="line">    <span class="keyword">return</span> PSYNC_NOT_SUPPORTED;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在写的部分，首先获取runid以及offset然后发送给master同步指令，进行同步。<br>在master中进行master同步指令操作，然后返回信息fullsync或者continue，在slaveTryPartialResynchronization中的读部分进行判断，做出相应slave端的处理。<br>之后我们在跳到syncWithMaster函数中看看相应的处理。可见在syncWithMaster函数中只有对全局同步的处理，通过添加一个可读函数并且创建了一个rdb的文件来接受master节点发送的rdb信息。<br>那么部分同步的操作其实在slaveTryPartialResynchronization中的replicationResurrectCachedMaster函数中就做了处理。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">replicationResurrectCachedMaster</span><span class="params">(<span class="keyword">int</span> newfd)</span> </span>&#123;</div><div class="line">    server.master = server.cached_master;</div><div class="line">    server.cached_master = <span class="literal">NULL</span>;</div><div class="line">    server.master-&gt;fd = newfd;</div><div class="line">    server.master-&gt;flags &amp;= ~(CLIENT_CLOSE_AFTER_REPLY|CLIENT_CLOSE_ASAP);</div><div class="line">    server.master-&gt;authenticated = <span class="number">1</span>;</div><div class="line">    server.master-&gt;lastinteraction = server.unixtime;</div><div class="line">    server.repl_state = REPL_STATE_CONNECTED;</div><div class="line"></div><div class="line">    <span class="comment">/* Re-add to the list of clients. */</span></div><div class="line">    listAddNodeTail(server.clients,server.master);<span class="comment">//添加master到client列表中</span></div><div class="line">    <span class="keyword">if</span> (aeCreateFileEvent(server.el, newfd, AE_READABLE,<span class="comment">//添加可读事件,读取master发来的指令</span></div><div class="line">                          readQueryFromClient, server.master)) &#123;</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Error resurrecting the cached master, impossible to add the readable handler: %s"</span>, strerror(errno));</div><div class="line">        freeClientAsync(server.master); <span class="comment">/* Close ASAP. */</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* We may also need to install the write handler as well if there is</span></div><div class="line">     * pending data in the write buffers. */</div><div class="line">    <span class="keyword">if</span> (clientHasPendingReplies(server.master)) &#123;</div><div class="line">        <span class="keyword">if</span> (aeCreateFileEvent(server.el, newfd, AE_WRITABLE,<span class="comment">//添加可写指令，发送reply给master</span></div><div class="line">                          sendReplyToClient, server.master)) &#123;</div><div class="line">            serverLog(LL_WARNING,<span class="string">"Error resurrecting the cached master, impossible to add the writable handler: %s"</span>, strerror(errno));</div><div class="line">            freeClientAsync(server.master); <span class="comment">/* Close ASAP. */</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见通过置换新的master并且更新状态，然后添加可读可写函数，对master发来的同步指令集执行并且回应消息。至此完成部分同步。<br>至于全局同步创建可读事件的处理函数readSyncBulkPayload，意在读取来自master的rdb文件流然后同步状态。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//异步读取全局同步来自master的payload文件</span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> REPL_MAX_WRITTEN_BEFORE_FSYNC (1024*1024*8) <span class="comment">/* 8 MB */</span></span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">readSyncBulkPayload</span><span class="params">(aeEventLoop *el, <span class="keyword">int</span> fd, <span class="keyword">void</span> *privdata, <span class="keyword">int</span> mask)</span> </span>&#123;</div><div class="line">    <span class="keyword">char</span> buf[<span class="number">4096</span>];</div><div class="line">    <span class="keyword">ssize_t</span> nread, readlen;</div><div class="line">    <span class="keyword">off_t</span> left;</div><div class="line">    UNUSED(el);</div><div class="line">    UNUSED(privdata);</div><div class="line">    UNUSED(mask);</div><div class="line"></div><div class="line">    <span class="comment">/* Static vars used to hold the EOF mark, and the last bytes received</span></div><div class="line">     * form the server: when they match, we reached the end of the transfer. */</div><div class="line">    <span class="keyword">static</span> <span class="keyword">char</span> eofmark[CONFIG_RUN_ID_SIZE];</div><div class="line">    <span class="keyword">static</span> <span class="keyword">char</span> lastbytes[CONFIG_RUN_ID_SIZE];</div><div class="line">    <span class="keyword">static</span> <span class="keyword">int</span> usemark = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="comment">//如果repl_transfer_size=-1 先读取bulklength</span></div><div class="line">    <span class="keyword">if</span> (server.repl_transfer_size == <span class="number">-1</span>) &#123;</div><div class="line">       	<span class="comment">//........省略 读取第一行 有两种形式的数据一种是disk的数据一种是stream数据的处理</span></div><div class="line">    	<span class="comment">//........省略 对格式内容错误的判断</span></div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Read bulk data */</span></div><div class="line">    <span class="comment">//.....</span></div><div class="line"></div><div class="line">    nread = read(fd,buf,readlen);<span class="comment">//从fd中读取数据</span></div><div class="line">    <span class="comment">//......</span></div><div class="line"></div><div class="line">    <span class="comment">/* When a mark is used, we want to detect EOF asap in order to avoid</span></div><div class="line">     * writing the EOF mark into the file... */</div><div class="line">    <span class="keyword">int</span> eof_reached = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="comment">//.....</span></div><div class="line"></div><div class="line">    <span class="comment">//更新io事件戳 以及写入接受的数据到创建的rdb临时文件中</span></div><div class="line">    server.repl_transfer_lastio = server.unixtime;</div><div class="line">    <span class="keyword">if</span> (write(server.repl_transfer_fd,buf,nread) != nread) &#123;</div><div class="line">        serverLog(LL_WARNING,<span class="string">"Write error or short write writing to the DB dump file needed for MASTER &lt;-&gt; SLAVE synchronization: %s"</span>, strerror(errno));</div><div class="line">        <span class="keyword">goto</span> error;</div><div class="line">    &#125;</div><div class="line">    server.repl_transfer_read += nread;</div><div class="line"></div><div class="line">    <span class="comment">//.....</span></div><div class="line"></div><div class="line">    <span class="comment">//当写入的数据过多时，需要强制将他们从内核刷新到磁盘中</span></div><div class="line">    <span class="keyword">if</span> (server.repl_transfer_read &gt;=</div><div class="line">        server.repl_transfer_last_fsync_off + REPL_MAX_WRITTEN_BEFORE_FSYNC)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">off_t</span> sync_size = server.repl_transfer_read -</div><div class="line">                          server.repl_transfer_last_fsync_off;</div><div class="line">        rdb_fsync_range(server.repl_transfer_fd,<span class="comment">//刷新操作</span></div><div class="line">            server.repl_transfer_last_fsync_off, sync_size);</div><div class="line">        server.repl_transfer_last_fsync_off += sync_size;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">   <span class="comment">//.....</span></div><div class="line">    <span class="comment">//如果写入磁盘完毕那么需要进行rdb同步了</span></div><div class="line">    <span class="keyword">if</span> (eof_reached) &#123;</div><div class="line">        <span class="keyword">int</span> aof_is_enabled = server.aof_state != AOF_OFF;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (rename(server.repl_transfer_tmpfile,server.rdb_filename) == <span class="number">-1</span>) &#123;</div><div class="line">            serverLog(LL_WARNING,<span class="string">"Failed trying to rename the temp DB into dump.rdb in MASTER &lt;-&gt; SLAVE synchronization: %s"</span>, strerror(errno));</div><div class="line">            cancelReplicationHandshake();</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;<span class="comment">//首先修改文件名从临时到正式</span></div><div class="line">        serverLog(LL_NOTICE, <span class="string">"MASTER &lt;-&gt; SLAVE sync: Flushing old data"</span>);</div><div class="line">        <span class="comment">/* We need to stop any AOFRW fork before flusing and parsing</span></div><div class="line">         * RDB, otherwise we'll create a copy-on-write disaster. */</div><div class="line">        <span class="keyword">if</span>(aof_is_enabled) stopAppendOnly();</div><div class="line">        signalFlushedDb(<span class="number">-1</span>);<span class="comment">//减少事务键</span></div><div class="line">        emptyDb(<span class="comment">//清空数据库准备进行同步</span></div><div class="line">            <span class="number">-1</span>,</div><div class="line">            server.repl_slave_lazy_flush ? EMPTYDB_ASYNC : EMPTYDB_NO_FLAGS,</div><div class="line">            replicationEmptyDbCallback);</div><div class="line">        <span class="comment">/* Before loading the DB into memory we need to delete the readable</span></div><div class="line">         * handler, otherwise it will get called recursively since</div><div class="line">         * rdbLoad() will call the event loop to process events from time to</div><div class="line">         * time for non blocking loading. */</div><div class="line">        aeDeleteFileEvent(server.el,server.repl_transfer_s,AE_READABLE);</div><div class="line">        serverLog(LL_NOTICE, <span class="string">"MASTER &lt;-&gt; SLAVE sync: Loading DB in memory"</span>);</div><div class="line">        rdbSaveInfo rsi = RDB_SAVE_INFO_INIT;</div><div class="line">        <span class="keyword">if</span> (rdbLoad(server.rdb_filename,&amp;rsi) != C_OK) &#123;<span class="comment">//载入新的rdb文件</span></div><div class="line">            serverLog(LL_WARNING,<span class="string">"Failed trying to load the MASTER synchronization DB from disk"</span>);</div><div class="line">            cancelReplicationHandshake();</div><div class="line">            <span class="comment">/* Re-enable the AOF if we disabled it earlier, in order to restore</span></div><div class="line">             * the original configuration. */</div><div class="line">            <span class="keyword">if</span> (aof_is_enabled) restartAOF();<span class="comment">//开启刚刚可能闭关的aof</span></div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">/* Final setup of the connected slave &lt;- master link */</span></div><div class="line">        zfree(server.repl_transfer_tmpfile);</div><div class="line">        close(server.repl_transfer_fd);</div><div class="line">        replicationCreateMasterClient(server.repl_transfer_s,rsi.repl_stream_db);<span class="comment">//设置新的master</span></div><div class="line">        server.repl_state = REPL_STATE_CONNECTED;<span class="comment">//修改连接状态</span></div><div class="line">        <span class="comment">/* After a full resynchroniziation we use the replication ID and</span></div><div class="line">         * offset of the master. The secondary ID / offset are cleared since</div><div class="line">         * we are starting a new history. */</div><div class="line">        <span class="built_in">memcpy</span>(server.replid,server.master-&gt;replid,<span class="keyword">sizeof</span>(server.replid));</div><div class="line">        server.master_repl_offset = server.master-&gt;reploff;</div><div class="line">        clearReplicationId2();</div><div class="line">        <span class="comment">/* Let's create the replication backlog if needed. Slaves need to</span></div><div class="line">         * accumulate the backlog regardless of the fact they have sub-slaves</div><div class="line">         * or not, in order to behave correctly if they are promoted to</div><div class="line">         * masters after a failover. */</div><div class="line">        <span class="keyword">if</span> (server.repl_backlog == <span class="literal">NULL</span>) createReplicationBacklog();<span class="comment">//创建一个同步缓冲区</span></div><div class="line"></div><div class="line">        serverLog(LL_NOTICE, <span class="string">"MASTER &lt;-&gt; SLAVE sync: Finished with success"</span>);</div><div class="line">        <span class="comment">/* Restart the AOF subsystem now that we finished the sync. This</span></div><div class="line">         * will trigger an AOF rewrite, and when done will start appending</div><div class="line">         * to the new file. */</div><div class="line">        <span class="keyword">if</span> (aof_is_enabled) restartAOF();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span>;</div><div class="line"></div><div class="line">error:</div><div class="line">    cancelReplicationHandshake();</div><div class="line">    <span class="keyword">return</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在readSyncBulkPayload中主要有读取数据，分为两种类型数据，以及清空数据库，载入rdb文件，还有master的创建设置以及一些状态的更新。</p>
+<h2 id="replication-master流程"><a href="#replication-master流程" class="headerlink" title="replication-master流程"></a>replication-master流程</h2><p>对于master，接受来自slave的sync指令，并且进行同步操作。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//同步指令的实现</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">syncCommand</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    <span class="comment">/* ignore SYNC if already slave or in monitor mode */</span></div><div class="line">    <span class="comment">//自身是一个slave直接退出</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_SLAVE) <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* Refuse SYNC requests if we are a slave but the link with our master</span></div><div class="line">     * is not ok... */</div><div class="line">    <span class="comment">//拒绝同步如果用master服务器并且仍然处在连接状态</span></div><div class="line">    <span class="keyword">if</span> (server.masterhost &amp;&amp; server.repl_state != REPL_STATE_CONNECTED) &#123;</div><div class="line">        addReplySds(c,sdsnew(<span class="string">"-NOMASTERLINK Can't SYNC while not connected with my master\r\n"</span>));</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* SYNC can't be issued when the server has pending data to send to</span></div><div class="line">     * the client about already issued commands. We need a fresh reply</div><div class="line">     * buffer registering the differences between the BGSAVE and the current</div><div class="line">     * dataset, so that we can copy to other slaves if needed. */</div><div class="line">    <span class="comment">//当请求的c有没有发出的reply，会与同步的消息混淆所以拒绝同步</span></div><div class="line">    <span class="keyword">if</span> (clientHasPendingReplies(c)) &#123;</div><div class="line">        addReplyError(c,<span class="string">"SYNC and PSYNC are invalid with pending output"</span>);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    serverLog(LL_NOTICE,<span class="string">"Slave %s asks for synchronization"</span>,</div><div class="line">        replicationGetSlaveName(c));<span class="comment">//答应请求消息</span></div><div class="line"></div><div class="line">    <span class="comment">/* Try a partial resynchronization if this is a PSYNC command.</span></div><div class="line">     * If it fails, we continue with usual full resynchronization, however</div><div class="line">     * when this happens masterTryPartialResynchronization() already</div><div class="line">     * replied with:</div><div class="line">     *</div><div class="line">     * +FULLRESYNC &lt;replid&gt; &lt;offset&gt;</div><div class="line">     *</div><div class="line">     * So the slave knows the new replid and offset to try a PSYNC later</div><div class="line">     * if the connection with the master is lost. */</div><div class="line">    <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">0</span>]-&gt;ptr,<span class="string">"psync"</span>)) &#123;</div><div class="line">        <span class="keyword">if</span> (masterTryPartialResynchronization(c) == C_OK) &#123;<span class="comment">//尝试进行master端的局部同步</span></div><div class="line">            server.stat_sync_partial_ok++;<span class="comment">//局部同步成功直接返回</span></div><div class="line">            <span class="keyword">return</span>; <span class="comment">/* No full resync needed, return. */</span></div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">char</span> *master_replid = c-&gt;argv[<span class="number">1</span>]-&gt;ptr;</div><div class="line"></div><div class="line">            <span class="comment">/* Increment stats for failed PSYNCs, but only if the</span></div><div class="line">             * replid is not "?", as this is used by slaves to force a full</div><div class="line">             * resync on purpose when they are not albe to partially</div><div class="line">             * resync. */</div><div class="line">            <span class="comment">//如果之前没有连接过那么不会让局部同步失败加1</span></div><div class="line">            <span class="keyword">if</span> (master_replid[<span class="number">0</span>] != <span class="string">'?'</span>) server.stat_sync_partial_err++;</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">/* If a slave uses SYNC, we are dealing with an old implementation</span></div><div class="line">         * of the replication protocol (like redis-cli --slave). Flag the client</div><div class="line">         * so that we don't expect to receive REPLCONF ACK feedbacks. */</div><div class="line">        c-&gt;flags |= CLIENT_PRE_PSYNC;<span class="comment">//使用老版本的实现</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Full resynchronization. */</span></div><div class="line">    server.stat_sync_full++;<span class="comment">//开始全局同步</span></div><div class="line"></div><div class="line">    <span class="comment">/* Setup the slave as one waiting for BGSAVE to start. The following code</span></div><div class="line">     * paths will change the state if we handle the slave differently. */</div><div class="line">    c-&gt;replstate = SLAVE_STATE_WAIT_BGSAVE_START;<span class="comment">//修改slave客户端的状态为SLAVE_STATE_WAIT_BGSAVE_START等待rdb后台开始</span></div><div class="line">    <span class="keyword">if</span> (server.repl_disable_tcp_nodelay)</div><div class="line">        anetDisableTcpNoDelay(<span class="literal">NULL</span>, c-&gt;fd); <span class="comment">/* Non critical if it fails. */</span></div><div class="line">    c-&gt;repldbfd = <span class="number">-1</span>;</div><div class="line">    c-&gt;flags |= CLIENT_SLAVE;</div><div class="line">    listAddNodeTail(server.slaves,c);</div><div class="line"></div><div class="line">    <span class="comment">/* Create the replication backlog if needed. */</span></div><div class="line">    <span class="comment">//创建master端的复制后台缓冲区并且修改runid</span></div><div class="line">    <span class="keyword">if</span> (listLength(server.slaves) == <span class="number">1</span> &amp;&amp; server.repl_backlog == <span class="literal">NULL</span>) &#123;</div><div class="line">        <span class="comment">/* When we create the backlog from scratch, we always use a new</span></div><div class="line">         * replication ID and clear the ID2, since there is no valid</div><div class="line">         * past history. */</div><div class="line">        changeReplicationId();</div><div class="line">        clearReplicationId2();</div><div class="line">        createReplicationBacklog();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//下面分为三种情况：</span></div><div class="line">    <span class="comment">//1.有rdb进程并且写入disk</span></div><div class="line">    <span class="comment">//2.有rdb进程并且写入套接字</span></div><div class="line">    <span class="comment">//3.没有rdb进程</span></div><div class="line"></div><div class="line">    <span class="comment">/* CASE 1: BGSAVE is in progress, with disk target. */</span></div><div class="line">    <span class="keyword">if</span> (server.rdb_child_pid != <span class="number">-1</span> &amp;&amp;</div><div class="line">        server.rdb_child_type == RDB_CHILD_TYPE_DISK)</div><div class="line">    &#123;</div><div class="line">        <span class="comment">/* Ok a background save is in progress. Let's check if it is a good</span></div><div class="line">         * one for replication, i.e. if there is another slave that is</div><div class="line">         * registering differences since the server forked to save. */</div><div class="line">        client *slave;</div><div class="line">        listNode *ln;</div><div class="line">        listIter li;</div><div class="line"></div><div class="line">        listRewind(server.slaves,&amp;li);</div><div class="line">        <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">            slave = ln-&gt;value;</div><div class="line">            <span class="keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_END) <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">/* To attach this slave, we check that it has at least all the</span></div><div class="line">         * capabilities of the slave that triggered the current BGSAVE. */</div><div class="line">        <span class="keyword">if</span> (ln &amp;&amp; ((c-&gt;slave_capa &amp; slave-&gt;slave_capa) == slave-&gt;slave_capa)) &#123;</div><div class="line">            <span class="comment">/* Perfect, the server is already registering differences for</span></div><div class="line">             * another slave. Set the right state, and copy the buffer. */</div><div class="line">            copyClientOutputBuffer(c,slave);<span class="comment">//重复利用已经准备好的数据</span></div><div class="line">            replicationSetupSlaveForFullResync(c,slave-&gt;psync_initial_offset);</div><div class="line">            serverLog(LL_NOTICE,<span class="string">"Waiting for end of BGSAVE for SYNC"</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">/* No way, we need to wait for the next BGSAVE in order to</span></div><div class="line">             * register differences. */</div><div class="line">            serverLog(LL_NOTICE,<span class="string">"Can't attach the slave to the current BGSAVE. Waiting for next BGSAVE for SYNC"</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* CASE 2: BGSAVE is in progress, with socket target. */</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (server.rdb_child_pid != <span class="number">-1</span> &amp;&amp;</div><div class="line">               server.rdb_child_type == RDB_CHILD_TYPE_SOCKET)</div><div class="line">    &#123;</div><div class="line">        <span class="comment">/* There is an RDB child process but it is writing directly to</span></div><div class="line">         * children sockets. We need to wait for the next BGSAVE</div><div class="line">         * in order to synchronize. */</div><div class="line">        serverLog(LL_NOTICE,<span class="string">"Current BGSAVE has socket target. Waiting for next BGSAVE for SYNC"</span>);</div><div class="line"></div><div class="line">    <span class="comment">/* CASE 3: There is no BGSAVE is progress. */</span></div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">if</span> (server.repl_diskless_sync &amp;&amp; (c-&gt;slave_capa &amp; SLAVE_CAPA_EOF)) &#123;</div><div class="line">            <span class="comment">/* Diskless replication RDB child is created inside</span></div><div class="line">             * replicationCron() since we want to delay its start a</div><div class="line">             * few seconds to wait for more slaves to arrive. */</div><div class="line">            <span class="keyword">if</span> (server.repl_diskless_sync_delay)</div><div class="line">                serverLog(LL_NOTICE,<span class="string">"Delay next BGSAVE for diskless SYNC"</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">/* Target is disk (or the slave is not capable of supporting</span></div><div class="line">             * diskless replication) and we don't have a BGSAVE in progress,</div><div class="line">             * let's start one. */</div><div class="line">            <span class="keyword">if</span> (server.aof_child_pid == <span class="number">-1</span>) &#123;</div><div class="line">                startBgsaveForReplication(c-&gt;slave_capa);<span class="comment">//开始复制的后台rdb保存</span></div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                serverLog(LL_NOTICE,</div><div class="line">                    <span class="string">"No BGSAVE in progress, but an AOF rewrite is active. "</span></div><div class="line">                    <span class="string">"BGSAVE for replication delayed"</span>);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>对于同步函数主要有几部分：首先尝试局部同步如果失败那么进行全局同步，在全局同步中有三种情况<br>1.有rdb进程并且写入disk 利用已经准备好的数据进行同步，复制缓冲区然后开启全局同步调用replicationSetupSlaveForFullResync函数<br>2.有rdb进程并且写入套接字 只有等待下一次bgsave进程<br>3.没有rdb进程 判断是写入disk还是直接套接字传输调用startBgsaveForReplication函数<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//开启master对slave全局同步，在rdb文件准备好之后触发</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">replicationSetupSlaveForFullResync</span><span class="params">(client *slave, <span class="keyword">long</span> <span class="keyword">long</span> offset)</span> </span>&#123;</div><div class="line">    <span class="keyword">char</span> buf[<span class="number">128</span>];</div><div class="line">    <span class="keyword">int</span> buflen;</div><div class="line"></div><div class="line">    slave-&gt;psync_initial_offset = offset;<span class="comment">//修改复制状态</span></div><div class="line">    slave-&gt;replstate = SLAVE_STATE_WAIT_BGSAVE_END;</div><div class="line">    server.slaveseldb = <span class="number">-1</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (!(slave-&gt;flags &amp; CLIENT_PRE_PSYNC)) &#123;<span class="comment">//如果是老版本的不回复</span></div><div class="line">        buflen = <span class="built_in">snprintf</span>(buf,<span class="keyword">sizeof</span>(buf),<span class="string">"+FULLRESYNC %s %lld\r\n"</span>,</div><div class="line">                          server.replid,offset);</div><div class="line">        <span class="keyword">if</span> (write(slave-&gt;fd,buf,buflen) != buflen) &#123;<span class="comment">//写回FULLRESYNC回复</span></div><div class="line">            freeClientAsync(slave);</div><div class="line">            <span class="keyword">return</span> C_ERR;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> C_OK;</div><div class="line">&#125;</div><div class="line"><span class="comment">//master端开始复制操作准备rdb文件</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">startBgsaveForReplication</span><span class="params">(<span class="keyword">int</span> mincapa)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> retval;</div><div class="line">    <span class="keyword">int</span> socket_target = server.repl_diskless_sync &amp;&amp; (mincapa &amp; SLAVE_CAPA_EOF);</div><div class="line">    listIter li;</div><div class="line">    listNode *ln;</div><div class="line"></div><div class="line">    serverLog(LL_NOTICE,<span class="string">"Starting BGSAVE for SYNC with target: %s"</span>,</div><div class="line">        socket_target ? <span class="string">"slaves sockets"</span> : <span class="string">"disk"</span>);</div><div class="line"></div><div class="line">    rdbSaveInfo rsi = RDB_SAVE_INFO_INIT;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (server.master) rsi.repl_stream_db = server.master-&gt;db-&gt;id;</div><div class="line">    <span class="comment">//写入目标是磁盘还是直接进行套接字传输</span></div><div class="line">    <span class="keyword">if</span> (socket_target)</div><div class="line">        retval = rdbSaveToSlavesSockets(&amp;rsi);</div><div class="line">    <span class="keyword">else</span></div><div class="line">        retval = rdbSaveBackground(server.rdb_filename,&amp;rsi);</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (retval == C_ERR) &#123;<span class="comment">//如果bgsave失败，删除client以及修改状态</span></div><div class="line">        serverLog(LL_WARNING,<span class="string">"BGSAVE for replication failed"</span>);</div><div class="line">        listRewind(server.slaves,&amp;li);</div><div class="line">        <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">            client *slave = ln-&gt;value;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) &#123;</div><div class="line">                slave-&gt;flags &amp;= ~CLIENT_SLAVE;</div><div class="line">                listDelNode(server.slaves,ln);</div><div class="line">                addReplyError(slave,</div><div class="line">                    <span class="string">"BGSAVE failed, replication can't continue"</span>);</div><div class="line">                slave-&gt;flags |= CLIENT_CLOSE_AFTER_REPLY;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> retval;</div><div class="line">    &#125;</div><div class="line">        &#125;</div><div class="line">    <span class="comment">//如果已经写到套接字中传输了那么不需要开启同步，并且已经修改了状态</span></div><div class="line">    <span class="keyword">if</span> (!socket_target) &#123;</div><div class="line">        listRewind(server.slaves,&amp;li);</div><div class="line">        <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">            client *slave = ln-&gt;value;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) &#123;</div><div class="line">                    replicationSetupSlaveForFullResync(slave,</div><div class="line">                            getPsyncInitialOffset());<span class="comment">//开启全局同步</span></div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Flush the script cache, since we need that slave differences are</span></div><div class="line">     * accumulated without requiring slaves to match our cached scripts. */</div><div class="line">    <span class="keyword">if</span> (retval == C_OK) replicationScriptCacheFlush();</div><div class="line">    <span class="keyword">return</span> retval;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>bgsave完成之后都需要调用replicationSetupSlaveForFullResync函数来开启全局同步，并且在该函数中其实并没有做什么相关的触发包括函数调用以及添加文件事件，所以必然是在serverCron中开始全局同步。<br>调用关系如下：<br>serverCron()-&gt;backgroundSaveDoneHandler()-&gt;backgroundSaveDoneHandlerDisk()-&gt;updateSlavesWaitingBgsave()<br>在updateSlavesWaitingBgsave函数中主要就是根据发送的两种方式，来设置slave的client的状态，如果是通过disk来同步，那么设置可写事件，往slave中传输数据，开始同步。<br>可写事件的处理函数为sendBulkToSlave，当然是来传输数据的了。<br>在该函数中主要就是读rdb文件，将文件被容传送给slave，传送完毕后删除可写事件，然后调用了putSlaveOnline函数。<br>在putSlaveOnline函数中，主要就是修改slave状态为online表示传送完毕，然后创建可写事件用来回应slave服务器。<br>下面看一下尝试进行局部同步的函数：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//master尝试进行局部同步操作返回ERR表示局部同步失败进行全局同步</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">masterTryPartialResynchronization</span><span class="params">(client *c)</span> </span>&#123;</div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> psync_offset, psync_len;</div><div class="line">    <span class="keyword">char</span> *master_replid = c-&gt;argv[<span class="number">1</span>]-&gt;ptr;</div><div class="line">    <span class="keyword">char</span> buf[<span class="number">128</span>];</div><div class="line">    <span class="keyword">int</span> buflen;</div><div class="line"></div><div class="line">    <span class="comment">//解析psync_offset，如果错误进行全局同步</span></div><div class="line">    <span class="keyword">if</span> (getLongLongFromObjectOrReply(c,c-&gt;argv[<span class="number">2</span>],&amp;psync_offset,<span class="literal">NULL</span>) !=</div><div class="line">       C_OK) <span class="keyword">goto</span> need_full_resync;</div><div class="line"></div><div class="line">    <span class="comment">//检查replid是否匹配，如果replid不为“？”</span></div><div class="line">    <span class="keyword">if</span> (strcasecmp(master_replid, server.replid) &amp;&amp;</div><div class="line">        (strcasecmp(master_replid, server.replid2) ||</div><div class="line">         psync_offset &gt; server.second_replid_offset))</div><div class="line">    &#123;</div><div class="line">        <span class="comment">//根据具体情况报告相应的原因</span></div><div class="line">        <span class="keyword">if</span> (master_replid[<span class="number">0</span>] != <span class="string">'?'</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (strcasecmp(master_replid, server.replid) &amp;&amp;</div><div class="line">                strcasecmp(master_replid, server.replid2))</div><div class="line">            &#123;</div><div class="line">                serverLog(LL_NOTICE,<span class="string">"Partial resynchronization not accepted: "</span></div><div class="line">                    <span class="string">"Replication ID mismatch (Slave asked for '%s', my "</span></div><div class="line">                    <span class="string">"replication IDs are '%s' and '%s')"</span>,</div><div class="line">                    master_replid, server.replid, server.replid2);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                serverLog(LL_NOTICE,<span class="string">"Partial resynchronization not accepted: "</span></div><div class="line">                    <span class="string">"Requested offset for second ID was %lld, but I can reply "</span></div><div class="line">                    <span class="string">"up to %lld"</span>, psync_offset, server.second_replid_offset);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            serverLog(LL_NOTICE,<span class="string">"Full resync requested by slave %s"</span>,</div><div class="line">                replicationGetSlaveName(c));</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">goto</span> need_full_resync;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//如果进行局部同步，那么检查我们是够还有slave需要的数据</span></div><div class="line">    <span class="keyword">if</span> (!server.repl_backlog ||</div><div class="line">        psync_offset &lt; server.repl_backlog_off ||</div><div class="line">        psync_offset &gt; (server.repl_backlog_off + server.repl_backlog_histlen))</div><div class="line">    &#123;</div><div class="line">        serverLog(LL_NOTICE,</div><div class="line">            <span class="string">"Unable to partial resync with slave %s for lack of backlog (Slave request was: %lld)."</span>, replicationGetSlaveName(c), psync_offset);</div><div class="line">        <span class="keyword">if</span> (psync_offset &gt; server.master_repl_offset) &#123;</div><div class="line">            serverLog(LL_WARNING,</div><div class="line">                <span class="string">"Warning: slave %s tried to PSYNC with an offset that is greater than the master replication offset."</span>, replicationGetSlaveName(c));</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">goto</span> need_full_resync;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//开始局部同步</span></div><div class="line">    c-&gt;flags |= CLIENT_SLAVE;</div><div class="line">    c-&gt;replstate = SLAVE_STATE_ONLINE;<span class="comment">//设置为online状态</span></div><div class="line">    c-&gt;repl_ack_time = server.unixtime;<span class="comment">//跟新ack事件</span></div><div class="line">    c-&gt;repl_put_online_on_ack = <span class="number">0</span>;</div><div class="line">    listAddNodeTail(server.slaves,c);<span class="comment">//添加到slave链表中</span></div><div class="line">    <span class="comment">//发送reply信息</span></div><div class="line">    <span class="keyword">if</span> (c-&gt;slave_capa &amp; SLAVE_CAPA_PSYNC2) &#123;</div><div class="line">        buflen = <span class="built_in">snprintf</span>(buf,<span class="keyword">sizeof</span>(buf),<span class="string">"+CONTINUE %s\r\n"</span>, server.replid);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        buflen = <span class="built_in">snprintf</span>(buf,<span class="keyword">sizeof</span>(buf),<span class="string">"+CONTINUE\r\n"</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (write(c-&gt;fd,buf,buflen) != buflen) &#123;</div><div class="line">        freeClientAsync(c);</div><div class="line">        <span class="keyword">return</span> C_OK;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//从复制缓冲区中将数据发送给slave</span></div><div class="line">    psync_len = addReplyReplicationBacklog(c,psync_offset);</div><div class="line">    serverLog(LL_NOTICE,</div><div class="line">        <span class="string">"Partial resynchronization request from %s accepted. Sending %lld bytes of backlog starting from offset %lld."</span>,</div><div class="line">            replicationGetSlaveName(c),</div><div class="line">            psync_len, psync_offset);</div><div class="line">    refreshGoodSlavesCount();</div><div class="line">    <span class="keyword">return</span> C_OK; </div><div class="line">need_full_resync:</div><div class="line">    <span class="keyword">return</span> C_ERR;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>检查replid以及reploff判断是否可以进行局部同步，如果可以进行局部同步，那么检查复制缓冲区中是否有断开连接遗漏的指令数据，如果有那么可以调用addReplyReplicationBacklog函数将数据发送给slave，并且返回continue的reply。<br>在主从同步完成之后，不管是局部同步还是全局同步，之后都通过propagate函数来传播指令了，每一次master执行写指令，那么通过传播函数将指令传给slave。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//指令传播函数 一般用于主从服务器的状态同步</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">propagate</span><span class="params">(struct redisCommand *cmd, <span class="keyword">int</span> dbid, robj **argv, <span class="keyword">int</span> argc,</span></span></div><div class="line">               <span class="keyword">int</span> flags)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">if</span> (server.aof_state != AOF_OFF &amp;&amp; flags &amp; PROPAGATE_AOF)</div><div class="line">        feedAppendOnlyFile(cmd,dbid,argv,argc);</div><div class="line">    <span class="keyword">if</span> (flags &amp; PROPAGATE_REPL)</div><div class="line">        replicationFeedSlaves(server.slaves,dbid,argv,argc);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见传播有两种方式aof传播就是将指令写到aof文件中去，以及主从传播，主从传播调用函数replicationFeedSlaves。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//主节点给slaves节点发送指令副本</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">replicationFeedSlaves</span><span class="params">(<span class="built_in">list</span> *slaves, <span class="keyword">int</span> dictid, robj **argv, <span class="keyword">int</span> argc)</span> </span>&#123;</div><div class="line">    listNode *ln;</div><div class="line">    listIter li;</div><div class="line">    <span class="keyword">int</span> j, len;</div><div class="line">    <span class="keyword">char</span> llstr[LONG_STR_SIZE];</div><div class="line">    <span class="comment">//确保是top-master server</span></div><div class="line">    <span class="keyword">if</span> (server.masterhost != <span class="literal">NULL</span>) <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="comment">//如果没有副本缓冲区并且没有slave表示从来没有进行过主从同步，直接退出</span></div><div class="line">    <span class="keyword">if</span> (server.repl_backlog == <span class="literal">NULL</span> &amp;&amp; listLength(slaves) == <span class="number">0</span>) <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* We can't have slaves attached and no backlog. */</span></div><div class="line">    serverAssert(!(listLength(slaves) != <span class="number">0</span> &amp;&amp; server.repl_backlog == <span class="literal">NULL</span>));</div><div class="line"></div><div class="line">    <span class="comment">//需要的情况下发送select指令</span></div><div class="line">    <span class="keyword">if</span> (server.slaveseldb != dictid) &#123;</div><div class="line">        robj *selectcmd;</div><div class="line">        <span class="comment">//共享selectdb指令</span></div><div class="line">        <span class="keyword">if</span> (dictid &gt;= <span class="number">0</span> &amp;&amp; dictid &lt; PROTO_SHARED_SELECT_CMDS) &#123;</div><div class="line">            selectcmd = shared.select[dictid];</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">int</span> dictid_len;</div><div class="line"></div><div class="line">            dictid_len = ll2string(llstr,<span class="keyword">sizeof</span>(llstr),dictid);</div><div class="line">            selectcmd = createObject(OBJ_STRING,</div><div class="line">                sdscatprintf(sdsempty(),</div><div class="line">                <span class="string">"*2\r\n$6\r\nSELECT\r\n$%d\r\n%s\r\n"</span>,</div><div class="line">                dictid_len, llstr));</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//将指令添加到缓冲区中</span></div><div class="line">        <span class="keyword">if</span> (server.repl_backlog) feedReplicationBacklogWithObject(selectcmd);</div><div class="line"></div><div class="line">        <span class="comment">//给slaves服务器发送指令</span></div><div class="line">        listRewind(slaves,&amp;li);</div><div class="line">        <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">            client *slave = ln-&gt;value;</div><div class="line">            <span class="keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) <span class="keyword">continue</span>;</div><div class="line">            addReply(slave,selectcmd);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (dictid &lt; <span class="number">0</span> || dictid &gt;= PROTO_SHARED_SELECT_CMDS)</div><div class="line">            decrRefCount(selectcmd);</div><div class="line">    &#125;</div><div class="line">    server.slaveseldb = dictid;</div><div class="line"></div><div class="line">    <span class="comment">/* Write the command to the replication backlog if any. */</span></div><div class="line">    <span class="comment">//将指令写到缓冲区中</span></div><div class="line">    <span class="keyword">if</span> (server.repl_backlog) &#123;</div><div class="line">        <span class="keyword">char</span> aux[LONG_STR_SIZE+<span class="number">3</span>];</div><div class="line"></div><div class="line">        <span class="comment">/* Add the multi bulk reply length. */</span></div><div class="line">        aux[<span class="number">0</span>] = <span class="string">'*'</span>;</div><div class="line">        len = ll2string(aux+<span class="number">1</span>,<span class="keyword">sizeof</span>(aux)<span class="number">-1</span>,argc);</div><div class="line">        aux[len+<span class="number">1</span>] = <span class="string">'\r'</span>;</div><div class="line">        aux[len+<span class="number">2</span>] = <span class="string">'\n'</span>;</div><div class="line">        feedReplicationBacklog(aux,len+<span class="number">3</span>);</div><div class="line"></div><div class="line">        <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; argc; j++) &#123;</div><div class="line">            <span class="keyword">long</span> objlen = stringObjectLen(argv[j]);</div><div class="line"></div><div class="line">            <span class="comment">/* We need to feed the buffer with the object as a bulk reply</span></div><div class="line">             * not just as a plain string, so create the $..CRLF payload len</div><div class="line">             * and add the final CRLF */</div><div class="line">            aux[<span class="number">0</span>] = <span class="string">'$'</span>;</div><div class="line">            len = ll2string(aux+<span class="number">1</span>,<span class="keyword">sizeof</span>(aux)<span class="number">-1</span>,objlen);</div><div class="line">            aux[len+<span class="number">1</span>] = <span class="string">'\r'</span>;</div><div class="line">            aux[len+<span class="number">2</span>] = <span class="string">'\n'</span>;</div><div class="line">            feedReplicationBacklog(aux,len+<span class="number">3</span>);</div><div class="line">            feedReplicationBacklogWithObject(argv[j]);</div><div class="line">            feedReplicationBacklog(aux+len+<span class="number">1</span>,<span class="number">2</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//将指令传播给slave服务器</span></div><div class="line">    listRewind(slaves,&amp;li);</div><div class="line">    <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</div><div class="line">        client *slave = ln-&gt;value;</div><div class="line"></div><div class="line">        <span class="comment">/* Don't feed slaves that are still waiting for BGSAVE to start */</span></div><div class="line">        <span class="keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) <span class="keyword">continue</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* Feed slaves that are waiting for the initial SYNC (so these commands</span></div><div class="line">         * are queued in the output buffer until the initial SYNC completes),</div><div class="line">         * or are already in sync with the master. */</div><div class="line"></div><div class="line">        <span class="comment">/* Add the multi bulk length. */</span></div><div class="line">        addReplyMultiBulkLen(slave,argc);</div><div class="line"></div><div class="line">        <span class="comment">/* Finally any additional argument that was not stored inside the</span></div><div class="line">         * static buffer if any (from j to argc). */</div><div class="line">        <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; argc; j++)</div><div class="line">            addReplyBulk(slave,argv[j]);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见replicationFeedSlaves函数将master的指令先写入到复制缓冲区中，然后将指令写入到slave的输出缓冲区中，在master完成全局操作后创建的可写事件在这里就会触发了，在rdb还在保存期间不需要写入缓冲区，指令回保存到rdb文件中，因为rdb的bgsave会保存期间执行的指令。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2017/11/22/redis源码-21-——replication-c篇/" title="redis源码(21)——replication.c篇">https://morningXB.github.io/2017/11/22/redis源码-21-——replication-c篇/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/源码分析/" rel="tag"># 源码分析</a>
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/nosql/" rel="tag"># nosql</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/21/Docker-Install/" rel="next" title="Docker Install">
+                <i class="fa fa-chevron-left"></i> Docker Install
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/11/22/redis源码-21-——replication-c篇/"
+     data-title="redis源码(21)——replication.c篇"
+     data-content=""
+     data-url="https://morningXB.github.io/2017/11/22/redis源码-21-——replication-c篇/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/11/22/redis源码-21-——replication-c篇/"
+           data-title="redis源码(21)——replication.c篇" data-url="https://morningXB.github.io/2017/11/22/redis源码-21-——replication-c篇/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">20</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#redis副本简介"><span class="nav-number">1.</span> <span class="nav-text">redis副本简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#replicationCron函数"><span class="nav-number">2.</span> <span class="nav-text">replicationCron函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#与master相关"><span class="nav-number">2.1.</span> <span class="nav-text">与master相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#心跳检测"><span class="nav-number">2.2.</span> <span class="nav-text">心跳检测</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#replication-slave流程"><span class="nav-number">3.</span> <span class="nav-text">replication-slave流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#replication-master流程"><span class="nav-number">4.</span> <span class="nav-text">replication-master流程</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"morningXB"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
