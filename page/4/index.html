@@ -336,163 +336,6 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/10/05/redis源码-15-——rio篇/" itemprop="url">
-                  redis源码(15)——rio篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-05T21:52:53+08:00">
-                2017-10-05
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/10/05/redis源码-15-——rio篇/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/10/05/redis源码-15-——rio篇/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>在介绍rdb以及aof这两种redis备份方式之前，我们先看一下rio这个源文件，这个文件主要针对缓冲区，文件流以及socket三种数据载体的io操作，通过redis的io数据结构rio可以屏蔽底层不同实现，实现数据的读写操作。为rdb以及aof中的快照文件加载写入，以及指令写入加载提供工具。先看rio.h,<br>主要包括了rio数据结构的定义，以及不同载体的文件操作函数的定义，可以看出通过几个静态的函数，调用不同载体的io操作具体实现，来屏蔽不同载体的操作函数，用户只需要准备好初始化的参数即可，同时也实现了解耦，便于代码的修改以及模块添加。<br>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/10/05/redis源码-15-——rio篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1112,6 +955,163 @@
 
 
     
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/15/redis源码-10-——t-hash篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/09/15/redis源码-10-——t-hash篇/" itemprop="url">
+                  redis源码(10)——t_hash篇
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-15T14:13:26+08:00">
+                2017-09-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/09/15/redis源码-10-——t-hash篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/09/15/redis源码-10-——t-hash篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>t_hash.c源文件中也分为两个部分，关于hash表的操作以及关于hash表指令的实现。<br>不同于list的底层实现只有quicklist，对于hash可能有两种底层实现，所以必须有ziplist到dict的实现的转化函数实现，两种底层实现转化的条件是：<br>hash-max-ziplist-value 64 // ziplist中最大能存放的值长度<br>hash-max-ziplist-entries 512 // ziplist中最多能存放的entry节点数量<br>存储在redis.conf文件中，拥有默认值，当ziplist中实体个数超过上限，或者单个实体的长度超过上限那么将会从ziplist转换为dict的底层实现。<br>下面列出所有hash的操作函数以及相关的数据结构：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 检查所有的实体值长度，达到上限时转化hash的底层实现</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashTypeTryConversion</span><span class="params">(robj *o, robj **argv, <span class="keyword">int</span> start, <span class="keyword">int</span> end)</span></span>;</div><div class="line"><span class="comment">// 根据给定的field从ziplist底层实现的字典中查找值，如果是字符串用vstr保存长度用vlen保存，数字用vll保存</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeGetFromZiplist</span><span class="params">(robj *o, sds field,<span class="keyword">unsigned</span> <span class="keyword">char</span> **vstr,<span class="keyword">unsigned</span> <span class="keyword">int</span> *vlen,<span class="keyword">long</span> <span class="keyword">long</span> *vll)</span></span>;</div><div class="line"><span class="comment">// 根据给定的field从dict底层实现的字典中查找值，返回sds对象</span></div><div class="line"><span class="function">sds <span class="title">hashTypeGetFromHashTable</span><span class="params">(robj *o, sds field)</span></span>;</div><div class="line"><span class="comment">// 根据给定的field从hash中查找值，不管底层实现，只有在ziplist底层实现并且值为数字时，vll才有值</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeGetValue</span><span class="params">(robj *o, sds field, <span class="keyword">unsigned</span> <span class="keyword">char</span> **vstr, <span class="keyword">unsigned</span> <span class="keyword">int</span> *vlen, <span class="keyword">long</span> <span class="keyword">long</span> *vll)</span></span>;</div><div class="line"><span class="comment">// 根据给定的field从hash中查找值，都返回robj对象</span></div><div class="line"><span class="function">robj *<span class="title">hashTypeGetValueObject</span><span class="params">(robj *o, sds field)</span></span>;</div><div class="line"><span class="comment">// 根据给定的field从hash中查找值，返回值的长度</span></div><div class="line"><span class="keyword">size_t</span> hashTypeGetValueLength(robj *o, sds field);</div><div class="line"><span class="comment">// 判断hash是否存在field对应的值</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeExists</span><span class="params">(robj *o, sds field)</span></span>;</div><div class="line"><span class="comment">// 往hash对象中添加键值对，或者修改原来存在的键值对，如果添加返回1，如果跟新返回0</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeSet</span><span class="params">(robj *o, sds field, sds value, <span class="keyword">int</span> flags)</span></span>;</div><div class="line"><span class="comment">// 删除hash对象中对应的键值对，成功返回1，没有找到返回0</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeDelete</span><span class="params">(robj *o, sds field)</span></span>;</div><div class="line"><span class="comment">// 返回hash字典中键值对的个数</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">hashTypeLength</span><span class="params">(<span class="keyword">const</span> robj *o)</span></span>;</div><div class="line"><span class="comment">// 初始化hash的迭代器，不同的底层实现不同的初始化方式，在底层实现转化时，需要跟新迭代器</span></div><div class="line"><span class="function">hashTypeIterator *<span class="title">hashTypeInitIterator</span><span class="params">(robj *subject)</span></span>;</div><div class="line"><span class="comment">// 释放hash的迭代器</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashTypeReleaseIterator</span><span class="params">(hashTypeIterator *hi)</span></span>;</div><div class="line"><span class="comment">// hash迭代器往后移动</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeNext</span><span class="params">(hashTypeIterator *hi)</span></span>;</div><div class="line"><span class="comment">// 在ziplist的底层实现中，获取当前迭代器指向的键值对的值，根据what决定key或者value</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashTypeCurrentFromZiplist</span><span class="params">(hashTypeIterator *hi, <span class="keyword">int</span> what,<span class="keyword">unsigned</span> <span class="keyword">char</span> **vstr,<span class="keyword">unsigned</span> <span class="keyword">int</span> *vlen,<span class="keyword">long</span> <span class="keyword">long</span> *vll)</span></span>;</div><div class="line"><span class="comment">// 在dict的底层实现中，获取当前迭代器指向的键值对的值，根据what决定key或者value</span></div><div class="line"><span class="function">sds <span class="title">hashTypeCurrentFromHashTable</span><span class="params">(hashTypeIterator *hi, <span class="keyword">int</span> what)</span></span>;</div><div class="line"><span class="comment">// 不管底层实现，获取当前迭代器指向的键值对的值，根据what决定key或者value</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashTypeCurrentObject</span><span class="params">(hashTypeIterator *hi, <span class="keyword">int</span> what, <span class="keyword">unsigned</span> <span class="keyword">char</span> **vstr, <span class="keyword">unsigned</span> <span class="keyword">int</span> *vlen, <span class="keyword">long</span> <span class="keyword">long</span> *vll)</span></span>;</div><div class="line"><span class="comment">// 不管底层实现,获取当前迭代器指向的键值对的值，根据what决定key或者value,用sds返回</span></div><div class="line"><span class="function">sds <span class="title">hashTypeCurrentObjectNewSds</span><span class="params">(hashTypeIterator *hi, <span class="keyword">int</span> what)</span></span>;</div><div class="line"><span class="comment">// 在数据库查找字典如果不存在创建一个新的字典，返回查找的对象</span></div><div class="line"><span class="function">robj *<span class="title">hashTypeLookupWriteOrCreate</span><span class="params">(client *c, robj *key)</span></span>;</div><div class="line"><span class="comment">// 根据enc，进行底层实现的转换</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashTypeConvertZiplist</span><span class="params">(robj *o, <span class="keyword">int</span> enc)</span></span>;</div><div class="line"><span class="comment">// 字典底层实现转换，o的enc为dict时不转换。</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashTypeConvert</span><span class="params">(robj *o, <span class="keyword">int</span> enc)</span></span>;</div></pre></td></tr></table></figure></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/09/15/redis源码-10-——t-hash篇/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
   </section>
 
   
@@ -1161,7 +1161,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">39</span>
+                <span class="site-state-item-count">38</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
@@ -1172,7 +1172,7 @@
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">11</span>
+                <span class="site-state-item-count">12</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
@@ -1183,7 +1183,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">29</span>
+                <span class="site-state-item-count">31</span>
                 <span class="site-state-item-name">标签</span>
               </a>
             </div>
