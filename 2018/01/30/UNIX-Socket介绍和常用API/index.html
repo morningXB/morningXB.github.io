@@ -1,0 +1,1053 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Linux,Socket,网络编程," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="Socket通信过程 Server：socket()创建套接字,bind()绑定端口，listen()开始监听端口，调用accept()阻塞等待，直到客户端连接，返回connectfd用来和客户端交互，read()读取客户端发送的消息，write()给客户端发送消息，close()交互完毕断开连接。Client：socket()创建套接字，connect()连接远程主机指定端口，连接成功返回con">
+<meta name="keywords" content="Linux,Socket,网络编程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UNIX-Socket介绍和常用API">
+<meta property="og:url" content="https://morningXB.github.io/2018/01/30/UNIX-Socket介绍和常用API/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="Socket通信过程 Server：socket()创建套接字,bind()绑定端口，listen()开始监听端口，调用accept()阻塞等待，直到客户端连接，返回connectfd用来和客户端交互，read()读取客户端发送的消息，write()给客户端发送消息，close()交互完毕断开连接。Client：socket()创建套接字，connect()连接远程主机指定端口，连接成功返回con">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/UNIX-Socket介绍和常用API/1.jpg">
+<meta property="og:updated_time" content="2018-01-30T11:01:40.934Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="UNIX-Socket介绍和常用API">
+<meta name="twitter:description" content="Socket通信过程 Server：socket()创建套接字,bind()绑定端口，listen()开始监听端口，调用accept()阻塞等待，直到客户端连接，返回connectfd用来和客户端交互，read()读取客户端发送的消息，write()给客户端发送消息，close()交互完毕断开连接。Client：socket()创建套接字，connect()连接远程主机指定端口，连接成功返回con">
+<meta name="twitter:image" content="https://morningxb.github.io/2018/01/30/UNIX-Socket介绍和常用API/1.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2018/01/30/UNIX-Socket介绍和常用API/"/>
+
+
+
+
+
+  <title> UNIX-Socket介绍和常用API | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2018/01/30/UNIX-Socket介绍和常用API/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                UNIX-Socket介绍和常用API
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-30T18:35:02+08:00">
+                2018-01-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C语言学习/" itemprop="url" rel="index">
+                    <span itemprop="name">C语言学习</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/01/30/UNIX-Socket介绍和常用API/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/01/30/UNIX-Socket介绍和常用API/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="Socket通信过程"><a href="#Socket通信过程" class="headerlink" title="Socket通信过程"></a>Socket通信过程</h2><img src="/2018/01/30/UNIX-Socket介绍和常用API/1.jpg" alt="1.jpg" title="">
+<p>Server：socket()创建套接字,bind()绑定端口，listen()开始监听端口，调用accept()阻塞等待，直到客户端连接，返回connectfd用来和客户端交互，<br>read()读取客户端发送的消息，write()给客户端发送消息，close()交互完毕断开连接。<br>Client：socket()创建套接字，connect()连接远程主机指定端口，连接成功返回connectfd用来与服务器端交互，调用write(),read()来读写通信数据，close()关闭连接。<br><a id="more"></a></p>
+<h2 id="Socket-API"><a href="#Socket-API" class="headerlink" title="Socket API"></a>Socket API</h2><h3 id="socket"><a href="#socket" class="headerlink" title="socket"></a>socket</h3><p>1.int socket(int protofamily,int type,int protocol);<br>创建套接字，返回描述符，对应于文件IO中的open()函数，同过对文件描述符索引的数据结构进行read(),write()进行IO，不用时调用close()关闭。<br>参数：<br>protofamily：协议族，用来指定套接字的地址类型，可用的协议族有：AF_INET(IPV4)、AF_INET6(IPV6)、AF_LOCAL（或称AF_UNIX，Unix域socket）、AF_ROUTE等等。<br>type：套接字类型，进一步确定通信特征，可用的类型有：<br>SOCK_DGRAM:固定长度，无连接，不可靠的报文传递；<br>SOCK_RAW:IP协议的数据报接口；<br>SOCK_SEQPACKET:固定长度，有序，可靠的面相连接的报文传递；<br>SOCK_STREAM:有序，可靠，双向的面相连接的字节流传递；<br>protocol：传输协议，设为0时为指定协议族和类型下默认的传输协议，存在多种协议可用时可以指定。常用协议有：IPPROTO_TCP、IPPTOTO_UDP、IPPROTO_SCTP、IPPROTO_TIPC等，它们分别对应TCP传输协议、UDP传输协议、STCP传输协议、TIPC传输协议。</p>
+<h3 id="bind"><a href="#bind" class="headerlink" title="bind"></a>bind</h3><p>2.int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);<br>创建的套接字描述符，仅仅指定传输协议类型，地址类型，并没有指定具体的地址端口，一般服务器端通过bind函数绑定ip和端口，而客户端不需要bind，可以直接通过connect函数连接远程地址，本地随机端口加上自身IP作为通信地址。<br>参数：<br>sockfd：创建的套接字描述符；<br>addr：绑定的地址用结构体sockaddr来存储，包括几种地址格式ipv4，ipv6，local，下面列出具体结构体：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//ipv4：</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> &#123;</span></div><div class="line">    <span class="keyword">sa_family_t</span> sin_family; <span class="comment">/* address family: AF_INET协议族 */</span></div><div class="line">    <span class="keyword">in_port_t</span> sin_port; <span class="comment">/* port in network byte order 端口*/</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">in_addr</span> <span class="title">sin_addr</span>;</span> <span class="comment">/* internet address ip地址 */</span></div><div class="line">&#125;;</div><div class="line"><span class="comment">/* Internet address. */</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">in_addr</span> &#123;</span></div><div class="line">    <span class="keyword">uint32_t</span> s_addr;<span class="comment">/* address in network byte order */</span></div><div class="line">&#125;;</div><div class="line"><span class="comment">//ipv6： </span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in6</span> &#123;</span> </div><div class="line">    <span class="keyword">sa_family_t</span> sin6_family; <span class="comment">/* AF_INET6 */</span> </div><div class="line">    <span class="keyword">in_port_t</span> sin6_port; <span class="comment">/* port number */</span> </div><div class="line">    <span class="keyword">uint32_t</span> sin6_flowinfo; <span class="comment">/* IPv6 flow information */</span> </div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">in6_addr</span> <span class="title">sin6_addr</span>;</span> <span class="comment">/* IPv6 address */</span> </div><div class="line">    <span class="keyword">uint32_t</span> sin6_scope_id; <span class="comment">/* Scope ID (new in 2.4) */</span> </div><div class="line">&#125;;</div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">in6_addr</span> &#123;</span> </div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> s6_addr[<span class="number">16</span>]; <span class="comment">/* IPv6 address */</span> </div><div class="line">&#125;;</div><div class="line"><span class="comment">//Unix域： </span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> UNIX_PATH_MAX 108</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_un</span> &#123;</span> </div><div class="line">    <span class="keyword">sa_family_t</span> sun_family; <span class="comment">/* AF_UNIX */</span> </div><div class="line">    <span class="keyword">char</span> sun_path[UNIX_PATH_MAX]; <span class="comment">/* pathname 绝对路径*/</span> </div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>注意，关于地址格式中几个常用的函数和注意事项：<br>字节序<br>由于系统架构不同，实际的数据存储有大端和小端的区别，为了避免网络字节序与主机字节不同造成的错误，统一设置网络字节序。常用函数如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;arpa/inet.h&gt;</span></span></div><div class="line"><span class="keyword">uint32_t</span> htonl(<span class="keyword">uint32_t</span> hostint32);<span class="comment">//以网络字节序表示32位整数</span></div><div class="line"><span class="keyword">uint16_t</span> htons(<span class="keyword">uint16_t</span> hostint16); <span class="comment">//以网络字节序表示16位整数</span></div><div class="line"><span class="keyword">uint32_t</span> ntohl(<span class="keyword">uint32_t</span> netint32); <span class="comment">//以主机字节序表示32位整数</span></div><div class="line"><span class="keyword">uint16_t</span> ntohs(<span class="keyword">uint16_t</span> netint16); <span class="comment">//以主机字节序表示16位整数</span></div></pre></td></tr></table></figure></p>
+<p>二进制和点分十进制之间转换<br>为了便于查看通常将地址转化为a.b.c.d的形式，常用函数：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;arpe/inet.h&gt;</span></span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">inet_pton</span><span class="params">(<span class="keyword">int</span> family, <span class="keyword">const</span> <span class="keyword">char</span> *strptr, <span class="keyword">void</span> *addrptr)</span></span>;     </div><div class="line"><span class="comment">//将点分十进制的ip地址转化为用于网络传输的数值格式,返回值：若成功则为1，若输入不是有效的表达式则为0，若出错则为-1</span></div><div class="line"><span class="function"><span class="keyword">const</span> <span class="keyword">char</span> * <span class="title">inet_ntop</span><span class="params">(<span class="keyword">int</span> family, <span class="keyword">const</span> <span class="keyword">void</span> *addrptr, <span class="keyword">char</span> *strptr, <span class="keyword">size_t</span> len)</span></span>;     </div><div class="line"><span class="comment">//将数值格式转化为点分十进制的ip地址格式,返回值：若成功则为指向结构的指针，若出错则为NULL</span></div></pre></td></tr></table></figure></p>
+<p>（1）这两个函数的family参数既可以是AF_INET（ipv4）也可以是AF_INET6（ipv6）。如果，以不被支持的地址族作为family参数，这两个函数都返回一个错误，并将errno置为EAFNOSUPPORT.<br>（2）第一个函数尝试转换由strptr指针所指向的字符串，并通过addrptr指针存放二进制结果，若成功则返回值为1，否则如果所指定的family而言输入字符串不是有效的表达式格式，那么返回值为0.<br>（3）inet_ntop进行相反的转换，从数值格式（addrptr）转换到表达式（strptr）。inet_ntop函数的strptr参数不可以是一个空指针。调用者必须为目标存储单元分配内存并指定其大小，调用成功时，这个指针就是该函数的返回值。len参数是目标存储单元的大小，以免该函数溢出其调用者的缓冲区。如果len太小，不足以容纳表达式结果，那么返回一个空指针，并置为errno为ENOSPC。INET_ADDRSTRLEN和INET6_ADDRSTRLEN定义足够的大小存放Ipv4和Ipv6地址的文本字符串。<br>addrlen：地址长度；</p>
+<h3 id="listen"><a href="#listen" class="headerlink" title="listen"></a>listen</h3><ol>
+<li>int listen(int sockfd, int backlog);<br>用于服务器端，将创建的套接字由主动变为被动，开启监听，等待客户端连接。<br>参数：<br>sockfd：被动等待连接的套接字描述符；<br>backlog：监听队列的长度；由于高并发未及时连接的请求加入到监听队列中，3次握手连接完成后退出队列。<h3 id="connect"><a href="#connect" class="headerlink" title="connect"></a>connect</h3>4.int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);<br>客户端连接函数，向指定的地址端口发起连接请求，连接成功放回sockfd用来与服务器端通信。<br>参数：<br>sockfd：发起连接的套接字描述符；<br>addr：目标连接地址；<br>addrlen：目标地址长度；<h3 id="accept"><a href="#accept" class="headerlink" title="accept"></a>accept</h3></li>
+<li>int accept(int sockfd, struct sockaddr <em>addr, socklen_t </em>addrlen); //返回连接connect_fd<br>在服务器端socket()-&gt;bind()-&gt;listen()，客户端socket()-&gt;connect()之后，服务器端完成三次握手连接成功之后，客户端信息加入到连接队列中，此时accept()函数从连接队列中返回一个connectfd，用来与客户端通信，connectfd的local地址和监听的sockfd相同，remote地址就是客户端的IP和端口地址。注意accept()为阻塞函数，一直等待直到有客户端连接。并且accept()只是从连接队列中取出一个连接，此时已经完成tcp/ip的连接过程了。<br>参数：<br>sockfd：监听的套接字描述符；<br>addr：结果参数，存储客户端的地址；<br>addrlen：地址长度；<h3 id="write-read"><a href="#write-read" class="headerlink" title="write/read"></a>write/read</h3>6.<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="keyword">ssize_t</span> read(<span class="keyword">int</span> fd, <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> count);       </div><div class="line"><span class="keyword">ssize_t</span> write(<span class="keyword">int</span> fd, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> count);</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>与文件IO相同，用于不同主机间的进程之间的通信。<br>参数：<br>fd：IO的套接字描述符；<br>buf：存储读取的数据或者等待发送的数据；<br>count：发送/接受的数据长度；</p>
+<h3 id="close"><a href="#close" class="headerlink" title="close"></a>close</h3><p>7.int close(int fd);<br>关闭套接字连接，只有当fd的引用为0时，才会真正的断开连接。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2018/01/30/UNIX-Socket介绍和常用API/" title="UNIX-Socket介绍和常用API">https://morningXB.github.io/2018/01/30/UNIX-Socket介绍和常用API/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Linux/" rel="tag"># Linux</a>
+          
+            <a href="/tags/Socket/" rel="tag"># Socket</a>
+          
+            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/01/30/Zipf分布及程序实现/" rel="next" title="Zipf分布及程序实现">
+                <i class="fa fa-chevron-left"></i> Zipf分布及程序实现
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2018/01/30/UNIX-Socket介绍和常用API/"
+     data-title="UNIX-Socket介绍和常用API"
+     data-content=""
+     data-url="https://morningXB.github.io/2018/01/30/UNIX-Socket介绍和常用API/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2018/01/30/UNIX-Socket介绍和常用API/"
+           data-title="UNIX-Socket介绍和常用API" data-url="https://morningXB.github.io/2018/01/30/UNIX-Socket介绍和常用API/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">39</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">25</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Socket通信过程"><span class="nav-number">1.</span> <span class="nav-text">Socket通信过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Socket-API"><span class="nav-number">2.</span> <span class="nav-text">Socket API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#socket"><span class="nav-number">2.1.</span> <span class="nav-text">socket</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#bind"><span class="nav-number">2.2.</span> <span class="nav-text">bind</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#listen"><span class="nav-number">2.3.</span> <span class="nav-text">listen</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#connect"><span class="nav-number">2.4.</span> <span class="nav-text">connect</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#accept"><span class="nav-number">2.5.</span> <span class="nav-text">accept</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#write-read"><span class="nav-number">2.6.</span> <span class="nav-text">write/read</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#close"><span class="nav-number">2.7.</span> <span class="nav-text">close</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2017 - 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"morningXB"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>

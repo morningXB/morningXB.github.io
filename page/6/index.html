@@ -336,7 +336,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/08/香港之行/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/05/05/redis源码-6-——object篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -358,8 +358,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/04/08/香港之行/" itemprop="url">
-                  香港之行
+                <a class="post-title-link" href="/2017/05/05/redis源码-6-——object篇/" itemprop="url">
+                  redis源码(6)——object篇
                 </a>
               
             
@@ -375,8 +375,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-08T00:48:20+08:00">
-                2017-04-08
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-05T09:05:27+08:00">
+                2017-05-05
               </time>
             
 
@@ -398,8 +398,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/旅行/" itemprop="url" rel="index">
-                    <span itemprop="name">旅行</span>
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
                   </a>
                 </span>
 
@@ -416,8 +416,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/04/08/香港之行/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/08/香港之行/" itemprop="commentCount"></span>
+                <a href="/2017/05/05/redis源码-6-——object篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/05/redis源码-6-——object篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -444,11 +444,10 @@
 
       
         
-          <img src="/2017/04/08/香港之行/2.jpg" alt="2.jpg" title="">
-<p>对于香港这座城市的印象当然要追溯到那一系列的电影，没错就是《古惑仔》系列了，铜锣湾扛把子是何等的威风，电影里面香港繁华的夜景，匆忙的行人，各种交通工具的声音混杂在一起，形成了香港独特的街景。所有对于香港还是挺神往的。<br>
+          <p>在redis中有很多数据结构，可以分为底层数据结构对于用户透明，对于用户可以使用的是用户层数据结构，即字符串，列表，字典，无序集合，有序集合这五个基本类型。但是对于每一个基本类型，在redis底层都有多种实现方式，根据具体的存储内容以及使用需求自动选择适合的底层实现，以提高的redis的使用效率以及内存管理。<br>对于底层实现的数据结构在源程序中列出如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_RAW 0     <span class="comment">/* sds字符串编码 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_INT 1     <span class="comment">/* 整数编码 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_HT 2      <span class="comment">/* 哈希列表编码*/</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_ZIPMAP 3  <span class="comment">/* 压缩字典*/</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_LINKEDLIST 4 <span class="comment">/* 不再使用，普通的双向链表 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_ZIPLIST 5 <span class="comment">/* 压缩链表 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_INTSET 6  <span class="comment">/* 有序整数集合 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_SKIPLIST 7  <span class="comment">/* 跳跃链表 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_EMBSTR 8  <span class="comment">/* 仿字符串编码 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_QUICKLIST 9 <span class="comment">/* 快表，即一个节点为压缩列表的双向链表 */</span></span></div></pre></td></tr></table></figure></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/04/08/香港之行/#more" rel="contents">
+            <a class="btn" href="/2017/05/05/redis源码-6-——object篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -494,7 +493,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/03/20/GDB基本使用/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/29/redis源码-5-——quicklist篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -516,8 +515,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/03/20/GDB基本使用/" itemprop="url">
-                  GDB基本使用
+                <a class="post-title-link" href="/2017/04/29/redis源码-5-——quicklist篇/" itemprop="url">
+                  redis源码(5)——quicklist篇
                 </a>
               
             
@@ -533,8 +532,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-03-20T20:13:40+08:00">
-                2017-03-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-29T00:01:56+08:00">
+                2017-04-29
               </time>
             
 
@@ -556,8 +555,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/编程工具/" itemprop="url" rel="index">
-                    <span itemprop="name">编程工具</span>
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
                   </a>
                 </span>
 
@@ -574,8 +573,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/03/20/GDB基本使用/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/20/GDB基本使用/" itemprop="commentCount"></span>
+                <a href="/2017/04/29/redis源码-5-——quicklist篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/29/redis源码-5-——quicklist篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -602,13 +601,10 @@
 
       
         
-          <img src="/2017/03/20/GDB基本使用/gdb.jpg" alt="gdb.jpg" title="">
-<h2 id="GDB简介"><a href="#GDB简介" class="headerlink" title="GDB简介"></a>GDB简介</h2><p>GDB是UNIX及UNIX-like下的调试工具。或许，各位比较喜欢那种图形界面方式的，像VC、BCB等IDE的调试 ，但如 果你是在 UNIX平台下做软件，你会发现GDB这个调试工具有比VC、BCB的图形化调试器更强大的功能。所谓“寸有所长，尺有所短”就是这个道理。</p>
-<h2 id="基本指令"><a href="#基本指令" class="headerlink" title="基本指令"></a>基本指令</h2><p>GDB虽然指令比较多，但只要掌握基本的几个指令就可以调试程序了：</p>
-<h3 id="file-filename"><a href="#file-filename" class="headerlink" title="file filename"></a>file filename</h3>
+          <p>在redis中提供给用户的类型为用户层类型，而redis有很多自己的底层实现，list类型前面已经看过了adlist和ziplist，adlist是一个普通的双向链表，提供listnode数据类型，adlist中有首尾指针，ziplist是分配内存中的一段连续的区域作为存储区，拥有自己的存储规则，adlist的缺点是需要提供首尾指针以及pre和next指针存储区域，并且内存中存储不连续造成内存碎片，ziplist弥补了它的缺点，内存存储连续，并且不需要多余的指针存储，但是连续分区造成小内存碎片，之后难以分配大内存空间，并且每次对list的操作，都涉及内存的操作，与ziplist当时的存储长度有很大关系，所以结合了adlist和ziplist的优点，编写了quicklist，也是用户层list的底层实现。<br>我们先看一下quicklist.h中关于数据结构的定义：<br>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/03/20/GDB基本使用/#more" rel="contents">
+            <a class="btn" href="/2017/04/29/redis源码-5-——quicklist篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -654,7 +650,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/03/20/少年未老/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/22/redis源码-4-——intset和ziplist篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -676,8 +672,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/03/20/少年未老/" itemprop="url">
-                  少年未老
+                <a class="post-title-link" href="/2017/04/22/redis源码-4-——intset和ziplist篇/" itemprop="url">
+                  redis源码(4)——intset和ziplist篇
                 </a>
               
             
@@ -693,8 +689,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-03-20T15:17:09+08:00">
-                2017-03-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-22T14:17:25+08:00">
+                2017-04-22
               </time>
             
 
@@ -716,8 +712,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/随口一说/" itemprop="url" rel="index">
-                    <span itemprop="name">随口一说</span>
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
                   </a>
                 </span>
 
@@ -734,8 +730,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/03/20/少年未老/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/20/少年未老/" itemprop="commentCount"></span>
+                <a href="/2017/04/22/redis源码-4-——intset和ziplist篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/22/redis源码-4-——intset和ziplist篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -762,11 +758,10 @@
 
       
         
-          <h1 id="少年未老"><a href="#少年未老" class="headerlink" title="少年未老"></a>少年未老</h1><img src="/2017/03/20/少年未老/少年未老.jpg" alt="少年未老.jpg" title="">
-<p>要记得，生命极短。短到，用来做自己喜欢的事情，都不够；更不要说用来犹豫，以及妥协——尤其是，妥协给那些——你自己都清楚“这只是妥协”的东西。<br>
+          <p>intset存储整型的集合，内部按照大小排序，有三种整型长度可选，一般在元素为整数并且个数比较少的时候，采用inset结构型。<br>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/03/20/少年未老/#more" rel="contents">
+            <a class="btn" href="/2017/04/22/redis源码-4-——intset和ziplist篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -812,7 +807,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/03/19/c语言pthread学习/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -834,8 +829,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/03/19/c语言pthread学习/" itemprop="url">
-                  c语言pthread学习
+                <a class="post-title-link" href="/2017/04/20/redis源码-3-——dict篇/" itemprop="url">
+                  redis源码(3)——dict篇
                 </a>
               
             
@@ -851,8 +846,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-03-19T08:21:05+08:00">
-                2017-03-19
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-20T21:39:30+08:00">
+                2017-04-20
               </time>
             
 
@@ -874,8 +869,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C语言学习/" itemprop="url" rel="index">
-                    <span itemprop="name">C语言学习</span>
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
                   </a>
                 </span>
 
@@ -892,8 +887,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/03/19/c语言pthread学习/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/19/c语言pthread学习/" itemprop="commentCount"></span>
+                <a href="/2017/04/20/redis源码-3-——dict篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/20/redis源码-3-——dict篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -920,10 +915,10 @@
 
       
         
-          <h1 id="C语言pthread学习"><a href="#C语言pthread学习" class="headerlink" title="C语言pthread学习"></a>C语言pthread学习</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>&nbsp;&nbsp;&nbsp;&nbsp;早期的多线程指的是一个进程只有一个线程，即多进程就是多线程，操作系统启动创建一个主线程在该线程下fork多个进程运行。<br>&nbsp;&nbsp;&nbsp;&nbsp;后来一个进程中可以创建多个线程，相较于多进程来说，多线程程序主要有一下优势:<br>1.创建一个进程需要为它分配响应的数据程序空间以及堆栈看空间，因为进程之间的空间是互相独立的，而开启线程的开销就小得多，各线程共享主线程的空间，并且线程之间的切换比进程容易得多。<br>2.进程之间的数据共享必须通过通信的方式进行，而线程之间共享主线程的数据达到数据交换的目的，并且拥有自己的私有数据，比进程方便的多。<br>
+          <p>dict字典，用来存储键值对，是redis中数据库中存储数据以及键值对表数据的底层实现。<br>在dict中使用siphash.c来实现hash函数计算index。<br>dict中包含两个dictht即字典表，这是为了redis中渐进重构rehash准备的，为了解决键冲突，dictEntry中包含一个next指针，dictht中table数组相当于一个一个的桶，当过多的键值对存储到dict中后，必然会导致字典结构失调，查询效率低等问题，所以要扩容增加size，这时候就启动rehash，但是redis不会等待rehash完成，<br>在做下面的操作，所以提出渐进rehash，即每次操作时单步rehash一下，这样就避免了等待，因此需要两个dictht，一个副本，当完成rehash之后把新的ht移动到ht[0]，旧的释放空间后reset，在rehash期间，所有的改变dict状态的操作都在新表上进行。<br>在dict中还提供了一个dicttype，里面用来存储键值的释放，复制，比较等操作的函数指针。<br>dict提供了字典迭代器，有安全不安全迭代器，不安全迭代器通过fingerprint来判断是否有不安全操作。<br>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/03/19/c语言pthread学习/#more" rel="contents">
+            <a class="btn" href="/2017/04/20/redis源码-3-——dict篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -969,7 +964,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/03/17/Jerasure-Library入门/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/18/redis源码-2-——adlist篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -991,8 +986,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/03/17/Jerasure-Library入门/" itemprop="url">
-                  Jerasure Library入门
+                <a class="post-title-link" href="/2017/04/18/redis源码-2-——adlist篇/" itemprop="url">
+                  redis源码(2)——adlist篇
                 </a>
               
             
@@ -1008,8 +1003,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-03-17T09:09:17+08:00">
-                2017-03-17
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-18T20:11:07+08:00">
+                2017-04-18
               </time>
             
 
@@ -1031,8 +1026,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/纠删码/" itemprop="url" rel="index">
-                    <span itemprop="name">纠删码</span>
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
                   </a>
                 </span>
 
@@ -1049,8 +1044,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/03/17/Jerasure-Library入门/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/17/Jerasure-Library入门/" itemprop="commentCount"></span>
+                <a href="/2017/04/18/redis源码-2-——adlist篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/18/redis源码-2-——adlist篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1077,11 +1072,10 @@
 
       
         
-          <h1 id="Jerasure-Library入门"><a href="#Jerasure-Library入门" class="headerlink" title="Jerasure Library入门"></a>Jerasure Library入门</h1><h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>Jerasure是由C语言编写的实现了纠删码编解码的开源库，提供了范德摩尔RS，柯西RS，优化柯西RS，以及针对RAID-6的Liberation,Liber8tion,Boomth编码，以及基于VRS的optRaid-6编码。<br>纠删码起源通信中防止信息丢失，现在被广泛应用到存储系统中包括分布式存储系统，内存存储系统，闪存存储系统，磁盘阵列中，以防止系统出错导致的信息丢失，它的优点是：相较于传统的副本存储机制，一份数据在系统中复制三份存储，纠删码编码后数据有效的减少了冗余数据大小，并且拥有相同的容错率，有效减少存储空间，举个列子一块size为M的数据块，在副本机制中要占据3*M的空间，容错为2，而纠删码(6,2)系统来说，只占据1.3 M空间拥有相同容错，减少了40% 的空间，但 是它的缺陷是：在编解码上的耗时，以及增加了系统的网络负载。</p>
-<p>github：<a href="https://github.com/tsuraan/Jerasure" title="https://github.com/tsuraan/Jerasure" target="_blank" rel="external">https://github.com/tsuraan/Jerasure</a><br>doc：<a href="http://jerasure.org/jerasure-2.0/" title="http://jerasure.org/jerasure-2.0/" target="_blank" rel="external">http://jerasure.org/jerasure-2.0/</a><br>Online-home：<a href="http://jerasure.org/jerasure/jerasure" title="http://jerasure.org/jerasure/jerasure" target="_blank" rel="external">http://jerasure.org/jerasure/jerasure</a><br>
+          <p>adlist对应的是redis中的链表这个类型，redis中命令有添加，删除节点等操作，在adlist中都一一实现。<br>按照惯例来看adlist.h<br>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/03/17/Jerasure-Library入门/#more" rel="contents">
+            <a class="btn" href="/2017/04/18/redis源码-2-——adlist篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1122,7 +1116,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1167,7 +1161,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-count">39</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
@@ -1178,7 +1172,7 @@
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-count">9</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
@@ -1189,7 +1183,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">20</span>
+                <span class="site-state-item-count">25</span>
                 <span class="site-state-item-name">标签</span>
               </a>
             </div>
@@ -1271,8 +1265,8 @@
       <div class="footer-inner">
         <div class="copyright" >
   
-  &copy; 
-  <span itemprop="copyrightYear">2017</span>
+  &copy;  2017 - 
+  <span itemprop="copyrightYear">2018</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

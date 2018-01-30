@@ -336,7 +336,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/06/04/毕业季的小情绪/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -358,8 +358,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/06/04/毕业季的小情绪/" itemprop="url">
-                  毕业季的小情绪
+                <a class="post-title-link" href="/2017/10/05/redis源码-15-——rio篇/" itemprop="url">
+                  redis源码(15)——rio篇
                 </a>
               
             
@@ -375,8 +375,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-04T18:41:35+08:00">
-                2017-06-04
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-05T21:52:53+08:00">
+                2017-10-05
               </time>
             
 
@@ -398,8 +398,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/随口一说/" itemprop="url" rel="index">
-                    <span itemprop="name">随口一说</span>
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
                   </a>
                 </span>
 
@@ -416,8 +416,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/06/04/毕业季的小情绪/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/06/04/毕业季的小情绪/" itemprop="commentCount"></span>
+                <a href="/2017/10/05/redis源码-15-——rio篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/10/05/redis源码-15-——rio篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -444,11 +444,10 @@
 
       
         
-          <img src="/2017/06/04/毕业季的小情绪/毕业季的小情绪.jpg" alt="毕业季的小情绪.jpg" title="">
-<p>什么时候我们开始无法像孩子一样肆意地大呼小叫了？心里的小情绪堆积得像山一样高，直到溢出来。 与其如此，不如永远像孩子一样。<br>
+          <p>在介绍rdb以及aof这两种redis备份方式之前，我们先看一下rio这个源文件，这个文件主要针对缓冲区，文件流以及socket三种数据载体的io操作，通过redis的io数据结构rio可以屏蔽底层不同实现，实现数据的读写操作。为rdb以及aof中的快照文件加载写入，以及指令写入加载提供工具。先看rio.h,<br>主要包括了rio数据结构的定义，以及不同载体的文件操作函数的定义，可以看出通过几个静态的函数，调用不同载体的io操作具体实现，来屏蔽不同载体的操作函数，用户只需要准备好初始化的参数即可，同时也实现了解耦，便于代码的修改以及模块添加。<br>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/06/04/毕业季的小情绪/#more" rel="contents">
+            <a class="btn" href="/2017/10/05/redis源码-15-——rio篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -494,7 +493,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/05/26/redis源码-8-——t-string-c篇/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -516,8 +515,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/05/26/redis源码-8-——t-string-c篇/" itemprop="url">
-                  redis源码(8)——t_string.c篇
+                <a class="post-title-link" href="/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/" itemprop="url">
+                  redis源码(14)——notify.c和pubsub.c篇
                 </a>
               
             
@@ -533,8 +532,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-26T15:17:50+08:00">
-                2017-05-26
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-27T20:04:24+08:00">
+                2017-09-27
               </time>
             
 
@@ -574,8 +573,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/05/26/redis源码-8-——t-string-c篇/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/26/redis源码-8-——t-string-c篇/" itemprop="commentCount"></span>
+                <a href="/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/09/27/redis源码-14-——notify-c和pubsub-c篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -602,11 +601,10 @@
 
       
         
-          <p>在redis的src源码目录下，除了底层数据结构的实现，还有一类文件，比如t_string.c,t_list.c等，它的作用就是负责客户端与服务端的通信，server接受client的指令调用相应的对象命令函数解析后执行，对内存中redisobj操作后，返回给client相应的信息。所以这一类文件中都包含有5中数据对象的指令执行函数，即command api，对于复杂的数据结构，对redisobj中数据值（robj-&gt;ptr）的操作有一次进行了封装,即list api，hash api等等。<br>下面我们来分析t_string.c源码，首先我们列出redis中所有字符串相关指令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">1.SET key value:设置指定的key的值</div><div class="line">2.GET key:获取指定的key的值</div><div class="line">3.GETRANGE key start end：获取指定key的值的子字符串</div><div class="line">4.GETSET key value：获取指定key的值，并且设置其新的值</div><div class="line">5.GETBIT key offset：获取指定key的值偏移量的位</div><div class="line">6.MGET key1 [key2..]:获取指定key集合的value集合</div><div class="line">7.SETBIT key offset value：设置指定key的值偏移量上的位</div><div class="line">8.SETEX key seconds value：设置指定的key的值，并且设置过期时间，单位为s</div><div class="line">9.SETNX key value：设置指定的key的值，当系统中不存在key键时</div><div class="line">10.SETRANGE key offset value：用value参数覆写给定key所储存的字符串值，从偏移量offset开始</div><div class="line">11.STRLEN key：返回指定key的值的长度</div><div class="line">12.MSET key1 value1 [key2 value2...]:同时设置多个键值对</div><div class="line">13.MSETNX key1 value1 [key2 value2...]:同时设置多个键值对，并且所有键值对在系统中不存在，否则都不添加</div><div class="line">14.PSETEX key milliseconds value：设置指定的key的值，并且设置过期时间，单位为ms</div><div class="line">15.INCR key:将key中存储的数字值加一</div><div class="line">16.INCRBY key increment：将key中存储的数字值加指定的值</div><div class="line">17.INCREBYFLOAT key increment：将key中存储的数字值加指定的浮点型值</div><div class="line">18.DECR key:将key中存储的数字值减一</div><div class="line">19.DECRBY key decrement:将key中存储的数字值减指定的值</div><div class="line">20.append key value:如果key键存在，在其value后添加value值</div></pre></td></tr></table></figure></p>
-<p>在t_string.c中对上面的文件都有相应command函数，在其内部对redisobj进行相应的操作，完成指令功能。<br>
+          <p>发布和订阅功能是redis的特色之一，在客户端可以通过sub指令订阅频道，也可以通过pub发布消息，供其他客户端接受。在redis中，订阅消息属于发送即忘策略，即如果订阅的用户不在线，那么以后也不会接受到发送过的消息了。<br>redis中sub／pub功能的实现在notify.c和pubsub.c文件中，pubsub.c文件中包含了订阅函数，退订函数，发布函数等，以及关于sub／pub功能的实现，在notify.c中则是关于server自身的操作，向其他客户端发送key的space或者event通知，这个功能建立在订阅发布功能的基础上。<br>在client数据结构中对于客户端订阅的频道以及订阅的模式都有记录。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 其他属性省略</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">client</span>&#123;</span></div><div class="line">	<span class="comment">// 订阅的频道，用一个字典保存，key在channel，value为null</span></div><div class="line">	<span class="comment">// 同时在server中也有一个字典用来存储，订阅的channel，以及订阅了该channel的clients list</span></div><div class="line">	dict *pubsub_channels;  </div><div class="line">	<span class="comment">// 订阅的模式，是一个list里面存储着pattern</span></div><div class="line">	<span class="comment">//  同时在server中也有一个list用来存储，数据结构pubsubPattern</span></div><div class="line">    <span class="built_in">list</span> *pubsub_patterns;</div><div class="line">&#125;</div><div class="line"><span class="comment">// 用来保存用户订阅的模式的数据结构</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">pubsubPattern</span> &#123;</span></div><div class="line">    client *client;<span class="comment">//订阅的用户</span></div><div class="line">    robj *pattern;<span class="comment">//订阅的模式</span></div><div class="line">&#125; pubsubPattern;</div></pre></td></tr></table></figure></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/05/26/redis源码-8-——t-string-c篇/#more" rel="contents">
+            <a class="btn" href="/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -652,7 +650,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/05/20/redis源码-7-——skiplist篇/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -674,8 +672,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/05/20/redis源码-7-——skiplist篇/" itemprop="url">
-                  redis源码(7)——skiplist篇
+                <a class="post-title-link" href="/2017/09/26/redis源码-13-——db-c篇/" itemprop="url">
+                  redis源码(13)——db.c篇
                 </a>
               
             
@@ -691,8 +689,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-20T14:33:55+08:00">
-                2017-05-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-26T10:42:13+08:00">
+                2017-09-26
               </time>
             
 
@@ -732,8 +730,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/05/20/redis源码-7-——skiplist篇/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/20/redis源码-7-——skiplist篇/" itemprop="commentCount"></span>
+                <a href="/2017/09/26/redis源码-13-——db-c篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/09/26/redis源码-13-——db-c篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -760,10 +758,10 @@
 
       
         
-          <p>对于一个普通的链表进行检索，那么检索效率O(n),而通过红黑树可以使得效率变为O(logn)，但是红黑树的逻辑过于复杂，添加删除操作的过程很繁琐，所以一般程序员用跳跃表代替红黑树，检索效率也可以做到O(logn)，跳跃表的核心思想就是通过一个节点不仅可以访问后一个节点，也可以跨越的访问更后面的节点。这种做法是典型的用空间换取时间的设计方案。在redis中对传统的跳跃表进行了改进，这里就不对传统的跳跃表进行详解，主要讲解redis中修改后跳跃表以及一个哈希表如何作为有序集合的底层实现。<br>先来看看相关的数据结构：在server.h中<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> &#123;</span></div><div class="line">    sds ele;<span class="comment">//用来在与字典中key对应找到value</span></div><div class="line">    <span class="keyword">double</span> score;<span class="comment">//用来集合中排序，当score相同时比较ele</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">backward</span>;</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistLevel</span> &#123;</span></div><div class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">forward</span>;</span></div><div class="line">        <span class="keyword">unsigned</span> <span class="keyword">int</span> span;</div><div class="line">    &#125; level[];<span class="comment">//下一个节点集合</span></div><div class="line">&#125; zskiplistNode;</div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zskiplist</span> &#123;</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">header</span>, *<span class="title">tail</span>;</span><span class="comment">//首尾节点</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> length;<span class="comment">//跳跃表的节点个数</span></div><div class="line">    <span class="keyword">int</span> level;<span class="comment">//跳跃表节点中最大的层数</span></div><div class="line">&#125; zskiplist;</div><div class="line"><span class="comment">//有序集合由一个字典和一个跳跃表构成，两者之间通过ele来一一对应，跳跃表中存储顺序，字典中存储value</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zset</span> &#123;</span></div><div class="line">    dict *dict;<span class="comment">//存储键值对的字典</span></div><div class="line">    zskiplist *zsl;<span class="comment">//存储顺序的跳跃表</span></div><div class="line">&#125; zset;</div></pre></td></tr></table></figure></p>
+          <p>数据库中记录着许多类型的数据对象，对于整个数据库，内部也是用一个字典来存储管理键值对，value就是各种robj对象，对于一个server可以有许多个数据库，对于一个客户端client只能选择一个数据库在一个时间点，下面我们看一下相关的数据结构，看看redisdb等之中存储的信息有哪些。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// redis中数据库结构，id用来表示数据库标号，从0到配置的最大标号</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> &#123;</span></div><div class="line">    dict *dict;                 <span class="comment">/* The keyspace for this DB */</span></div><div class="line">    <span class="comment">// 存储数据库中键和对象</span></div><div class="line">    dict *expires;              <span class="comment">/* Timeout of keys with a timeout set */</span></div><div class="line">    <span class="comment">// 每一个对象的过期时限</span></div><div class="line">    dict *blocking_keys;        <span class="comment">/* Keys with clients waiting for data (BLPOP)*/</span></div><div class="line">    <span class="comment">// 存储阻塞的key以及阻塞的用户list</span></div><div class="line">    dict *ready_keys;           <span class="comment">/* Blocked keys that received a PUSH */</span></div><div class="line">    <span class="comment">// 存储准备解开阻塞的key</span></div><div class="line">    dict *watched_keys;         <span class="comment">/* WATCHED keys for MULTI/EXEC CAS */</span></div><div class="line">    <span class="comment">// 查看的key用于事务块</span></div><div class="line">    <span class="keyword">int</span> id;                     <span class="comment">/* Database ID */</span></div><div class="line">    <span class="comment">// 数据库id</span></div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> avg_ttl;          <span class="comment">/* Average TTL, just for stats */</span></div><div class="line">    <span class="comment">// 平均ttl</span></div><div class="line">&#125; redisDb;</div><div class="line"></div><div class="line"><span class="comment">//Redis服务器和客户端也都保存有数据库的信息，下面截取出来：</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">client</span> &#123;</span></div><div class="line">    redisDb *db;            <span class="comment">/* Pointer to currently SELECTed DB. */</span></div><div class="line">&#125; client;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></div><div class="line">    redisDb *db;</div><div class="line">    <span class="keyword">int</span> dbnum;                      <span class="comment">/* Total number of configured DBs */</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/05/20/redis源码-7-——skiplist篇/#more" rel="contents">
+            <a class="btn" href="/2017/09/26/redis源码-13-——db-c篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -809,7 +807,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/05/05/redis源码-6-——object篇/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/18/redis源码-12-——t-zset-c篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -831,8 +829,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/05/05/redis源码-6-——object篇/" itemprop="url">
-                  redis源码(6)——object篇
+                <a class="post-title-link" href="/2017/09/18/redis源码-12-——t-zset-c篇/" itemprop="url">
+                  redis源码(12)——t_zset.c篇
                 </a>
               
             
@@ -848,8 +846,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-05T09:05:27+08:00">
-                2017-05-05
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-18T23:21:28+08:00">
+                2017-09-18
               </time>
             
 
@@ -889,8 +887,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/05/05/redis源码-6-——object篇/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/05/05/redis源码-6-——object篇/" itemprop="commentCount"></span>
+                <a href="/2017/09/18/redis源码-12-——t-zset-c篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/09/18/redis源码-12-——t-zset-c篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -917,10 +915,10 @@
 
       
         
-          <p>在redis中有很多数据结构，可以分为底层数据结构对于用户透明，对于用户可以使用的是用户层数据结构，即字符串，列表，字典，无序集合，有序集合这五个基本类型。但是对于每一个基本类型，在redis底层都有多种实现方式，根据具体的存储内容以及使用需求自动选择适合的底层实现，以提高的redis的使用效率以及内存管理。<br>对于底层实现的数据结构在源程序中列出如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_RAW 0     <span class="comment">/* sds字符串编码 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_INT 1     <span class="comment">/* 整数编码 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_HT 2      <span class="comment">/* 哈希列表编码*/</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_ZIPMAP 3  <span class="comment">/* 压缩字典*/</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_LINKEDLIST 4 <span class="comment">/* 不再使用，普通的双向链表 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_ZIPLIST 5 <span class="comment">/* 压缩链表 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_INTSET 6  <span class="comment">/* 有序整数集合 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_SKIPLIST 7  <span class="comment">/* 跳跃链表 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_EMBSTR 8  <span class="comment">/* 仿字符串编码 */</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_QUICKLIST 9 <span class="comment">/* 快表，即一个节点为压缩列表的双向链表 */</span></span></div></pre></td></tr></table></figure></p>
+          <p>在t_zset.c源文件中，比较复杂，分为好几个部分，首先是前面讲过的skiplist的相关操作函数，相关数据结构定义在server.h中，这里就不再介绍，然后是skiplist用来作为有序集合编码时的相关操作函数，再后面是有序集合的相关操作函数，基于skiplist和dict的底层实现以及ziplist的底层实现来完成，最后一部分是关于有序集合指令的函数实现。<br>首先列出所有基于ziplist底层实现的有序集合操作函数的定义<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// sptr为一个value以及score的score指针，返回浮点型的score</span></div><div class="line"><span class="function"><span class="keyword">double</span> <span class="title">zzlGetScore</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *sptr)</span></span>;</div><div class="line"><span class="comment">// 返回一个value的sds对象，sptr为value的指针，而非score</span></div><div class="line"><span class="function">sds <span class="title">ziplistGetObject</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *sptr)</span></span>;</div><div class="line">/ 与zset中的一个元素比较</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">zzlCompareElements</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *eptr, <span class="keyword">unsigned</span> <span class="keyword">char</span> *cstr, <span class="keyword">unsigned</span> <span class="keyword">int</span> clen)</span></span>;</div><div class="line"><span class="comment">// ziplist中存储的zset的元素个数</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="title">zzlLength</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl)</span></span>;</div><div class="line"><span class="comment">// 将指针eptr以及sptr移到存储的下一个实体上包括elem以及score</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">zzlNext</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, <span class="keyword">unsigned</span> <span class="keyword">char</span> **eptr, <span class="keyword">unsigned</span> <span class="keyword">char</span> **sptr)</span></span>;</div><div class="line"><span class="comment">// 将指针eptr以及sptr移到存储的上一个实体上包括elem以及score</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">zzlPrev</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, <span class="keyword">unsigned</span> <span class="keyword">char</span> **eptr, <span class="keyword">unsigned</span> <span class="keyword">char</span> **sptr)</span></span>;</div><div class="line"><span class="comment">// 根据score判断zset是否有elem在规定范围内</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">zzlIsInRange</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zrangespec *range)</span></span>;</div><div class="line"><span class="comment">// 第一个在范围内吃的elem</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlFirstInRange</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zrangespec *range)</span></span>;</div><div class="line"><span class="comment">// 最后一个出现在范围内的elem</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlLastInRange</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zrangespec *range)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">zzlIsInLexRange</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zlexrangespec *range)</span></span>;</div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlFirstInLexRange</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zlexrangespec *range)</span></span>;</div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlLastInLexRange</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zlexrangespec *range)</span></span>;</div><div class="line"><span class="comment">// 在ziplist的zset中查找elem为ele，返回其指针，并且存储score</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlFind</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, sds ele, <span class="keyword">double</span> *score)</span></span>;</div><div class="line"><span class="comment">// 删除ziplist的zset的eptr上的value以及score</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlDelete</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, <span class="keyword">unsigned</span> <span class="keyword">char</span> *eptr)</span></span>;</div><div class="line"><span class="comment">// 在eptr前面插入新的元素</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlInsertAt</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, <span class="keyword">unsigned</span> <span class="keyword">char</span> *eptr, sds ele, <span class="keyword">double</span> score)</span></span>;</div><div class="line"><span class="comment">// 往ziplist的zset插入新的元素，假设zset之前不存在该元素，如果score相同再比较sds</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlInsert</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, sds ele, <span class="keyword">double</span> score)</span></span>;</div><div class="line"><span class="comment">// 根据score删除范围内的元素</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlDeleteRangeByScore</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zrangespec *range, <span class="keyword">unsigned</span> <span class="keyword">long</span> *deleted)</span></span>;</div><div class="line"><span class="comment">// 根据lex删除范围内的元素</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlDeleteRangeByLex</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, zlexrangespec *range, <span class="keyword">unsigned</span> <span class="keyword">long</span> *deleted)</span></span>;</div><div class="line"><span class="comment">// 删除所有rank排序start到end的元素</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">zzlDeleteRangeByRank</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, <span class="keyword">unsigned</span> <span class="keyword">int</span> start, <span class="keyword">unsigned</span> <span class="keyword">int</span> end, <span class="keyword">unsigned</span> <span class="keyword">long</span> *deleted)</span></span>;</div></pre></td></tr></table></figure></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/05/05/redis源码-6-——object篇/#more" rel="contents">
+            <a class="btn" href="/2017/09/18/redis源码-12-——t-zset-c篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -966,7 +964,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/29/redis源码-5-——quicklist篇/">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/18/redis源码-11-——t-set篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="BINXU">
@@ -988,8 +986,8 @@
             
               
                 
-                <a class="post-title-link" href="/2017/04/29/redis源码-5-——quicklist篇/" itemprop="url">
-                  redis源码(5)——quicklist篇
+                <a class="post-title-link" href="/2017/09/18/redis源码-11-——t-set篇/" itemprop="url">
+                  redis源码(11)——t_set篇
                 </a>
               
             
@@ -1005,8 +1003,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-29T00:01:56+08:00">
-                2017-04-29
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-18T14:42:42+08:00">
+                2017-09-18
               </time>
             
 
@@ -1046,8 +1044,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2017/04/29/redis源码-5-——quicklist篇/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/04/29/redis源码-5-——quicklist篇/" itemprop="commentCount"></span>
+                <a href="/2017/09/18/redis源码-11-——t-set篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/09/18/redis源码-11-——t-set篇/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1074,10 +1072,10 @@
 
       
         
-          <p>在redis中提供给用户的类型为用户层类型，而redis有很多自己的底层实现，list类型前面已经看过了adlist和ziplist，adlist是一个普通的双向链表，提供listnode数据类型，adlist中有首尾指针，ziplist是分配内存中的一段连续的区域作为存储区，拥有自己的存储规则，adlist的缺点是需要提供首尾指针以及pre和next指针存储区域，并且内存中存储不连续造成内存碎片，ziplist弥补了它的缺点，内存存储连续，并且不需要多余的指针存储，但是连续分区造成小内存碎片，之后难以分配大内存空间，并且每次对list的操作，都涉及内存的操作，与ziplist当时的存储长度有很大关系，所以结合了adlist和ziplist的优点，编写了quicklist，也是用户层list的底层实现。<br>我们先看一下quicklist.h中关于数据结构的定义：<br>
+          <p>集合分为无序集合以及有序集合，t_set.c是对无序集合的实现，包含无序集合的操作函数，以及关于set的指令的实现。<br>set的底层编码有两种，inset以及dict，当集合元素为整型并且元素的个数小于512时，底层编码为inset，否则底层编码为dict字典实现，用key存储元素值，value为null。<br>下面列出所有set类型的操作函数定义，基于inset以及dict操作实现。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 根据value是整型还是字符型来创建一个inset或hash的集合对象</span></div><div class="line"><span class="function">robj *<span class="title">setTypeCreate</span><span class="params">(sds value)</span></span>;</div><div class="line"><span class="comment">// 往集合中添加value，如果存在返回0，如果不存在添加返回1</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeAdd</span><span class="params">(robj *subject, sds value)</span></span>;</div><div class="line"><span class="comment">// 删除集合中元素</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeRemove</span><span class="params">(robj *setobj, sds value)</span></span>;</div><div class="line"><span class="comment">// 判断value是否是集合的元素</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeIsMember</span><span class="params">(robj *subject, sds value)</span></span>;</div><div class="line"><span class="comment">// 初始化set迭代器</span></div><div class="line"><span class="function">setTypeIterator *<span class="title">setTypeInitIterator</span><span class="params">(robj *subject)</span></span>;</div><div class="line"><span class="comment">// 释放set迭代器</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">setTypeReleaseIterator</span><span class="params">(setTypeIterator *si)</span></span>;</div><div class="line"><span class="comment">// 如果没有下一个元素返回-1，如果存在下一个元素，值存在sdsele或llele中，并且返回set的实现编码</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeNext</span><span class="params">(setTypeIterator *si, sds *sdsele, <span class="keyword">int64_t</span> *llele)</span></span>;</div><div class="line"><span class="comment">// 如果没有下一个元素或未知的编码返回null，否则返回sds对象</span></div><div class="line"><span class="function">sds <span class="title">setTypeNextObject</span><span class="params">(setTypeIterator *si)</span></span>;</div><div class="line"><span class="comment">// 从一个非空的集合中随机返回一个元素，同样返回集合编码，用sdsele或者llele存储</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeRandomElement</span><span class="params">(robj *setobj, sds *sdsele, <span class="keyword">int64_t</span> *llele)</span></span>;</div><div class="line"><span class="comment">// 返回集合的元素数量</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">setTypeSize</span><span class="params">(<span class="keyword">const</span> robj *subject)</span></span>;</div><div class="line"><span class="comment">// 转换集合的编码</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">setTypeConvert</span><span class="params">(robj *setobj, <span class="keyword">int</span> enc)</span></span>;</div></pre></td></tr></table></figure></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/04/29/redis源码-5-——quicklist篇/#more" rel="contents">
+            <a class="btn" href="/2017/09/18/redis源码-11-——t-set篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1118,7 +1116,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><a class="extend next" rel="next" href="/page/5/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><a class="extend next" rel="next" href="/page/5/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1163,7 +1161,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-count">39</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
@@ -1174,7 +1172,7 @@
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-count">9</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
@@ -1185,7 +1183,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">20</span>
+                <span class="site-state-item-count">25</span>
                 <span class="site-state-item-name">标签</span>
               </a>
             </div>
@@ -1267,8 +1265,8 @@
       <div class="footer-inner">
         <div class="copyright" >
   
-  &copy; 
-  <span itemprop="copyrightYear">2017</span>
+  &copy;  2017 - 
+  <span itemprop="copyrightYear">2018</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
