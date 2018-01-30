@@ -71,7 +71,7 @@
 <link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="自由而无用,计算机,徐滨,博客" />
+  <meta name="keywords" content="Hadoop,HDFS,分布式," />
 
 
 
@@ -89,16 +89,29 @@
 
 
 
-<meta name="description" content="当你最弱的时候 往往坏人最多">
+<meta name="description" content="环境ubuntu14.04操作系统Hadoop2.7.4远程上传文件工具yummy ftp用于mac，windows上可用winscp等远程控制台zoc7用于mac，windows上可用xshell检查是否安装openssh-client openssh-server以及openssh-sftp-server执行dpkg –get-selections | grep openssh如果没有安装执行">
+<meta name="keywords" content="Hadoop,HDFS,分布式">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Hadoop集群-hdfs-yarn配置">
 <meta property="og:url" content="https://morningXB.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/index.html">
 <meta property="og:site_name" content="自由而无用">
-<meta property="og:description" content="当你最弱的时候 往往坏人最多">
-<meta property="og:updated_time" content="2018-01-30T10:31:16.769Z">
+<meta property="og:description" content="环境ubuntu14.04操作系统Hadoop2.7.4远程上传文件工具yummy ftp用于mac，windows上可用winscp等远程控制台zoc7用于mac，windows上可用xshell检查是否安装openssh-client openssh-server以及openssh-sftp-server执行dpkg –get-selections | grep openssh如果没有安装执行">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/1.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/2.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/3.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/4.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/5.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/6.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/7.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/8.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/9.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/10.jpg">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/11.jpg">
+<meta property="og:updated_time" content="2018-01-30T11:23:41.416Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop集群-hdfs-yarn配置">
-<meta name="twitter:description" content="当你最弱的时候 往往坏人最多">
+<meta name="twitter:description" content="环境ubuntu14.04操作系统Hadoop2.7.4远程上传文件工具yummy ftp用于mac，windows上可用winscp等远程控制台zoc7用于mac，windows上可用xshell检查是否安装openssh-client openssh-server以及openssh-sftp-server执行dpkg –get-selections | grep openssh如果没有安装执行">
+<meta name="twitter:image" content="https://morningxb.github.io/2018/01/30/Hadoop集群-hdfs-yarn配置/1.jpg">
 
 
 
@@ -382,6 +395,28 @@
           </span>
 
           
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Hadoop/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
 
           
             
@@ -422,7 +457,19 @@
       
 
       
-        
+        <h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><p>ubuntu14.04操作系统<br>Hadoop2.7.4<br>远程上传文件工具yummy ftp用于mac，windows上可用winscp等<br>远程控制台zoc7用于mac，windows上可用xshell<br>检查是否安装openssh-client openssh-server以及openssh-sftp-server<br>执行dpkg –get-selections | grep openssh<br>如果没有安装执行<br>apt-get update<br>apt-get install openssh-client openssh-server openssh-sftp-server<br><a id="more"></a><br>安装需要的软件<br>关闭防火墙执行ufw disable<br>将下载好的软件包上传到master主机上。<br>修改 /etc/ssh/sshd_config文件<br>将PermitRootLogin without-password改为PermitRootLogin yes<br>允许ssh远程用root用户登陆<br><img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/1.jpg" alt="1.jpg" title=""></p>
+<h2 id="配置ssh"><a href="#配置ssh" class="headerlink" title="配置ssh"></a>配置ssh</h2><p>有一个主节点master，三个从节点worker01，worker02，worker03.<br>ip与主机名分别为：<br>172.16.223.129 master<br>172.16.223.131 worker01<br>172.16.223.132 worker02<br>172.16.223.133 worker03<br>先做到各个服务器之间的免密登陆<br>首先修改/etc/hosts文件（删除127.0.1.1）<br><img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/2.jpg" alt="2.jpg" title=""><br>修改/etc/hostname文件更改主机名<br>apt-get install ssh 安装ssh连接软件<br>ssh-keygen –t rsa<br>一路enter生成本机的公钥以及密钥id_rsa.pub以及id_rsa<br>ssh免密登陆 A机将自己的公钥发给B机，B机接受并且将A的公钥加到authorized_keys文件中，那么就可以通过A机免密ssh访问B机。<br>所以将通过scp指令将id_rsa.pub发到想免密访问的主机，然后呀登陆目标主机，通过cat src&gt;&gt;dst指令将公钥添加到authorized_keys文件中。<br>再通过ssh-add id_rsa添加密钥文件到ssh服务中，即可实现对目标机的ssh免密访问。<br>最终实现各个主机之间都可以相互免密访问。</p>
+<h2 id="jdk和hadoop"><a href="#jdk和hadoop" class="headerlink" title="jdk和hadoop"></a>jdk和hadoop</h2><p>解压下载好的jdk以及hadoop的tar包<br>tar –xvf  [path]    解压tar包<br>tar –xzvf [path] 解压tar.gz包<br><img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/3.jpg" alt="3.jpg" title=""><br><img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/4.jpg" alt="4.jpg" title=""><br>然后配置/etc/.profile文件即可<br>gedit /etc/.profile<br><img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/5.jpg" alt="5.jpg" title=""><br>source /etc/.profile 刷新配置文件<br>java –version<br><img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/6.jpg" alt="6.jpg" title=""><br><img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/7.jpg" alt="7.jpg" title=""><br>环境变量配置完毕，下面就是配置hadoop的配置文件：主要有核心文件，hdfs文件，mapreduce文件，yarn文件，Hadoop-env文件，以及slave文件。</p>
+<h2 id="配置文件"><a href="#配置文件" class="headerlink" title="配置文件"></a>配置文件</h2><ol>
+<li>修改hadoop-env.sh文件<br>添加：<br>export JAVA_HOME=/root/BigDataSoftware/jdk1.8.0_151<br>export HADOOP_PRIFIX=/root/BigDataSoftware/Hadoop-2.7.4</li>
+<li>修改core-site.xml文件<br>1）临时文件的路径，如果不设置这个属性，那么hadoop会默认到/tmp/Hadoop<br>在重启后会删除，必须再次format文件系统。<br>2）配置本机文件系统的名称，相当于在网络中代号。<img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/8.jpg" alt="8.jpg" title=""></li>
+<li>修改hdfs-site.xml文件<br>指定副本个数为3。<img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/9.jpg" alt="9.jpg" title=""></li>
+<li>修改mapred-site.xml文件<br>touch 文件名 创建文件<br>mkdir 文件夹名 创建文件夹<br>配置mapreduce的管理框架为yarn<br>配置mapreduce的job.tracker<img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/10.jpg" alt="10.jpg" title=""></li>
+<li>修改yarn-env.sh文件<br>添加export JAVA_HOME=/root/BigDataSoftware/jdk1.8.0_151</li>
+<li>修改yarn-site.xml<br>1)    yarn提供的节点管理服务<br>2)    yarn的资源管理器节点<img src="/2018/01/30/Hadoop集群-hdfs-yarn配置/11.jpg" alt="11.jpg" title=""></li>
+<li>配置slaves文件<br>worker01<br>worker02<br>worker03<br>三个从节点作为datanode<br>至此主机master上的环境配置完毕，直接使用scp指令将所有文件夹拷贝过去即可。<br>所有机器配置完毕。<br>如果通信有问题可以关闭iptables<br>iptables –P INPUT ACCEPT<br>iptables –P OUTPUT ACCEPT<br>iptables –P FORWARD ACCEPT<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2>下面启动hadoop查看是否配置成功：<br>回到master节点<br>执行hadoop namenode –format 格式化文件系统<br>然后执行start-all.sh<br>或者start-dfs.sh开启hdfs，start-yarn开启yarn资源管理器<br>打开master：50070查看namenode管理界面<br>通过jps指令查看相应的进程是否运行<br>往hdfs中写入本地文件：<br>/bin/hdfs dfs -put /root/text /<br>等hdfs操作指令类似于linux中文件系统指令<br>启动失败可以到master或者worker节点中的logs文件夹下查看日志文件<br>hdfs格式化<br>删除临时文件目录，删除data目录等，然后执行<br>hdfs namenode –format<br>hdfs datanode –format<br>然后star-all.sh即可</li>
+</ol>
+
       
     </div>
 
@@ -468,6 +515,16 @@
     </div>
 
     <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop/" rel="tag"># Hadoop</a>
+          
+            <a href="/tags/HDFS/" rel="tag"># HDFS</a>
+          
+            <a href="/tags/分布式/" rel="tag"># 分布式</a>
+          
+        </div>
       
 
       
@@ -560,8 +617,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview sidebar-panel sidebar-panel-active">
+      <section class="site-overview sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/avatar.jpg"
@@ -587,7 +653,7 @@
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-count">11</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
@@ -598,7 +664,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">25</span>
+                <span class="site-state-item-count">29</span>
                 <span class="site-state-item-name">标签</span>
               </a>
             </div>
@@ -664,6 +730,22 @@
 
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#环境"><span class="nav-number">1.</span> <span class="nav-text">环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置ssh"><span class="nav-number">2.</span> <span class="nav-text">配置ssh</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#jdk和hadoop"><span class="nav-number">3.</span> <span class="nav-text">jdk和hadoop</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置文件"><span class="nav-number">4.</span> <span class="nav-text">配置文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#测试"><span class="nav-number">5.</span> <span class="nav-text">测试</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
