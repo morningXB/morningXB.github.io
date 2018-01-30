@@ -89,17 +89,19 @@
 
 
 
-<meta name="description" content="当你最弱的时候 往往坏人最多">
+<meta name="description" content="Spark的处理数据可以从hdfs中获取或者通过本地文件等等 可以在其中配置Spark的资源管理可以通过mesos，yarn或者自身的standalone等这里我们搭建一个standalone模式下的单机以及集群环境">
 <meta name="keywords" content="Spark">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Spark安装配置">
 <meta property="og:url" content="https://morningXB.github.io/2018/01/30/Spark安装配置/index.html">
 <meta property="og:site_name" content="自由而无用">
-<meta property="og:description" content="当你最弱的时候 往往坏人最多">
-<meta property="og:updated_time" content="2018-01-30T11:08:02.328Z">
+<meta property="og:description" content="Spark的处理数据可以从hdfs中获取或者通过本地文件等等 可以在其中配置Spark的资源管理可以通过mesos，yarn或者自身的standalone等这里我们搭建一个standalone模式下的单机以及集群环境">
+<meta property="og:image" content="https://morningxb.github.io/2018/01/30/Spark安装配置/1.jpg">
+<meta property="og:updated_time" content="2018-01-30T12:13:06.166Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Spark安装配置">
-<meta name="twitter:description" content="当你最弱的时候 往往坏人最多">
+<meta name="twitter:description" content="Spark的处理数据可以从hdfs中获取或者通过本地文件等等 可以在其中配置Spark的资源管理可以通过mesos，yarn或者自身的standalone等这里我们搭建一个standalone模式下的单机以及集群环境">
+<meta name="twitter:image" content="https://morningxb.github.io/2018/01/30/Spark安装配置/1.jpg">
 
 
 
@@ -445,7 +447,15 @@
       
 
       
-        
+        <p>Spark的处理数据可以从hdfs中获取或者通过本地文件等等 可以在其中配置<br>Spark的资源管理可以通过mesos，yarn或者自身的standalone等<br>这里我们搭建一个standalone模式下的单机以及集群环境<br><a id="more"></a><br>前提是安装配置了scala，java以及需要的话hdfs和yarn</p>
+<ol>
+<li>解压spark安装包</li>
+<li>修改env环境配置文件以及/etc/.profile<img src="/2018/01/30/Spark安装配置/1.jpg" alt="1.jpg" title=""></li>
+<li>启动spark 调试example中的SparkPi程序</li>
+<li>修改salve文件添加集群中worker然后scp到其他节点</li>
+<li>启动集群环境 通过spark-submit调试程序</li>
+</ol>
+
       
     </div>
 
