@@ -408,16 +408,6 @@
 
           
             
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2017/11/21/Docker-Install/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/11/21/Docker-Install/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
           
 
           
@@ -451,7 +441,7 @@
 <li>尽量使用aufs<br>sudo apt-get update<br>sudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual</li>
 <li>安装仓库<br>sudo apt-get update<br>sudo apt-get install apt-transport-https ca-certificates curl software-properties-common //允许apt使用https仓库</li>
 <li>添加GPG-key<br>curl -fsSL <a href="https://download.docker.com/linux/ubuntu/gpg" target="_blank" rel="external">https://download.docker.com/linux/ubuntu/gpg</a> | sudo apt-key add -<a id="more"></a></li>
-<li>确认key的序列码<br>sudo apt-key fingerprint 0EBFCD88<br>pub 4096R/0EBFCD88 2017-02-22<br>Key fingerprint = 9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88<br>uid Docker Release (CE deb) <a href="&#109;&#x61;&#x69;&#x6c;&#116;&#x6f;&#58;&#x64;&#111;&#x63;&#107;&#x65;&#x72;&#64;&#x64;&#x6f;&#x63;&#107;&#x65;&#x72;&#46;&#x63;&#111;&#109;">&#x64;&#111;&#x63;&#107;&#x65;&#x72;&#64;&#x64;&#x6f;&#x63;&#107;&#x65;&#x72;&#46;&#x63;&#111;&#109;</a><br>sub 4096R/F273FCD8 2017-02-22</li>
+<li>确认key的序列码<br>sudo apt-key fingerprint 0EBFCD88<br>pub 4096R/0EBFCD88 2017-02-22<br>Key fingerprint = 9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88<br>uid Docker Release (CE deb) <a href="&#x6d;&#x61;&#105;&#108;&#x74;&#x6f;&#58;&#100;&#111;&#x63;&#107;&#x65;&#x72;&#x40;&#100;&#111;&#99;&#107;&#x65;&#x72;&#x2e;&#x63;&#x6f;&#x6d;">&#100;&#111;&#x63;&#107;&#x65;&#x72;&#x40;&#100;&#111;&#99;&#107;&#x65;&#x72;&#x2e;&#x63;&#x6f;&#x6d;</a><br>sub 4096R/F273FCD8 2017-02-22</li>
 <li>设置稳定仓库url<br>sudo add-apt-repository “deb [arch=amd64] <a href="https://download.docker.com/linux/ubuntu" target="_blank" rel="external">https://download.docker.com/linux/ubuntu</a> $(lsb_release -cs) stable”</li>
 <li>安装最新版本docker<br>sudo apt-get update<br>sudo apt-get install docker-ce</li>
 <li>列出docker版本list<br>apt-cache madsion docker-ce</li>
@@ -551,25 +541,6 @@
 
     <div class="post-spread">
       
-        <div class="ds-share flat" data-thread-key="2017/11/21/Docker-Install/"
-     data-title="Docker Install"
-     data-content=""
-     data-url="https://morningXB.github.io/2017/11/21/Docker-Install/">
-  <div class="ds-share-inline">
-    <ul  class="ds-share-icons-16">
-
-      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
-      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
-      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
-      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
-      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
-
-    </ul>
-    <div class="ds-share-icons-more">
-    </div>
-  </div>
-</div>
-      
     </div>
   </div>
 
@@ -580,10 +551,6 @@
 
           
   <div class="comments" id="comments">
-    
-      <div class="ds-thread" data-thread-key="2017/11/21/Docker-Install/"
-           data-title="Docker Install" data-url="https://morningXB.github.io/2017/11/21/Docker-Install/">
-      </div>
     
   </div>
 
@@ -834,39 +801,32 @@
 
   
 
-  
-    
-  
 
-  <script type="text/javascript">
-    var duoshuoQuery = {short_name:"morningXB"};
-    (function() {
-      var ds = document.createElement('script');
-      ds.type = 'text/javascript';ds.async = true;
-      ds.id = 'duoshuo-script';
-      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
-      ds.charset = 'UTF-8';
-      (document.getElementsByTagName('head')[0]
-      || document.getElementsByTagName('body')[0]).appendChild(ds);
-    })();
-  </script>
 
   
-    
-    
-    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
-    <script src="/js/src/hook-duoshuo.js"></script>
+
+
+
+
+	
+
+
+
+
+
   
 
 
 
 
 
+  
 
 
 
 
 
+  
 
 
 
@@ -876,7 +836,7 @@
     // Popup Window;
     var isfetched = false;
     // Search DB path;
-    var search_path = "search.xml";
+    var search_path = "";
     if (search_path.length == 0) {
       search_path = "search.xml";
     }
