@@ -1,0 +1,1028 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Linux,Socket,网络编程," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本文主要介绍关于套接字的一些常用选项以及它们的使用，本文的示例程序参考unix网络编程，列出常用选项的默认配置。 Socketopt API123#include &amp;lt;sys/socket.h&amp;gt;int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);int setsockopt">
+<meta name="keywords" content="Linux,Socket,网络编程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UNIX-Socket socketopt套接字选项">
+<meta property="og:url" content="https://morningXB.github.io/2018/03/06/UNIX-Socket-socketopt套接字选项/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="本文主要介绍关于套接字的一些常用选项以及它们的使用，本文的示例程序参考unix网络编程，列出常用选项的默认配置。 Socketopt API123#include &amp;lt;sys/socket.h&amp;gt;int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);int setsockopt">
+<meta property="og:updated_time" content="2018-03-06T07:33:47.144Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="UNIX-Socket socketopt套接字选项">
+<meta name="twitter:description" content="本文主要介绍关于套接字的一些常用选项以及它们的使用，本文的示例程序参考unix网络编程，列出常用选项的默认配置。 Socketopt API123#include &amp;lt;sys/socket.h&amp;gt;int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);int setsockopt">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 'undefined',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2018/03/06/UNIX-Socket-socketopt套接字选项/"/>
+
+
+
+
+
+  <title> UNIX-Socket socketopt套接字选项 | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2018/03/06/UNIX-Socket-socketopt套接字选项/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                UNIX-Socket socketopt套接字选项
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-06T15:19:45+08:00">
+                2018-03-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C语言学习/" itemprop="url" rel="index">
+                    <span itemprop="name">C语言学习</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文主要介绍关于套接字的一些常用选项以及它们的使用，本文的示例程序参考unix网络编程，列出常用选项的默认配置。</p>
+<h2 id="Socketopt-API"><a href="#Socketopt-API" class="headerlink" title="Socketopt API"></a>Socketopt API</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">getsockopt</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">int</span> level, <span class="keyword">int</span> optname, <span class="keyword">void</span> *optval, <span class="keyword">socklen_t</span> *optlen)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setsockopt</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">int</span> level, <span class="keyword">int</span> optname, <span class="keyword">const</span> <span class="keyword">void</span> *optval, <span class="keyword">socklen_t</span> optlen)</span></span>;<span class="comment">//ret-成功返回0 失败返回-1</span></div></pre></td></tr></table></figure>
+<p>用途：获取或设置套接字选项，<br>参数：<br>sockfd：已经打开的套接字描述符<br>level：选项级别，主要有SOL_SOCKET即通用，IPPROTO_IP即IPV4地址族，IPPROTO_IPV6即IPV6地址族，IPPROTO_TCP即TCP传输协议，IPPROTO_SCTP即SCTP传输协议，IPPROTO_ICMPV6即ICMPV6传输协议。<br>optname：选项名称下面会给出部分，具体参加[UNIX网络编程卷一]P151。<br>optval：对应选项的值，对于标记选项值为0或1，对于值选项类型由内部定义。<br>optlen：对应选项的值的长度。<br><a id="more"></a></p>
+<h2 id="Socketopt的常用选项"><a href="#Socketopt的常用选项" class="headerlink" title="Socketopt的常用选项"></a>Socketopt的常用选项</h2><p>注意：对于TCP已连接套接字，下面的套接字选项须从监听套接字继承得到：<br>SO_DEBUG、SO_DONTROUTE、SO_KEEPALIVE、SO_LINGER、SO_OOBINLINE、SO_RCVBUF、SO_RCVLOWAT、SO_SNDBUF、SO_SNDLOWAT、TCP_MAXSEG、TCP_NODELAY。</p>
+<h3 id="SO-KEEPALIVE"><a href="#SO-KEEPALIVE" class="headerlink" title="SO_KEEPALIVE"></a>SO_KEEPALIVE</h3><p>给TCP套接字设置一个保持存活选项后，如果两小时后和对端没有数据交互，那么向对端发送一个保持存活探测分节，对端在此时有三种情况：<br>1）对端正常，接收到探测分节，回应一个期望ACK，在两小时后若还没有交互，继续发送下一个保持存活探测分节。<br>2）在对端进程已经崩溃并且重启情况，那么对端回应一个RST，本端得知对方已经重启，关闭套接字。<br>3）对端对保持存活探测分节没有任何回应，那么每个75秒会连续再发8次探测分节，试图得到回应，若还没有回应，则放弃探测，关闭套接字，值得说的是，对端可能是崩溃未重启，或者就是网络节点故障但对端套接字一切正常，但是概率很小，网络故障时间必须与8次探测分节发送时间吻合。<br>一般在服务器端的socket()和bind()之间，设置该选项，让服务器知晓那些客户端关闭或者崩溃等等，不至于在read的情况下一直等待。</p>
+<h3 id="SO-RCVBUF，SO-SNDBUF"><a href="#SO-RCVBUF，SO-SNDBUF" class="headerlink" title="SO_RCVBUF，SO_SNDBUF"></a>SO_RCVBUF，SO_SNDBUF</h3><p>每个套接字都有一个发送缓冲区和一个接收缓冲区，这两个套接字选项允许我们改变这两个缓冲区的默认大小。对于TCP来说，套接字接收缓冲区不可能溢出，因为不允许对端发出超过本端所通告窗口大小的数据，这就是TCP的流量控制。对于UDP来说，由于没有流量控制，较快的发送端可以很容易地淹没较慢的接收端，导致接收端的UDP丢弃数据报。<br>当设置TCP套接字接收缓冲区的大小时，函数调用顺序很重要，这是因为TCP的窗口规模选项是在建立连接时用SYN分节与对端互换得到的。对于客户，这意味着SO_RCVBUF选项必须在调用connect之前设置；对于服务器，这意味着SO_RCVBUF选项必须在调用listen之前给监听套接字设置。</p>
+<h3 id="SO-RCVTIMEO，SO-SNDTIMEO"><a href="#SO-RCVTIMEO，SO-SNDTIMEO" class="headerlink" title="SO_RCVTIMEO，SO_SNDTIMEO"></a>SO_RCVTIMEO，SO_SNDTIMEO</h3><p>给套接字的发送和接受设置超时值，设为0表示禁止超时。</p>
+<h3 id="SO-REUSEADDR"><a href="#SO-REUSEADDR" class="headerlink" title="SO_REUSEADDR"></a>SO_REUSEADDR</h3><p>地址重用选项，一般在服务器端都需要设置该选项。在UNIX-网络编程中阐述了4个作用：<br>1）允许启动一个监听服务器并将其绑定到其众所周知的端口，即使以前建立的将该端口用作为它们的本地端口的连接还存在。可用在服务器连接的重启中。<br>2）允许在同一端口启动统一服务器的多个实例，只要每个实例绑定的IP地址不同，在IP别名技术托管多个HTTP服务器的网点很常见。在TCP中绝不存在绑定统一IP和端口的多个实例，即重复绑定。<br>3）允许单个进程绑定同一端口到多个套接字上，只要IP地址不同，对于UDP传输想知道客户端的请求地址来说，使用普遍。<br>4）在UDP协议下，如果传输协议支持，可以允许完全重复的绑定。</p>
+<h3 id="TCP-MAXSEG"><a href="#TCP-MAXSEG" class="headerlink" title="TCP_MAXSEG"></a>TCP_MAXSEG</h3><p>设置TCP连接的最大分节大小，往往有对端决定，在ACK时会携带发送MSS告诉本端最大发送信息大小，当然也可能本端的TCP_MAXSEG小于对端，在未连接时，本端TCP_MAXSEG为默认大小。</p>
+<h3 id="TCP-NODELAY"><a href="#TCP-NODELAY" class="headerlink" title="TCP_NODELAY"></a>TCP_NODELAY</h3><p>NAGLE算法：主要目的是抵消广域网上的小分组数目，在为接受到现有消息的ACK时，本端会将小分组暂存，等到对端ACK确认收到消息，再将小分组一起发送给对端，尽量使得分组大小接近MSS。<br>ACK延迟算法：对端采用该算法为了减少广域网上的传输次数，所以对端会延迟50-200MS时间，如果有消息发送将ACK携带一起发送，如果超时则将ACK直接发送。<br>典型的延迟情况时写-写-读的情况，本端将消息1发送，消息2小分组在本地等待ACK，但是对端没有消息发送，故要延迟50-200MS之后才发送ACK，本端之后才会发送消息2，这就造成了200MS左右的延迟。<br>消除延迟的方式：<br>1）使用writev而不是调用write两次。(推荐)<br>2） 将4字节的请求类型和396字节的数据复制到单个缓冲区中，然后调用write。<br>3）设置TCP_NODELAY套接字选项，继续调用两次write。（有损网络，通常不采用）</p>
+<h2 id="Socketopt的默认选项"><a href="#Socketopt的默认选项" class="headerlink" title="Socketopt的默认选项"></a>Socketopt的默认选项</h2><p>下面程序会输出通用IP和TCP级别的默认套接字选项。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netinet/in.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netinet/tcp.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/time.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> error_exit(msg) \</span></div><div class="line">    do &#123; printf(<span class="meta-string">"%s\n"</span>, msg); exit(EXIT_FAILURE); &#125; while (0)</div><div class="line"></div><div class="line"><span class="keyword">union</span> val &#123;</div><div class="line">  <span class="keyword">int</span>               i_val;</div><div class="line">  <span class="keyword">long</span>              l_val;</div><div class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">linger</span>     <span class="title">linger_val</span>;</span></div><div class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">timeval</span>    <span class="title">timeval_val</span>;</span></div><div class="line">&#125; val;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span> *<span class="title">sock_str_flag</span><span class="params">(<span class="keyword">union</span> val *, <span class="keyword">int</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span> *<span class="title">sock_str_int</span><span class="params">(<span class="keyword">union</span> val *, <span class="keyword">int</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span> *<span class="title">sock_str_linger</span><span class="params">(<span class="keyword">union</span> val *, <span class="keyword">int</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span> *<span class="title">sock_str_timeval</span><span class="params">(<span class="keyword">union</span> val *, <span class="keyword">int</span>)</span></span>;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sock_opts</span> &#123;</span></div><div class="line">  <span class="keyword">const</span> <span class="keyword">char</span> *opt_str;</div><div class="line">  <span class="keyword">int</span> opt_level;</div><div class="line">  <span class="keyword">int</span> opt_name;</div><div class="line">  <span class="keyword">char</span> *(*opt_val_str)(<span class="keyword">union</span> val *, <span class="keyword">int</span>);</div><div class="line">&#125; sock_opts[] = &#123;</div><div class="line">    &#123; <span class="string">"SO_BROADCAST"</span>,       SOL_SOCKET, SO_BROADCAST,   sock_str_flag &#125;,</div><div class="line">    &#123; <span class="string">"SO_DEBUG"</span>,           SOL_SOCKET, SO_DEBUG,       sock_str_flag &#125;,</div><div class="line">    &#123; <span class="string">"SO_DONTROUTE"</span>,       SOL_SOCKET, SO_DONTROUTE,   sock_str_flag &#125;,</div><div class="line">    &#123; <span class="string">"SO_ERROR"</span>,           SOL_SOCKET, SO_ERROR,       sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"SO_KEEPALIVE"</span>,       SOL_SOCKET, SO_KEEPALIVE,   sock_str_flag &#125;,</div><div class="line">    &#123; <span class="string">"SO_LINGER"</span>,          SOL_SOCKET, SO_LINGER,      sock_str_linger &#125;,</div><div class="line">    &#123; <span class="string">"SO_OOBINLINE"</span>,       SOL_SOCKET, SO_OOBINLINE,   sock_str_flag &#125;,</div><div class="line">    &#123; <span class="string">"SO_RCVBUF"</span>,          SOL_SOCKET, SO_RCVBUF,      sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"SO_SNDBUF"</span>,          SOL_SOCKET, SO_SNDBUF,      sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"SO_RCVLOWAT"</span>,        SOL_SOCKET, SO_RCVLOWAT,    sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"SO_SNDLOWAT"</span>,        SOL_SOCKET, SO_SNDLOWAT,    sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"SO_RCVTIMEO"</span>,        SOL_SOCKET, SO_RCVTIMEO,    sock_str_timeval &#125;,</div><div class="line">    &#123; <span class="string">"SO_SNDTIMEO"</span>,        SOL_SOCKET, SO_SNDTIMEO,    sock_str_timeval &#125;,</div><div class="line">    &#123; <span class="string">"SO_REUSEADDR"</span>,       SOL_SOCKET, SO_REUSEADDR,   sock_str_flag &#125;,</div><div class="line">    &#123; <span class="string">"SO_REUSEPORT"</span>,       SOL_SOCKET, SO_REUSEPORT,   sock_str_flag &#125;,</div><div class="line">    &#123; <span class="string">"SO_TYPE"</span>,            SOL_SOCKET, SO_TYPE,        sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"IP_TOS"</span>,             IPPROTO_IP, IP_TOS,         sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"IP_TTL"</span>,             IPPROTO_IP, IP_TTL,         sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"TCP_MAXSEG"</span>,         IPPROTO_TCP,TCP_MAXSEG,     sock_str_int &#125;,</div><div class="line">    &#123; <span class="string">"TCP_NODELAY"</span>,        IPPROTO_TCP,TCP_NODELAY,    sock_str_flag &#125;,</div><div class="line">    &#123; <span class="literal">NULL</span>,                 <span class="number">0</span>,          <span class="number">0</span>,              <span class="literal">NULL</span> &#125;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span>                 fd;</div><div class="line">    <span class="keyword">socklen_t</span>           len;</div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sock_opts</span>    *<span class="title">ptr</span>;</span></div><div class="line"></div><div class="line">    <span class="keyword">for</span> (ptr = sock_opts; ptr-&gt;opt_str != <span class="literal">NULL</span>; ptr++) &#123;</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"%s: "</span>, ptr-&gt;opt_str);</div><div class="line">        <span class="keyword">if</span> (ptr-&gt;opt_val_str == <span class="literal">NULL</span>)</div><div class="line">            <span class="built_in">printf</span>(<span class="string">"(undefined)\n"</span>);</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">switch</span> (ptr-&gt;opt_level) &#123;</div><div class="line">                <span class="keyword">case</span> SOL_SOCKET:</div><div class="line">                <span class="keyword">case</span> IPPROTO_IP:</div><div class="line">                <span class="keyword">case</span> IPPROTO_TCP:</div><div class="line">                    fd = socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</div><div class="line">                    <span class="keyword">break</span>;</div><div class="line">                <span class="keyword">default</span>:</div><div class="line">                    error_exit(<span class="string">"Can't create fd\n"</span>);</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            len = <span class="keyword">sizeof</span>(val);</div><div class="line">            <span class="keyword">if</span> (getsockopt(fd, ptr-&gt;opt_level, ptr-&gt;opt_name, &amp;val, &amp;len) == <span class="number">-1</span>)</div><div class="line">                error_exit(<span class="string">"getsockopt error"</span>);</div><div class="line">            <span class="keyword">else</span> </div><div class="line">                <span class="built_in">printf</span>(<span class="string">"default = %s\n"</span>, (*ptr-&gt;opt_val_str)(&amp;val, len));</div><div class="line">            close(fd);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">char</span> strres[<span class="number">128</span>];</div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span>* <span class="title">sock_str_flag</span><span class="params">(<span class="keyword">union</span> val *ptr, <span class="keyword">int</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (len != <span class="keyword">sizeof</span>(<span class="keyword">int</span>))</div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"size (%d) not sizeof(int)"</span>, len);</div><div class="line">    <span class="keyword">else</span></div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"%s"</span>, (ptr-&gt;i_val == <span class="number">0</span>) ? <span class="string">"off"</span> : <span class="string">"on"</span>);</div><div class="line">    <span class="keyword">return</span>(strres);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span>* <span class="title">sock_str_int</span><span class="params">(<span class="keyword">union</span> val *ptr, <span class="keyword">int</span> len)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (len != <span class="keyword">sizeof</span>(<span class="keyword">int</span>))</div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"size (%d) not sizeof(int)"</span>, len);</div><div class="line">    <span class="keyword">else</span></div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"%d"</span>, ptr-&gt;i_val);</div><div class="line">    <span class="keyword">return</span>(strres);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span>* <span class="title">sock_str_linger</span><span class="params">(<span class="keyword">union</span> val *ptr, <span class="keyword">int</span> len)</span> </span>&#123;</div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">linger</span> *<span class="title">lptr</span> = &amp;<span class="title">ptr</span>-&gt;<span class="title">linger_val</span>;</span></div><div class="line">    <span class="keyword">if</span> (len != <span class="keyword">sizeof</span>(struct linger))</div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"size (%d) not sizeof(struct linger)"</span>, len);</div><div class="line">    <span class="keyword">else</span></div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"l_onoff = %d, l_linger = %d"</span>, lptr-&gt;l_onoff, lptr-&gt;l_linger);</div><div class="line">    <span class="keyword">return</span>(strres);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span>* <span class="title">sock_str_timeval</span><span class="params">(<span class="keyword">union</span> val *ptr, <span class="keyword">int</span> len)</span> </span>&#123;</div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> *<span class="title">tvptr</span> = &amp;<span class="title">ptr</span>-&gt;<span class="title">timeval_val</span>;</span></div><div class="line">    <span class="keyword">if</span> (len != <span class="keyword">sizeof</span>(struct timeval))</div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"size (%d) not sizeof(struct timeval)"</span>, len);</div><div class="line">    <span class="keyword">else</span></div><div class="line">        <span class="built_in">snprintf</span>(strres, <span class="keyword">sizeof</span>(strres), <span class="string">"%ld sec, %ld usec"</span>, tvptr-&gt;tv_sec, tvptr-&gt;tv_usec);</div><div class="line">    <span class="keyword">return</span>(strres);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>结果：<br>SO_BROADCAST: default = off<br>SO_DEBUG: default = off<br>SO_DONTROUTE: default = off<br>SO_ERROR: default = 0<br>SO_KEEPALIVE: default = off<br>SO_LINGER: default = l_onoff = 0, l_linger = 0<br>SO_OOBINLINE: default = off<br>SO_RCVBUF: default = 131072<br>SO_SNDBUF: default = 131072<br>SO_RCVLOWAT: default = 1<br>SO_SNDLOWAT: default = 2048<br>SO_RCVTIMEO: default = 0 sec, 140728898420736 usec<br>SO_SNDTIMEO: default = 0 sec, 140728898420736 usec<br>SO_REUSEADDR: default = off<br>SO_REUSEPORT: default = off<br>SO_TYPE: default = 1<br>IP_TOS: default = 0<br>IP_TTL: default = 64<br>TCP_MAXSEG: default = 512<br>TCP_NODELAY: default = off</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2018/03/06/UNIX-Socket-socketopt套接字选项/" title="UNIX-Socket socketopt套接字选项">https://morningXB.github.io/2018/03/06/UNIX-Socket-socketopt套接字选项/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Linux/" rel="tag"># Linux</a>
+          
+            <a href="/tags/Socket/" rel="tag"># Socket</a>
+          
+            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/03/06/UNIX-Socket-server和client示例程序/" rel="next" title="UNIX-Socket server和client示例程序">
+                <i class="fa fa-chevron-left"></i> UNIX-Socket server和client示例程序
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- Go to www.addthis.com/dashboard to customize your tools -->
+<div class="addthis_inline_share_toolbox">
+  <script type = "text/javascript" src = "//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5a71bb75729e3446" async = "async" ></script>
+</div>
+
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="lv-container" data-id="city" data-uid="MTAyMC8zMzc1Mi8xMDMwNg=="></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">40</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Socketopt-API"><span class="nav-number">1.</span> <span class="nav-text">Socketopt API</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Socketopt的常用选项"><span class="nav-number">2.</span> <span class="nav-text">Socketopt的常用选项</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SO-KEEPALIVE"><span class="nav-number">2.1.</span> <span class="nav-text">SO_KEEPALIVE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SO-RCVBUF，SO-SNDBUF"><span class="nav-number">2.2.</span> <span class="nav-text">SO_RCVBUF，SO_SNDBUF</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SO-RCVTIMEO，SO-SNDTIMEO"><span class="nav-number">2.3.</span> <span class="nav-text">SO_RCVTIMEO，SO_SNDTIMEO</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SO-REUSEADDR"><span class="nav-number">2.4.</span> <span class="nav-text">SO_REUSEADDR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP-MAXSEG"><span class="nav-number">2.5.</span> <span class="nav-text">TCP_MAXSEG</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP-NODELAY"><span class="nav-number">2.6.</span> <span class="nav-text">TCP_NODELAY</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Socketopt的默认选项"><span class="nav-number">3.</span> <span class="nav-text">Socketopt的默认选项</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2017 - 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+    <script type="text/javascript">
+      (function(d, s) {
+        var j, e = d.getElementsByTagName(s)[0];
+        if (typeof LivereTower === 'function') { return; }
+        j = d.createElement(s);
+        j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+        j.async = true;
+        e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    </script>
+  
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
