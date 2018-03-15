@@ -1,0 +1,1031 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="thrift,rpc," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="自由而无用" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="简介由于学业需求，最近在阅读Alluxio的源代码，发现其在rpc方面主要采用了thrift以及netty两种通信框架，其中netty主要负责的是数据的传输服务，而thrift负责的是request的请求响应动作发送一些短消息。本文主要关于thrift的简介以及使用实例。Thrift是一个软件框架，提供不同语言之间的RPC服务，首先编写thrift文件，然后通过thrift编译器生成不同语言的接口">
+<meta name="keywords" content="thrift,rpc">
+<meta property="og:type" content="article">
+<meta property="og:title" content="thrift">
+<meta property="og:url" content="https://morningXB.github.io/2018/03/15/thrift/index.html">
+<meta property="og:site_name" content="自由而无用">
+<meta property="og:description" content="简介由于学业需求，最近在阅读Alluxio的源代码，发现其在rpc方面主要采用了thrift以及netty两种通信框架，其中netty主要负责的是数据的传输服务，而thrift负责的是request的请求响应动作发送一些短消息。本文主要关于thrift的简介以及使用实例。Thrift是一个软件框架，提供不同语言之间的RPC服务，首先编写thrift文件，然后通过thrift编译器生成不同语言的接口">
+<meta property="og:updated_time" content="2018-03-15T11:51:11.080Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="thrift">
+<meta name="twitter:description" content="简介由于学业需求，最近在阅读Alluxio的源代码，发现其在rpc方面主要采用了thrift以及netty两种通信框架，其中netty主要负责的是数据的传输服务，而thrift负责的是request的请求响应动作发送一些短消息。本文主要关于thrift的简介以及使用实例。Thrift是一个软件框架，提供不同语言之间的RPC服务，首先编写thrift文件，然后通过thrift编译器生成不同语言的接口">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 'undefined',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://morningXB.github.io/2018/03/15/thrift/"/>
+
+
+
+
+
+  <title> thrift | 自由而无用 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?31650e4bbdc3324b94f01a63b69381c4";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">自由而无用</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Free And No Interest</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-guestbook">
+          <a href="/guestbook" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br />
+            
+            留言
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-music">
+          <a href="http://kg.qq.com/node/personal?uid=639c9b8d232c338d" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-music"></i> <br />
+            
+            音乐
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocapitalize="off" autocomplete="off" autocorrect="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2018/03/15/thrift/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                thrift
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-15T19:15:26+08:00">
+                2018-03-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/thrift/" itemprop="url" rel="index">
+                    <span itemprop="name">thrift</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv">本文总阅读量
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>由于学业需求，最近在阅读Alluxio的源代码，发现其在rpc方面主要采用了thrift以及netty两种通信框架，其中netty主要负责的是数据的传输服务，而thrift负责的是request的请求响应动作发送一些短消息。本文主要关于thrift的简介以及使用实例。<br>Thrift是一个软件框架，提供不同语言之间的RPC服务，首先编写thrift文件，然后通过thrift编译器生成不同语言的接口文件，再实现接口文件，编写服务器端和客户端程序（可在不同语言下），实现RPC通信。<br><a id="more"></a></p>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><p>官网：<a href="http://thriftruan.apache.org" target="_blank" rel="external">http://thriftruan.apache.org</a><br>提供不同系统下的软件下载，以及编译需要的依赖。<br>在MacOS下最新的thrift需要boost以及libevent，下载编译安装上述软件环境<br>boost官网：<a href="http://www.boost.org" target="_blank" rel="external">http://www.boost.org</a><br>下载解压然后执行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">./bootstrap.sh</div><div class="line">sudo ./b2 threading=multi address-model=64 variant=release stage install</div></pre></td></tr></table></figure></p>
+<p>libevent官网：<a href="http://libevent.org" target="_blank" rel="external">http://libevent.org</a><br>下载解压然后执行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">./configure --prefix=/usr/local </div><div class="line">make</div><div class="line">sudo make install</div></pre></td></tr></table></figure></p>
+<p>下载解压thrift最新版本，然后执行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">./configure --prefix=/usr/local/ --with-boost=/usr/local --with-libevent=/usr/local</div></pre></td></tr></table></figure></p>
+<p>Mac环境下会出现：Bison version 2.5 or higher must be installed on the system!<br>通过homebrew下载最新bison<br>brew install bison<br>依然出现上述问题，在mac中默认使用xcode自带的bison所以切换xcode中的bison<br>执行下述指令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">cd /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/</div><div class="line">sudo mv bison bison111</div><div class="line">sudo cp /usr/local/Cellar/bison/3.0.4/bin/bison  /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/</div></pre></td></tr></table></figure></p>
+<p>再次执行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">./configure --prefix=/usr/local/ --with-boost=/usr/local --with-libevent=/usr/local</div><div class="line">make</div><div class="line">make install</div><div class="line">thrift –version 检查是否安装成功</div></pre></td></tr></table></figure></p>
+<p>再将默认bison改回<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">cd /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/</div><div class="line">sudo rm bison</div><div class="line">sudo mv bison111 bison</div></pre></td></tr></table></figure></p>
+<p>至此thrift编译安装完毕</p>
+<h2 id="thrift文件编写-接口文件规则"><a href="#thrift文件编写-接口文件规则" class="headerlink" title="thrift文件编写 接口文件规则"></a>thrift文件编写 接口文件规则</h2><p>不同语言之间的无缝连接依靠的就是统一的接口语言IDL，通过generator生成不同语言的接口文件，在thrift的包中实现对socket的封装。<br>IDL规则：<br>1.基本类型<br>byte 有符号字节数<br>i16，i32，i64  short，int，long整型<br>bool true or false<br>double 64位浮点数<br>string 二进制字符串<br>2.集合类型<br>map<k,v> hashmap<br>set<t> hashset<br>list<t> arraylist<br>3,结构体相当于java中的bean，用于rpc中对象传输<br>struct Object{<br>…<br>…<br>}<br>比如：<br>struct User{<br>    1:i32 id;<br>    2:string name;<br>    3:double salary;<br>    4:bool hasCar;<br>}<br>4.服务类型service，重要的服务接口定义<br>service HelloService{<br>    string sayHello(1:string msg);<br>}<br>5.异常类型<br>exception RequestException {<br>　　1:i32 code;<br>　　2:string detail;<br>}<br>6.枚举类型<br>　　enum Color{<br>　　　　RED,<br>　　　　BLUE<br>　　}<br>7.namespace 定义文件的命名空间，防止冲突<br>比如java工程中<br>namespace java com.thrift.demo</t></t></k,v></p>
+<h2 id="传输协议"><a href="#传输协议" class="headerlink" title="传输协议"></a>传输协议</h2><p>thrift提供多种传输协议，包括文本和二进制两类，由于二进制传输快，所以一般采用二进制传输协议。服务器端和客户端的传输协议要求相同。<br>TBinaryProtocol:使用二进制编码格式传输,是thrift的默认传输协议<br>TCompactProtocol:使用压缩格式传输<br>TJSONProtocol:使用JSON格式传输<br>TDebugProtocol:使用易懂可读的文本格式进行传输，以便于debug<br>TSimpleJSONProtocol:提供JSON只写的协议，适用于通过脚本语言解析</p>
+<h2 id="传输方式"><a href="#传输方式" class="headerlink" title="传输方式"></a>传输方式</h2><p>Thrift封装了一层传输层来支持底层的网络通信,在Thrift中称为Transport,不仅提供open,close,flush等方法,还有一些read/write方法.<br>TSocket:阻塞式IO的Transport实现,用在客户端<br>TServerSocket:非阻塞式Socket,用于服务器端,用于监听TSocket<br>TNonblockingSocket:非阻塞式IO的实现<br>TMemoryInputTransport:封装了一个字节数组byte[]来做输入流的封装<br>TFramedTransport:同样使用非阻塞方式，按块的大小进行传输,输入流封装了TMemoryInputTransport</p>
+<h2 id="服务器种类"><a href="#服务器种类" class="headerlink" title="服务器种类"></a>服务器种类</h2><p>TSimpleServer:单线程阻塞式IO处理，用于演示<br>TNonblockingServer：单线程非阻塞式IO处理，NIO通信方式实现多路复用，当处理比较耗时时效率不高，因为所有socket都要排队处理。<br>TThreadPoolServer：用线程池来同时处理多个socket，当连接数目较大时，效率不高。<br>TThreadedSelectorServer：这是一种多线程半同步半异步的服务模型,是Thrift提供的最复杂最高级的服务模型,内部有一个专门负责处理监听Socket的线程,有多个专门处理业务中网络IO的线程,有一个专门负责决定将新Socket连接分配给哪一个线程处理的起负载均衡作用的线程,还有一个工作线程池.这种模型既可以响应大量并发连接的请求又可以快速对wangluoIO进行读写,能适配很多场景,因此是一种使用比较高频的服务模型.</p>
+<h2 id="服务器端-客户端程序实例"><a href="#服务器端-客户端程序实例" class="headerlink" title="服务器端 客户端程序实例"></a>服务器端 客户端程序实例</h2><p>thrift文件：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">service HelloService&#123;</div><div class="line">	<span class="function">string <span class="title">sayHello</span><span class="params">(<span class="number">1</span>:string msg)</span></span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>执行thrift指令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">thrift --gen &lt;language&gt; &lt;Thrift filename&gt;</div><div class="line">```	</div><div class="line">生成接口文件：</div><div class="line">下面实现接口,即每个request所对应的方法:</div><div class="line">``` java</div><div class="line">public class HelloServiceImpl implements HelloService.Iface &#123;</div><div class="line">    public String sayHello(String msg) throws TException &#123;</div><div class="line">        return &quot;Hello &quot;+msg+&quot; My name is thrift&quot;;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>server端程序：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ThriftServer</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">startServer</span><span class="params">()</span> <span class="keyword">throws</span> TTransportException </span>&#123;</div><div class="line">        System.out.println(<span class="string">"server start..........."</span>);</div><div class="line">        <span class="comment">//实现服务处理接口impl</span></div><div class="line">        <span class="comment">//创建TProcessor</span></div><div class="line">        TProcessor processor = <span class="keyword">new</span> HelloService.Processor&lt;HelloService.Iface&gt;(<span class="keyword">new</span> HelloServiceImpl());</div><div class="line">        <span class="comment">//创建TServerTransport</span></div><div class="line">        TServerTransport transport = <span class="keyword">new</span> TServerSocket(<span class="number">8888</span>);</div><div class="line">        <span class="comment">//创建TProtocol</span></div><div class="line">        TBinaryProtocol.Factory protocol = <span class="keyword">new</span> TBinaryProtocol.Factory();</div><div class="line">        <span class="comment">//创建TServer</span></div><div class="line">        TServer.Args args = <span class="keyword">new</span> TServer.Args(transport);</div><div class="line">        args.processor(processor);</div><div class="line">        args.protocolFactory(protocol);</div><div class="line">        TServer server = <span class="keyword">new</span> TSimpleServer(args);</div><div class="line">        <span class="comment">//启动Server</span></div><div class="line">        server.serve();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span>&#123;</div><div class="line">        ThriftServer server = <span class="keyword">new</span> ThriftServer();</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            server.startServer();</div><div class="line">        &#125; <span class="keyword">catch</span> (TTransportException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>client端程序：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ThriftClient</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"client start........."</span>);</div><div class="line">        <span class="comment">//创建TTransport</span></div><div class="line">        TTransport transport = <span class="keyword">new</span> TSocket(<span class="string">"localhost"</span>,<span class="number">8888</span>,<span class="number">3000</span>);</div><div class="line">        <span class="comment">//创建TProtocol</span></div><div class="line">        TBinaryProtocol protocol = <span class="keyword">new</span> TBinaryProtocol(transport);</div><div class="line">        <span class="comment">//基于TTransport和TProtocol创建Client</span></div><div class="line">        HelloService.Client client = <span class="keyword">new</span> HelloService.Client(protocol);</div><div class="line">        <span class="comment">//调用Client的相应方法</span></div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            transport.open();</div><div class="line">            String result = client.sayHello(<span class="string">"xubin"</span>);</div><div class="line">            System.out.println(result);</div><div class="line">        &#125; <span class="keyword">catch</span> (TException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;<span class="keyword">finally</span> &#123;</div><div class="line">            transport.close();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>结果：<br>server start………..<br>client start………<br>Hello xubin My name is thrift<br>参考：<a href="https://www.jianshu.com/p/10b7cf0a384e" target="_blank" rel="external">https://www.jianshu.com/p/10b7cf0a384e</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+<div id="wechat_subscriber" style="display: block; padding: 10px 0; margin: 20px auto; width: 100%; text-align: center">
+    <img id="wechat_subscriber_qcode" src="/微信sub.jpg" alt="BINXU wechat" style="width: 200px; max-width: 100%;"/>
+    <div>add me talk with me</div>
+</div>
+
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong>本文作者：</strong>
+      BINXU
+    </li>
+    <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://morningXB.github.io/2018/03/15/thrift/" title="thrift">https://morningXB.github.io/2018/03/15/thrift/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong>
+      本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 3.0</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/thrift/" rel="tag"># thrift</a>
+          
+            <a href="/tags/rpc/" rel="tag"># rpc</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/03/06/UNIX-Socket-socketopt套接字选项/" rel="next" title="UNIX-Socket socketopt套接字选项">
+                <i class="fa fa-chevron-left"></i> UNIX-Socket socketopt套接字选项
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- Go to www.addthis.com/dashboard to customize your tools -->
+<div class="addthis_inline_share_toolbox">
+  <script type = "text/javascript" src = "//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5a71bb75729e3446" async = "async" ></script>
+</div>
+
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="lv-container" data-id="city" data-uid="MTAyMC8zMzc1Mi8xMDMwNg=="></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/avatar.jpg"
+               alt="BINXU" />
+          <p class="site-author-name" itemprop="name">BINXU</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+           
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">41</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/morningXB" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/3843369078?is_all=1" target="_blank" title="Weibo">
+                  
+                    <i class="fa fa-fw fa-weibo"></i>
+                  
+                  Weibo
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://lewiskong.com/" title="lewiskong" target="_blank">lewiskong</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装"><span class="nav-number">2.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#thrift文件编写-接口文件规则"><span class="nav-number">3.</span> <span class="nav-text">thrift文件编写 接口文件规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#传输协议"><span class="nav-number">4.</span> <span class="nav-text">传输协议</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#传输方式"><span class="nav-number">5.</span> <span class="nav-text">传输方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务器种类"><span class="nav-number">6.</span> <span class="nav-text">服务器种类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务器端-客户端程序实例"><span class="nav-number">7.</span> <span class="nav-text">服务器端 客户端程序实例</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2017 - 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BINXU</span>
+</div>
+
+
+
+        
+
+<div class="busuanzi-count">
+
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">本站访客数<span class="busuanzi-value" id="busuanzi_value_site_uv"></span>人次</span>
+  
+
+  
+    <span class="site-pv">本站总访问量<span class="busuanzi-value" id="busuanzi_value_site_pv"></span>人</span>
+  
+  
+</div>
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+    <script type="text/javascript">
+      (function(d, s) {
+        var j, e = d.getElementsByTagName(s)[0];
+        if (typeof LivereTower === 'function') { return; }
+        j = d.createElement(s);
+        j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+        j.async = true;
+        e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    </script>
+  
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+      search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.popup').toggle();
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+      $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = $( "entry", xmlResponse ).map(function() {
+            return {
+              title: $( "title", this ).text(),
+              content: $("content",this).text(),
+              url: $( "url" , this).text()
+            };
+          }).get();
+          var $input = document.getElementById(search_id);
+          var $resultContent = document.getElementById(content_id);
+          $input.addEventListener('input', function(){
+            var matchcounts = 0;
+            var str='<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length > 1) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var content_index = [];
+                var data_title = data.title.trim().toLowerCase();
+                var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                var data_url = decodeURIComponent(data.url);
+                var index_title = -1;
+                var index_content = -1;
+                var first_occur = -1;
+                // only match artiles with not empty titles and contents
+                if(data_title != '') {
+                  keywords.forEach(function(keyword, i) {
+                    index_title = data_title.indexOf(keyword);
+                    index_content = data_content.indexOf(keyword);
+                    if( index_title >= 0 || index_content >= 0 ){
+                      isMatch = true;
+                      if (i == 0) {
+                        first_occur = index_content;
+                      }
+                    }
+
+                  });
+                }
+                // show search results
+                if (isMatch) {
+                  matchcounts += 1;
+                  str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                  var content = data.content.trim().replace(/<[^>]+>/g,"");
+                  if (first_occur >= 0) {
+                    // cut out 100 characters
+                    var start = first_occur - 20;
+                    var end = first_occur + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if(start == 0){
+                      end = 50;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    var match_content = content.substring(start, end);
+                    // highlight all keywords
+                    keywords.forEach(function(keyword){
+                      var regS = new RegExp(keyword, "gi");
+                      match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                    });
+
+                    str += "<p class=\"search-result\">" + match_content +"...</p>"
+                  }
+                  str += "</li>";
+                }
+              })};
+            str += "</ul>";
+            if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+            if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+            $resultContent.innerHTML = str;
+          });
+          proceedsearch();
+        }
+      });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+  
+
+</body>
+</html>
