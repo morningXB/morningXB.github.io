@@ -336,6 +336,596 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/12/redis源码-9-——t-list篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/09/12/redis源码-9-——t-list篇/" itemprop="url">
+                  redis源码(9)——t_list篇
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-12T12:05:42+08:00">
+                2017-09-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>在t_list.c中主要分为两个部分关于list操作api函数以及关于list command的api函数。<br>下面列出关于list操作的函数定义,这些函数是基于list底层实现quicklist的操作的再一次包装，提供常用的操作函数。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//根据where往list的头或尾添加对象</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">listTypePush</span><span class="params">(robj *subject, robj *value, <span class="keyword">int</span> where)</span></span>;</div><div class="line"><span class="comment">//list弹出对象的保存函数以对象指针返回</span></div><div class="line"><span class="function"><span class="keyword">void</span> *<span class="title">listPopSaver</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *data, <span class="keyword">unsigned</span> <span class="keyword">int</span> sz)</span></span>;</div><div class="line"><span class="comment">//根据where从list头或尾弹出对象，并返回对象指针</span></div><div class="line"><span class="function">robj *<span class="title">listTypePop</span><span class="params">(robj *subject, <span class="keyword">int</span> where)</span></span>;</div><div class="line"><span class="comment">//获取list的长度即对象个数</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">listTypeLength</span><span class="params">(<span class="keyword">const</span> robj *subject)</span></span>;</div><div class="line"><span class="comment">//初始化list的迭代器，direction为迭代方向，index为当前迭代器指向的对象序数</span></div><div class="line"><span class="function">listTypeIterator *<span class="title">listTypeInitIterator</span><span class="params">(robj *subject, <span class="keyword">long</span> index,<span class="keyword">unsigned</span> <span class="keyword">char</span> direction)</span></span>;</div><div class="line"><span class="comment">//释放list迭代器</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">listTypeReleaseIterator</span><span class="params">(listTypeIterator *li)</span></span>;</div><div class="line"><span class="comment">//迭代器指向对象按照方向往后移动</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">listTypeNext</span><span class="params">(listTypeIterator *li, listTypeEntry *entry)</span></span>;</div><div class="line"><span class="comment">//获取迭代器当前指向的对象</span></div><div class="line"><span class="function">robj *<span class="title">listTypeGet</span><span class="params">(listTypeEntry *entry)</span></span>;</div><div class="line"><span class="comment">//根据where往list中value对象的前或后面添加对象</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">listTypeInsert</span><span class="params">(listTypeEntry *entry, robj *value, <span class="keyword">int</span> where)</span></span>; </div><div class="line"><span class="comment">//判断对象是否相同</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">listTypeEqual</span><span class="params">(listTypeEntry *entry, robj *o)</span></span>;</div><div class="line"><span class="comment">//删除list中的实体</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">listTypeDelete</span><span class="params">(listTypeIterator *iter, listTypeEntry *entry)</span></span>;</div><div class="line"><span class="comment">//将底层为ziplist的list转换为quicklist</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">listTypeConvert</span><span class="params">(robj *subject, <span class="keyword">int</span> enc)</span></span>;</div></pre></td></tr></table></figure></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/09/12/redis源码-9-——t-list篇/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/06/04/毕业季的小情绪/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/06/04/毕业季的小情绪/" itemprop="url">
+                  毕业季的小情绪
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-04T18:41:35+08:00">
+                2017-06-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/随口一说/" itemprop="url" rel="index">
+                    <span itemprop="name">随口一说</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <img src="/2017/06/04/毕业季的小情绪/毕业季的小情绪.jpg" alt="毕业季的小情绪.jpg" title="">
+<p>什么时候我们开始无法像孩子一样肆意地大呼小叫了？心里的小情绪堆积得像山一样高，直到溢出来。 与其如此，不如永远像孩子一样。<br>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/06/04/毕业季的小情绪/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/05/26/redis源码-8-——t-string-c篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/05/26/redis源码-8-——t-string-c篇/" itemprop="url">
+                  redis源码(8)——t_string.c篇
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-26T15:17:50+08:00">
+                2017-05-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>在redis的src源码目录下，除了底层数据结构的实现，还有一类文件，比如t_string.c,t_list.c等，它的作用就是负责客户端与服务端的通信，server接受client的指令调用相应的对象命令函数解析后执行，对内存中redisobj操作后，返回给client相应的信息。所以这一类文件中都包含有5中数据对象的指令执行函数，即command api，对于复杂的数据结构，对redisobj中数据值（robj-&gt;ptr）的操作有一次进行了封装,即list api，hash api等等。<br>下面我们来分析t_string.c源码，首先我们列出redis中所有字符串相关指令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">1.SET key value:设置指定的key的值</div><div class="line">2.GET key:获取指定的key的值</div><div class="line">3.GETRANGE key start end：获取指定key的值的子字符串</div><div class="line">4.GETSET key value：获取指定key的值，并且设置其新的值</div><div class="line">5.GETBIT key offset：获取指定key的值偏移量的位</div><div class="line">6.MGET key1 [key2..]:获取指定key集合的value集合</div><div class="line">7.SETBIT key offset value：设置指定key的值偏移量上的位</div><div class="line">8.SETEX key seconds value：设置指定的key的值，并且设置过期时间，单位为s</div><div class="line">9.SETNX key value：设置指定的key的值，当系统中不存在key键时</div><div class="line">10.SETRANGE key offset value：用value参数覆写给定key所储存的字符串值，从偏移量offset开始</div><div class="line">11.STRLEN key：返回指定key的值的长度</div><div class="line">12.MSET key1 value1 [key2 value2...]:同时设置多个键值对</div><div class="line">13.MSETNX key1 value1 [key2 value2...]:同时设置多个键值对，并且所有键值对在系统中不存在，否则都不添加</div><div class="line">14.PSETEX key milliseconds value：设置指定的key的值，并且设置过期时间，单位为ms</div><div class="line">15.INCR key:将key中存储的数字值加一</div><div class="line">16.INCRBY key increment：将key中存储的数字值加指定的值</div><div class="line">17.INCREBYFLOAT key increment：将key中存储的数字值加指定的浮点型值</div><div class="line">18.DECR key:将key中存储的数字值减一</div><div class="line">19.DECRBY key decrement:将key中存储的数字值减指定的值</div><div class="line">20.append key value:如果key键存在，在其value后添加value值</div></pre></td></tr></table></figure></p>
+<p>在t_string.c中对上面的文件都有相应command函数，在其内部对redisobj进行相应的操作，完成指令功能。<br>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/05/26/redis源码-8-——t-string-c篇/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/05/20/redis源码-7-——skiplist篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/05/20/redis源码-7-——skiplist篇/" itemprop="url">
+                  redis源码(7)——skiplist篇
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-20T14:33:55+08:00">
+                2017-05-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>对于一个普通的链表进行检索，那么检索效率O(n),而通过红黑树可以使得效率变为O(logn)，但是红黑树的逻辑过于复杂，添加删除操作的过程很繁琐，所以一般程序员用跳跃表代替红黑树，检索效率也可以做到O(logn)，跳跃表的核心思想就是通过一个节点不仅可以访问后一个节点，也可以跨越的访问更后面的节点。这种做法是典型的用空间换取时间的设计方案。在redis中对传统的跳跃表进行了改进，这里就不对传统的跳跃表进行详解，主要讲解redis中修改后跳跃表以及一个哈希表如何作为有序集合的底层实现。<br>先来看看相关的数据结构：在server.h中<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> &#123;</span></div><div class="line">    sds ele;<span class="comment">//用来在与字典中key对应找到value</span></div><div class="line">    <span class="keyword">double</span> score;<span class="comment">//用来集合中排序，当score相同时比较ele</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">backward</span>;</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistLevel</span> &#123;</span></div><div class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">forward</span>;</span></div><div class="line">        <span class="keyword">unsigned</span> <span class="keyword">int</span> span;</div><div class="line">    &#125; level[];<span class="comment">//下一个节点集合</span></div><div class="line">&#125; zskiplistNode;</div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zskiplist</span> &#123;</span></div><div class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">header</span>, *<span class="title">tail</span>;</span><span class="comment">//首尾节点</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> length;<span class="comment">//跳跃表的节点个数</span></div><div class="line">    <span class="keyword">int</span> level;<span class="comment">//跳跃表节点中最大的层数</span></div><div class="line">&#125; zskiplist;</div><div class="line"><span class="comment">//有序集合由一个字典和一个跳跃表构成，两者之间通过ele来一一对应，跳跃表中存储顺序，字典中存储value</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zset</span> &#123;</span></div><div class="line">    dict *dict;<span class="comment">//存储键值对的字典</span></div><div class="line">    zskiplist *zsl;<span class="comment">//存储顺序的跳跃表</span></div><div class="line">&#125; zset;</div></pre></td></tr></table></figure></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/05/20/redis源码-7-——skiplist篇/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/05/05/redis源码-6-——object篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -474,599 +1064,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/29/redis源码-5-——quicklist篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/04/29/redis源码-5-——quicklist篇/" itemprop="url">
-                  redis源码(5)——quicklist篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-29T00:01:56+08:00">
-                2017-04-29
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>在redis中提供给用户的类型为用户层类型，而redis有很多自己的底层实现，list类型前面已经看过了adlist和ziplist，adlist是一个普通的双向链表，提供listnode数据类型，adlist中有首尾指针，ziplist是分配内存中的一段连续的区域作为存储区，拥有自己的存储规则，adlist的缺点是需要提供首尾指针以及pre和next指针存储区域，并且内存中存储不连续造成内存碎片，ziplist弥补了它的缺点，内存存储连续，并且不需要多余的指针存储，但是连续分区造成小内存碎片，之后难以分配大内存空间，并且每次对list的操作，都涉及内存的操作，与ziplist当时的存储长度有很大关系，所以结合了adlist和ziplist的优点，编写了quicklist，也是用户层list的底层实现。<br>我们先看一下quicklist.h中关于数据结构的定义：<br>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/04/29/redis源码-5-——quicklist篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/22/redis源码-4-——intset和ziplist篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/04/22/redis源码-4-——intset和ziplist篇/" itemprop="url">
-                  redis源码(4)——intset和ziplist篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-22T14:17:25+08:00">
-                2017-04-22
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>intset存储整型的集合，内部按照大小排序，有三种整型长度可选，一般在元素为整数并且个数比较少的时候，采用inset结构型。<br>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/04/22/redis源码-4-——intset和ziplist篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/20/redis源码-3-——dict篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/04/20/redis源码-3-——dict篇/" itemprop="url">
-                  redis源码(3)——dict篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-20T21:39:30+08:00">
-                2017-04-20
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>dict字典，用来存储键值对，是redis中数据库中存储数据以及键值对表数据的底层实现。<br>在dict中使用siphash.c来实现hash函数计算index。<br>dict中包含两个dictht即字典表，这是为了redis中渐进重构rehash准备的，为了解决键冲突，dictEntry中包含一个next指针，dictht中table数组相当于一个一个的桶，当过多的键值对存储到dict中后，必然会导致字典结构失调，查询效率低等问题，所以要扩容增加size，这时候就启动rehash，但是redis不会等待rehash完成，<br>在做下面的操作，所以提出渐进rehash，即每次操作时单步rehash一下，这样就避免了等待，因此需要两个dictht，一个副本，当完成rehash之后把新的ht移动到ht[0]，旧的释放空间后reset，在rehash期间，所有的改变dict状态的操作都在新表上进行。<br>在dict中还提供了一个dicttype，里面用来存储键值的释放，复制，比较等操作的函数指针。<br>dict提供了字典迭代器，有安全不安全迭代器，不安全迭代器通过fingerprint来判断是否有不安全操作。<br>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/04/20/redis源码-3-——dict篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/04/18/redis源码-2-——adlist篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/04/18/redis源码-2-——adlist篇/" itemprop="url">
-                  redis源码(2)——adlist篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-04-18T20:11:07+08:00">
-                2017-04-18
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>adlist对应的是redis中的链表这个类型，redis中命令有添加，删除节点等操作，在adlist中都一一实现。<br>按照惯例来看adlist.h<br>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/04/18/redis源码-2-——adlist篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/6/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/8/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/6/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/8/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1111,7 +1113,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">44</span>
+                <span class="site-state-item-count">48</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
