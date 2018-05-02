@@ -336,6 +336,153 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/11/redis源码-16-——rdb篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/10/11/redis源码-16-——rdb篇/" itemprop="url">
+                  redis源码(16)——rdb篇
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-11T13:27:37+08:00">
+                2017-10-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>redis对内存中数据持久化手段之一rdb，即对数据库当前的存储状态进行快照存储，它的优点是存储的二进制数据量比较少相较于后面的aof，启动加载速度快，缺点就是对状态的存储使得数据备份的粒度变大，与之相比较aof对每一条指令都进行存储，粒度明显变小，并且存在fork操作，开销太大。<br>redis分为手动以及自动两种方式，指令为save以及bgsave，save手动调用开启rdb备份，停止其他指令的响应，bgsave按照一定的条件进行调用，条件符合时开启子进程进行rdb，并且继续响应其他请求。<br>条件如下在config文件中可以自己修改或用值指令修改<br>save 900 1 //服务器在900秒之内，对数据库执行了至少1次修改<br>save 300 10 //服务器在300秒之内，对数据库执行了至少10修改<br>save 60 1000 //服务器在60秒之内，对数据库执行了至少1000修改<br>下面是bgsave指令的流程图<br><img src="/2017/10/11/redis源码-16-——rdb篇/rdb.png" alt="rdb.png" title=""><br>之前都是按照函数从底层源码，这一次rdb中大都是底层的各种类型数据的save以及load操作，按照指定版本的rdb文件写文件，这不是我们的中我们通过从指令阅读，在逐个解析其中的函数，这样自顶向下，有利于我们了解rdb的实现过程，这很重要。<br>所以先阅读save以及bgsave指令的实现。<br>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/10/11/redis源码-16-——rdb篇/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/05/redis源码-15-——rio篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -915,153 +1062,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/18/redis源码-11-——t-set篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/09/18/redis源码-11-——t-set篇/" itemprop="url">
-                  redis源码(11)——t_set篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-18T14:42:42+08:00">
-                2017-09-18
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>集合分为无序集合以及有序集合，t_set.c是对无序集合的实现，包含无序集合的操作函数，以及关于set的指令的实现。<br>set的底层编码有两种，inset以及dict，当集合元素为整型并且元素的个数小于512时，底层编码为inset，否则底层编码为dict字典实现，用key存储元素值，value为null。<br>下面列出所有set类型的操作函数定义，基于inset以及dict操作实现。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 根据value是整型还是字符型来创建一个inset或hash的集合对象</span></div><div class="line"><span class="function">robj *<span class="title">setTypeCreate</span><span class="params">(sds value)</span></span>;</div><div class="line"><span class="comment">// 往集合中添加value，如果存在返回0，如果不存在添加返回1</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeAdd</span><span class="params">(robj *subject, sds value)</span></span>;</div><div class="line"><span class="comment">// 删除集合中元素</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeRemove</span><span class="params">(robj *setobj, sds value)</span></span>;</div><div class="line"><span class="comment">// 判断value是否是集合的元素</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeIsMember</span><span class="params">(robj *subject, sds value)</span></span>;</div><div class="line"><span class="comment">// 初始化set迭代器</span></div><div class="line"><span class="function">setTypeIterator *<span class="title">setTypeInitIterator</span><span class="params">(robj *subject)</span></span>;</div><div class="line"><span class="comment">// 释放set迭代器</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">setTypeReleaseIterator</span><span class="params">(setTypeIterator *si)</span></span>;</div><div class="line"><span class="comment">// 如果没有下一个元素返回-1，如果存在下一个元素，值存在sdsele或llele中，并且返回set的实现编码</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeNext</span><span class="params">(setTypeIterator *si, sds *sdsele, <span class="keyword">int64_t</span> *llele)</span></span>;</div><div class="line"><span class="comment">// 如果没有下一个元素或未知的编码返回null，否则返回sds对象</span></div><div class="line"><span class="function">sds <span class="title">setTypeNextObject</span><span class="params">(setTypeIterator *si)</span></span>;</div><div class="line"><span class="comment">// 从一个非空的集合中随机返回一个元素，同样返回集合编码，用sdsele或者llele存储</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">setTypeRandomElement</span><span class="params">(robj *setobj, sds *sdsele, <span class="keyword">int64_t</span> *llele)</span></span>;</div><div class="line"><span class="comment">// 返回集合的元素数量</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">setTypeSize</span><span class="params">(<span class="keyword">const</span> robj *subject)</span></span>;</div><div class="line"><span class="comment">// 转换集合的编码</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">setTypeConvert</span><span class="params">(robj *setobj, <span class="keyword">int</span> enc)</span></span>;</div></pre></td></tr></table></figure></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/09/18/redis源码-11-——t-set篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1111,7 +1111,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">49</span>
+                <span class="site-state-item-count">50</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
