@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title><![CDATA[强化学习(1)——introduction]]></title>
+    <url>%2F2018%2F05%2F22%2F%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0-1-%E2%80%94%E2%80%94introduction%2F</url>
+    <content type="text"><![CDATA[强化学习是一个多学科，多领域融合，用于决策的学习方法，在机器学习学科中，主要有监督学习和非监督学习两大类，而强化学习是属于机器学习的第三类学习方法，从2015年deepmind使用RL(reinforcement learning)学习atari游戏，超过人类玩家，2016年deepmid开发alphago，2017年的alphazero，超过人类顶尖选手，使得RL从上个世纪的提出得以快速发展。强化学习与监督学习和非监督学习的不同：监督学习的学习数据有特征和相应的label即正确值，而非监督学习的学习数据有特征，但是没有label，常见方法kmeans等，对于强化学习并没有事先准备好的训练数据，强化学习需要自我实践获得数据，这里的数据指reward，并非label，通过反馈的奖励reward学习优化自我的决策选择。下面介绍一下强化学习的学习过程以及一些主要元素：agent：智能体，即我们通过强化学习试图训练的类似于人类的程序，可以自行采取最优行动。action：行动$A_t$,类似于人类在某一状态下，执行的某一动作，通过动作改变环境或者自身的状态，这里是agent智能体在时间点t采取的动作。observation：智能体通过周围环境获取的相关条件，比如环境中有几个树，是白天还是黑夜等等。state：agent通过周围环境的observation以及自身的属性，合成获得agent当前的状态，并且agent会根据state来猜去行动。reward：奖励，agent采取行动后会获得相应的奖励，$Rt$表示时间点t时获得的奖励，比如游戏存活R=1，游戏失败R=-1000，学习的最终目标就是使得$\sum{t=1}^T R_t$最大。policy：agent采取行动的策略，分为绝对策略和随机策略，分别是在某一state下决定采取某一最优动作和采取不同动作有不同概率。通常用$\pi$表示。episode：表示一次与环境的交互完整过程，比如玩一款游戏直到输或赢，$$model：分为状态转移model和reward模型，分别是状态之间转移的概率分布以及状态下执行动作的期望奖励。$$P_(ss^’)^a=P[S^’=s^’|A=a,S=s]$$$$R_s^a=E[R|A_t=a,St=s]$$学习过程：agent初始化一个policy，开始接受observation，得到一个当前state，根据policy做出action，获得reward转移到下一个state，根据获得的reward优化policy，如此反复直到policy最优。在强化学习中奖励具有延迟性，即当前动作不仅影响当前state以及reward对未来也存在影响。定义值函数来评价一个状态的优劣：$$V(\pi)(s)=E[R(t+1)+\Lambda*R(t+1)+\Lambda^2R_(t+2)+\ldot+\Lambda^nR_(t+n-1)|S_t=s]$$其中lambda就是reward的时间衰减因子。强化学习的方法分类：value based：mc，td，sarsa ，Q-learningpolicy based：policy gradientactor critic 强化学习中通常面临的是model-free的情况，即不知道转移和奖励模型，此时就需要通过取样episode学习learning，获得优化policy，当然也可以学习model然后通过model来planning得到优化ploicy。在model-based的情况，我们知道所有状态的转移概率，所有奖励大小，此时问题转化为动态规划问题，我们成为planning，这是model-free方法的基础，也是强化学习的一个重要分支，alphago中采用的蒙特卡洛树搜索就是典型planning问题。但是大部分时候由于状态连续动作连续或者状态数目过多，我们的model过大，所以采用model-free的方法来解决。此外强化学习比较中的一个tradeoff就是探索和利用，探索就是开发那些从来没有做过的动作，利用就是直接按照经验采取当前最优的动作，探索过多会导致学习时间过长不收敛，只利用会导致结果为次优策略即本地收敛。到这儿强化学习的基本介绍就结束了。下一节将会说的是markov过程，作为强化学习一切的基础和推导出的bellman方程。]]></content>
+      <categories>
+        <category>强化学习</category>
+      </categories>
+      <tags>
+        <tag>机器学习</tag>
+        <tag>强化学习</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[Work Plan]]></title>
     <url>%2F2018%2F05%2F02%2FWork-Plan%2F</url>
     <content type="text"><![CDATA[看到师兄师姐们，纷纷找到工作真的是心慌慌呀。还有一年差不多也要找工作了。至于自己工作的方向，我还没有一个明确的规划，一方面这些年陆续学习了不少类别的知识，另一方面作为一个硕士研究生，觉得这样读完毕业太草率了，想有所作为，甚是惭愧。自此列下接下来几个月的工作计划：1.我个人是通过吴恩达的斯坦福教程入门机器学习的，接下来的书单大概是西瓜树，深度学习等，方向大概是深度学习中的强化学习，个人对其在starcraft中的AIBot开发很感兴趣，预计会在此分享一些机器学习基础以及相关论文知识。2.当然不会忘记导师的研究方向，分布式存储方面预计会做一篇文章出来，这里就不说了，可以的话会写一些相关进度。3.希望时间富裕的话，还会分享一些其他知识。]]></content>
@@ -226,7 +238,7 @@
   <entry>
     <title><![CDATA[Docker Install]]></title>
     <url>%2F2017%2F11%2F21%2FDocker-Install%2F</url>
-    <content type="text"><![CDATA[Docker分为ce和ee分别是社区版本和企业版本，只是用的仓库url不同而已。系统配置ubuntu14.04 删除之前的版本sudo apt-get remove docker docker-engine docker.io 尽量使用aufssudo apt-get updatesudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual 安装仓库sudo apt-get updatesudo apt-get install apt-transport-https ca-certificates curl software-properties-common //允许apt使用https仓库 添加GPG-keycurl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - 确认key的序列码sudo apt-key fingerprint 0EBFCD88pub 4096R/0EBFCD88 2017-02-22Key fingerprint = 9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88uid Docker Release (CE deb) &#100;&#x6f;&#x63;&#x6b;&#x65;&#114;&#64;&#100;&#111;&#x63;&#107;&#x65;&#x72;&#46;&#x63;&#x6f;&#109;sub 4096R/F273FCD8 2017-02-22 设置稳定仓库urlsudo add-apt-repository “deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable” 安装最新版本dockersudo apt-get updatesudo apt-get install docker-ce 列出docker版本listapt-cache madsion docker-ce 安装特定版本dockersudo apt-get install docker-ce= 测试是否安装成功，一般需要重启系统sudo docker run hello-world 更新dockersudo apt-get updaterepeat the abow installing steps12卸载docker，以及删除docker相关文件sudo apt-get purge docker-cesudo rm –rf /var/lib/docker 参考网址：https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#uninstall-docker-ce]]></content>
+    <content type="text"><![CDATA[Docker分为ce和ee分别是社区版本和企业版本，只是用的仓库url不同而已。系统配置ubuntu14.04 删除之前的版本sudo apt-get remove docker docker-engine docker.io 尽量使用aufssudo apt-get updatesudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual 安装仓库sudo apt-get updatesudo apt-get install apt-transport-https ca-certificates curl software-properties-common //允许apt使用https仓库 添加GPG-keycurl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - 确认key的序列码sudo apt-key fingerprint 0EBFCD88pub 4096R/0EBFCD88 2017-02-22Key fingerprint = 9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88uid Docker Release (CE deb) &#x64;&#x6f;&#x63;&#x6b;&#101;&#x72;&#x40;&#x64;&#111;&#x63;&#107;&#101;&#114;&#46;&#99;&#x6f;&#x6d;sub 4096R/F273FCD8 2017-02-22 设置稳定仓库urlsudo add-apt-repository “deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable” 安装最新版本dockersudo apt-get updatesudo apt-get install docker-ce 列出docker版本listapt-cache madsion docker-ce 安装特定版本dockersudo apt-get install docker-ce= 测试是否安装成功，一般需要重启系统sudo docker run hello-world 更新dockersudo apt-get updaterepeat the abow installing steps12卸载docker，以及删除docker相关文件sudo apt-get purge docker-cesudo rm –rf /var/lib/docker 参考网址：https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#uninstall-docker-ce]]></content>
       <categories>
         <category>Docker</category>
       </categories>
