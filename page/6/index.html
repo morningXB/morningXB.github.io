@@ -336,6 +336,153 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/10/31/redis源码-18-——anet篇/" itemprop="url">
+                  redis源码(18)——anet篇
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-31T19:06:59+08:00">
+                2017-10-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="anet简介"><a href="#anet简介" class="headerlink" title="anet简介"></a>anet简介</h2><p>anet文件主要就是对tcp套接字操作的封装，使它更加符合redis的系统逻辑，同时便于修改。<br>包含socket的bind绑定本地地址，connect连接远程主机ip地址，listen开启监听函数，accept接受远程主机的连接请求，以及write和read对套接字描述符进行读写操作等socket函数。<br>函数定义如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//tcp连接没有特殊要求 连接是阻塞的</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port)</span></span>;</div><div class="line"><span class="comment">//tcp非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port)</span></span>;</div><div class="line"><span class="comment">//tcp服务器的bind非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockBindConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port, <span class="keyword">char</span> *source_addr)</span></span>;</div><div class="line"><span class="comment">//tcp服务器的bind非阻塞连接并且会失败重连</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpNonBlockBestEffortBindConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *addr, <span class="keyword">int</span> port, <span class="keyword">char</span> *source_addr)</span></span>;</div><div class="line"><span class="comment">//本地套接字阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path)</span></span>;</div><div class="line"><span class="comment">//本地套接字非阻塞连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixNonBlockConnect</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path)</span></span>;</div><div class="line"><span class="comment">//从套接字中读取count个字节的数据除非遇到文件尾部了</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetRead</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *buf, <span class="keyword">int</span> count)</span></span>;</div><div class="line"><span class="comment">//处理所有主机地址为名称或是ip</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetResolve</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *host, <span class="keyword">char</span> *ipbuf, <span class="keyword">size_t</span> ipbuf_len)</span></span>;</div><div class="line"><span class="comment">//只处理主机地址为ip</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetResolveIP</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *host, <span class="keyword">char</span> *ipbuf, <span class="keyword">size_t</span> ipbuf_len)</span></span>;</div><div class="line"><span class="comment">//tcp中ipv4或ipv6的IP协议服务器套接字处理</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpServer</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> port, <span class="keyword">char</span> *bindaddr, <span class="keyword">int</span> backlog)</span></span>;</div><div class="line"><span class="comment">//tcp中ipv6的IP协议服务器套接字处理</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcp6Server</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> port, <span class="keyword">char</span> *bindaddr, <span class="keyword">int</span> backlog)</span></span>;</div><div class="line"><span class="comment">//unix本地文件服务器套接字处理</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixServer</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">char</span> *path, <span class="keyword">mode_t</span> perm, <span class="keyword">int</span> backlog)</span></span>;</div><div class="line"><span class="comment">//tcp套接字服务器端接收客户端的连接</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpAccept</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> serversock, <span class="keyword">char</span> *ip, <span class="keyword">size_t</span> ip_len, <span class="keyword">int</span> *port)</span></span>;</div><div class="line"><span class="comment">//本地服务器的接收连接函数 对连接的客户端信息没有存储要求</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetUnixAccept</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> serversock)</span></span>;</div><div class="line"><span class="comment">//往套接字中写入count字节的数据，直到写完或者写满count个字节</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetWrite</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *buf, <span class="keyword">int</span> count)</span></span>;</div><div class="line"><span class="comment">//设置用于通信的描述符的状态 阻塞还是非阻塞</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetNonBlock</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetBlock</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="comment">//设置网络链接nodelay属性 是否关闭Nagle算法</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetEnableTcpNoDelay</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetDisableTcpNoDelay</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="comment">//开启tcp的SO_KEEPALIVE</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetTcpKeepAlive</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd)</span></span>;</div><div class="line"><span class="comment">//设置数据传送时限</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetSendTimeout</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd, <span class="keyword">long</span> <span class="keyword">long</span> ms)</span></span>;</div><div class="line"><span class="comment">//根据套接字的描述符获取对方的ip地址以及端口号</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetPeerToString</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *ip, <span class="keyword">size_t</span> ip_len, <span class="keyword">int</span> *port)</span></span>;</div><div class="line"><span class="comment">//设置tcp链接为keep alive去检测对方主机是否崩溃</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetKeepAlive</span><span class="params">(<span class="keyword">char</span> *err, <span class="keyword">int</span> fd, <span class="keyword">int</span> interval)</span></span>;</div><div class="line"><span class="comment">//根据套接字的描述符获取自己的ip地址以及端口号</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetSockName</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *ip, <span class="keyword">size_t</span> ip_len, <span class="keyword">int</span> *port)</span></span>;</div><div class="line"><span class="comment">//格式化地址以及端口输出</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetFormatAddr</span><span class="params">(<span class="keyword">char</span> *fmt, <span class="keyword">size_t</span> fmt_len, <span class="keyword">char</span> *ip, <span class="keyword">int</span> port)</span></span>;</div><div class="line"><span class="comment">//传入套接字描述符，返回对方套接字格式化的端口以及地址字符串</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetFormatPeer</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *fmt, <span class="keyword">size_t</span> fmt_len)</span></span>;</div><div class="line"><span class="comment">//根据套接字的描述符获取自己的ip地址以及端口号</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">anetFormatSock</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *fmt, <span class="keyword">size_t</span> fmt_len)</span></span>;</div></pre></td></tr></table></figure></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/10/31/redis源码-18-——anet篇/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/21/redis源码-17-——aof篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -916,153 +1063,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/26/redis源码-13-——db-c篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/09/26/redis源码-13-——db-c篇/" itemprop="url">
-                  redis源码(13)——db.c篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-26T10:42:13+08:00">
-                2017-09-26
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>数据库中记录着许多类型的数据对象，对于整个数据库，内部也是用一个字典来存储管理键值对，value就是各种robj对象，对于一个server可以有许多个数据库，对于一个客户端client只能选择一个数据库在一个时间点，下面我们看一下相关的数据结构，看看redisdb等之中存储的信息有哪些。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// redis中数据库结构，id用来表示数据库标号，从0到配置的最大标号</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> &#123;</span></div><div class="line">    dict *dict;                 <span class="comment">/* The keyspace for this DB */</span></div><div class="line">    <span class="comment">// 存储数据库中键和对象</span></div><div class="line">    dict *expires;              <span class="comment">/* Timeout of keys with a timeout set */</span></div><div class="line">    <span class="comment">// 每一个对象的过期时限</span></div><div class="line">    dict *blocking_keys;        <span class="comment">/* Keys with clients waiting for data (BLPOP)*/</span></div><div class="line">    <span class="comment">// 存储阻塞的key以及阻塞的用户list</span></div><div class="line">    dict *ready_keys;           <span class="comment">/* Blocked keys that received a PUSH */</span></div><div class="line">    <span class="comment">// 存储准备解开阻塞的key</span></div><div class="line">    dict *watched_keys;         <span class="comment">/* WATCHED keys for MULTI/EXEC CAS */</span></div><div class="line">    <span class="comment">// 查看的key用于事务块</span></div><div class="line">    <span class="keyword">int</span> id;                     <span class="comment">/* Database ID */</span></div><div class="line">    <span class="comment">// 数据库id</span></div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> avg_ttl;          <span class="comment">/* Average TTL, just for stats */</span></div><div class="line">    <span class="comment">// 平均ttl</span></div><div class="line">&#125; redisDb;</div><div class="line"></div><div class="line"><span class="comment">//Redis服务器和客户端也都保存有数据库的信息，下面截取出来：</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">client</span> &#123;</span></div><div class="line">    redisDb *db;            <span class="comment">/* Pointer to currently SELECTed DB. */</span></div><div class="line">&#125; client;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></div><div class="line">    redisDb *db;</div><div class="line">    <span class="keyword">int</span> dbnum;                      <span class="comment">/* Total number of configured DBs */</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/09/26/redis源码-13-——db-c篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1112,7 +1112,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">51</span>
+                <span class="site-state-item-count">52</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
