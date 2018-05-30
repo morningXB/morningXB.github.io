@@ -336,6 +336,153 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/31/redis源码-19-——ae篇/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BINXU">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="自由而无用">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2017/10/31/redis源码-19-——ae篇/" itemprop="url">
+                  redis源码(19)——ae篇
+                </a>
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-31T20:26:30+08:00">
+                2017-10-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="事件简介"><a href="#事件简介" class="headerlink" title="事件简介"></a>事件简介</h2><p>在unixc中，有熟悉的信号机制，当进程接受到来自硬件或者软件发出的信号，就会中断当前程序，进行中断处理程序，然后在回到原来程序执行的位置，可以用信号机制来做事件机制的解决方案，但是触发信号是unix实现定义的，只有几个用于用户自定义信号，以及处理事件。redis是事件驱动的，分为时间事件以及文件事件，时间事件就是一段时间后或者每隔一段时间后执行特定的时间处理程序，文件事件分为读文件以及写文件事件，即文件的描述符可写或者可读时，触发相应的事件处理程序，redis中存在众多的事件，所以不会用自定义信号机制来实现，redis中采用多路复用技术，来实现文件事件，时间事件采用系统计时实现，所谓的多路复用即用一个多路选择器来管理多个文件描述符，每次选择都会从中自动选出准备好的描述符集合返回。文件描述符在添加到选择器时，可以定义输入输出即可读可写以及其他属性，根据系统以及实现的不同多路复用的实现有epoll，select，evport，kqueue，redis中有以上四种实现，其中epoll最优，redis会根据运行的系统选择合适的实现，也可以在redis的conf文件中设置实现手段。<br>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2017/10/31/redis源码-19-——ae篇/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
     <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/10/31/redis源码-18-——anet篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -916,153 +1063,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="https://morningXB.github.io/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="BINXU">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="自由而无用">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/" itemprop="url">
-                  redis源码(14)——notify.c和pubsub.c篇
-                </a>
-              
-            
-          </h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-27T20:04:24+08:00">
-                2017-09-27
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>发布和订阅功能是redis的特色之一，在客户端可以通过sub指令订阅频道，也可以通过pub发布消息，供其他客户端接受。在redis中，订阅消息属于发送即忘策略，即如果订阅的用户不在线，那么以后也不会接受到发送过的消息了。<br>redis中sub／pub功能的实现在notify.c和pubsub.c文件中，pubsub.c文件中包含了订阅函数，退订函数，发布函数等，以及关于sub／pub功能的实现，在notify.c中则是关于server自身的操作，向其他客户端发送key的space或者event通知，这个功能建立在订阅发布功能的基础上。<br>在client数据结构中对于客户端订阅的频道以及订阅的模式都有记录。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 其他属性省略</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">client</span>&#123;</span></div><div class="line">	<span class="comment">// 订阅的频道，用一个字典保存，key在channel，value为null</span></div><div class="line">	<span class="comment">// 同时在server中也有一个字典用来存储，订阅的channel，以及订阅了该channel的clients list</span></div><div class="line">	dict *pubsub_channels;  </div><div class="line">	<span class="comment">// 订阅的模式，是一个list里面存储着pattern</span></div><div class="line">	<span class="comment">//  同时在server中也有一个list用来存储，数据结构pubsubPattern</span></div><div class="line">    <span class="built_in">list</span> *pubsub_patterns;</div><div class="line">&#125;</div><div class="line"><span class="comment">// 用来保存用户订阅的模式的数据结构</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">pubsubPattern</span> &#123;</span></div><div class="line">    client *client;<span class="comment">//订阅的用户</span></div><div class="line">    robj *pattern;<span class="comment">//订阅的模式</span></div><div class="line">&#125; pubsubPattern;</div></pre></td></tr></table></figure></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2017/09/27/redis源码-14-——notify-c和pubsub-c篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1112,7 +1112,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives">
-                <span class="site-state-item-count">52</span>
+                <span class="site-state-item-count">53</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
