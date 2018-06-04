@@ -578,7 +578,7 @@
       
         
           <h2 id="Model-Free-Samples"><a href="#Model-Free-Samples" class="headerlink" title="Model-Free Samples"></a>Model-Free Samples</h2><p>按照policy_iteration的整体思想，control(优化策略)的前提时获得当前策略的值函数，所以我们先说Model-Free情况的Prediction问题(求值函数)。<br>在不知道model的情况下，没有办法通过bellman方程迭代预测当前policy的各状态的值，概率学中大数定理，也就对各状态下的值进行抽样，取抽样集的数学期望作为近似的值，当抽样集的数目无穷大时，我们获得理想的状态值，对数学期望的求取进行改进，改为差值递增逼近。</p>
-<script type="math/tex; mode=display">V(s)=V(s)+\Alpha*(G_t-V(s))|S_t=s</script><p>$\Alpha$可以理解为我们熟悉的learning rate。$G_t$即当前时刻状态的奖励Return。通过不断采样带入计算，无限逼近值函数。<br>MC以及TD方法的区别就在于$G_t$的不同，MC(蒙特卡罗法)中取值是一个episode中真实的无偏差值，TD(时序差分法)方法则采用bellman方程的思想，取值为当前获得立即Reward加上后一个状态的值。两者的比较在下面细说。<br>
+<script type="math/tex; mode=display">V(s)=V(s)+\alpha*(G_t-V(s))|S_t=s</script><p>$\alpha$可以理解为我们熟悉的learning rate。$G_t$即当前时刻状态的奖励Return。通过不断采样带入计算，无限逼近值函数。<br>MC以及TD方法的区别就在于$G_t$的不同，MC(蒙特卡罗法)中取值是一个episode中真实的无偏差值，TD(时序差分法)方法则采用bellman方程的思想，取值为当前获得立即Reward加上后一个状态的值。两者的比较在下面细说。<br>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/2018/05/30/强化学习-4-——Model-Free—Prediction/#more" rel="contents">

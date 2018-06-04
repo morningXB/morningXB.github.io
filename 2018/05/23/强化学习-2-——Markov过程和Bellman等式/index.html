@@ -104,7 +104,7 @@
 <meta property="og:image" content="https://morningxb.github.io/2018/05/23/强化学习-2-——Markov过程和Bellman等式/6.png">
 <meta property="og:image" content="https://morningxb.github.io/2018/05/23/强化学习-2-——Markov过程和Bellman等式/7.png">
 <meta property="og:image" content="https://morningxb.github.io/2018/05/23/强化学习-2-——Markov过程和Bellman等式/8.png">
-<meta property="og:updated_time" content="2018-05-25T03:03:20.886Z">
+<meta property="og:updated_time" content="2018-06-04T12:03:12.376Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="强化学习(2)——Markov过程和Bellman等式">
 <meta name="twitter:description" content="马尔可夫过程所谓的Markov过程就是未来状态只与当前状态有关，而与以前的状态无关，状态转移概率分布具有独立性。用公式来表示该性质： P[S_{t+1}=s_{t+1}|S_t=s_t]=P[S_{t+1}=s_{t+1}|S_{t+1}=s_{t+1}|S_t=s_t,S_{t-1}=s_{t-1},\ldots,S_1=s_1]拥有Markov的状态集以及状态转移表，可以生成一个Markov链">
@@ -449,8 +449,8 @@
 <p>由简到繁，加入Reward，构成MRP(Markov Reward Process)<s,p,r,$\gamma$>:<br>S:有限状态集合；<br>P:状态间转移概率矩阵，每一行的和为一$P_{s\bar{s}}=P[S_{t+1}=\bar{s}|S_t=s]$；<br>R:经过状态获得的奖励$R_s=E[R_{t+1}|S_t=s]$；<br>$\Gamma$:时间衰减因子。<br>根据相应的MRP模型可以生成Markov链$[s_1,r_2,s_2,r_3,\ldots,s_{t-1},r_T,s_T]$<br>时间点t获得回报(return):<br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/1.png" alt="1.png" title=""><br><a id="more"></a><br>从当前时间点往后获得Reward要逐步衰减，乘gamma时间因子，越往后衰减越大。<br>所以值函数$V(s)=E[G_t|S_t=s]$<br>通过下式的推导：<br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/2.png" alt="2.png" title=""><br>即可得到Bellman方程：</s,p,r,$\gamma$></p>
 <script type="math/tex; mode=display">v(s)=E[R_{t+1}+\Gamma*v(S_{t+1})|S_t=s]</script><p>可以看出Bellman等式是关于值函数的迭代式。</p>
 <p>在加入Action，引入策略$\pi$构成MDP(Markov Decsion Process)<s,p,r,a,$\gamma$><br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/3.png" alt="3.png" title=""><br>与MRP不同的是，状态转移以及获得奖励都要采取的Action有关，采取何种动作组成了策略。</s,p,r,a,$\gamma$></p>
-<h2 id="Bellman等式"><a href="#Bellman等式" class="headerlink" title="Bellman等式"></a>Bellman等式</h2><script type="math/tex; mode=display">v(s)=E[R_{t+1}+\Gamma*v(S_{t+1})|S_t=s]</script><p>由以上等式可以获得：</p>
-<script type="math/tex; mode=display">v(s)=R_s+\Gamma*\sum_{\bar{s}\in S} P_{s\bar{s}}v(\bar{s})</script><p>即当前状态值函数等于当前获得奖励期望加上下一个状态的值函数期望。(迭代式)可以推出Bellman等式矩阵形式：$v=R+\Gamma<em>P</em>v$所以$v=(1-\Gamma<em>P)^{-1}</em>R$<br>在知道model的所有信息时，可以采用上式计算该MRP的值函数，但是当维度过高时，会发生维度灾难，可以通过迭代式来进行求解。</p>
+<h2 id="Bellman等式"><a href="#Bellman等式" class="headerlink" title="Bellman等式"></a>Bellman等式</h2><script type="math/tex; mode=display">v(s)=E[R_{t+1}+\gamma*v(S_{t+1})|S_t=s]</script><p>由以上等式可以获得：</p>
+<script type="math/tex; mode=display">v(s)=R_s+\gamma*\sum_{\bar{s}\in S} P_{s\bar{s}}v(\bar{s})</script><p>即当前状态值函数等于当前获得奖励期望加上下一个状态的值函数期望。(迭代式)可以推出Bellman等式矩阵形式：$v=R+\gamma<em>P</em>v$所以$v=(1-\gamma<em>P)^{-1}</em>R$<br>在知道model的所有信息时，可以采用上式计算该MRP的值函数，但是当维度过高时，会发生维度灾难，可以通过迭代式来进行求解。</p>
 <p>在MDP中除了状态值函数之外还有状态动作Q价值函数，表示在状态S下采取动作A后获得的回报Q(S,A)。<br>在MRP的基础上推导MDP下的Bellman等式：<br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/4.png" alt="4.png" title=""><br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/5.png" alt="5.png" title=""><br>如此通过迭代式计算可以获得在policy$\pi$下的值函数。</p>
 <h2 id="Bellman优化等式"><a href="#Bellman优化等式" class="headerlink" title="Bellman优化等式"></a>Bellman优化等式</h2><p>在MDP中不同的policy有不同的值函数，目的当然是希望过的最大的值函数。对于两个策略，如果在策略A下的所有值函数大于策略B，那么策略A优于策略B。所以<br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/6.png" alt="6.png" title=""><br>在知道$Q_\star$的情况下，即可获得最优策略。下面是优化Bellman等式<br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/7.png" alt="7.png" title=""><br><img src="/2018/05/23/强化学习-2-——Markov过程和Bellman等式/8.png" alt="8.png" title=""><br>通过迭代可以获得$Q_\star$。</p>
 <h2 id="next"><a href="#next" class="headerlink" title="next"></a>next</h2><p>在Bellman方程中我们求得是当前policy的值函数，在优化Bellman方程中我们求得是最优值函数，在维度较低时可以通过矩阵求解，但在维度过大或者非线性优化bellman方程时，不能直接求解，只能通过迭代式求得，下一节关于model-based的强化学习算法，包括policy prediction，policy iteration，value iteration。</p>
