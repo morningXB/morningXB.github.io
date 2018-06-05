@@ -89,17 +89,22 @@
 
 
 
-<meta name="description" content="即将上线，敬请期待。">
+<meta name="description" content="MC Control回顾一下policy-iteration的control流程，分为两步：1.对当前policy进行评估获得值函数；2.贪婪策略进行策略优化。循环上述过程直到收敛至最优策略。在Model-Free的前提下，MC-Control方法中我们在第一步采用MC-Prediction方法进行值函数评估，如此出现几个问题：1.MC-Prediction后的获得状态值函数V，在我们模型未知的前">
 <meta name="keywords" content="机器学习,强化学习">
 <meta property="og:type" content="article">
 <meta property="og:title" content="强化学习(5)——Model-Free—Control">
 <meta property="og:url" content="https://morningXB.github.io/2018/05/30/强化学习-5-——Model-Free—Control/index.html">
 <meta property="og:site_name" content="自由而无用">
-<meta property="og:description" content="即将上线，敬请期待。">
-<meta property="og:updated_time" content="2018-06-04T12:05:19.440Z">
+<meta property="og:description" content="MC Control回顾一下policy-iteration的control流程，分为两步：1.对当前policy进行评估获得值函数；2.贪婪策略进行策略优化。循环上述过程直到收敛至最优策略。在Model-Free的前提下，MC-Control方法中我们在第一步采用MC-Prediction方法进行值函数评估，如此出现几个问题：1.MC-Prediction后的获得状态值函数V，在我们模型未知的前">
+<meta property="og:image" content="https://morningxb.github.io/2018/05/30/强化学习-5-——Model-Free—Control/1.png">
+<meta property="og:image" content="https://morningxb.github.io/2018/05/30/强化学习-5-——Model-Free—Control/2.png">
+<meta property="og:image" content="https://morningxb.github.io/2018/05/30/强化学习-5-——Model-Free—Control/3.png">
+<meta property="og:image" content="https://morningxb.github.io/2018/05/30/强化学习-5-——Model-Free—Control/4.png">
+<meta property="og:updated_time" content="2018-06-05T03:17:41.038Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="强化学习(5)——Model-Free—Control">
-<meta name="twitter:description" content="即将上线，敬请期待。">
+<meta name="twitter:description" content="MC Control回顾一下policy-iteration的control流程，分为两步：1.对当前policy进行评估获得值函数；2.贪婪策略进行策略优化。循环上述过程直到收敛至最优策略。在Model-Free的前提下，MC-Control方法中我们在第一步采用MC-Prediction方法进行值函数评估，如此出现几个问题：1.MC-Prediction后的获得状态值函数V，在我们模型未知的前">
+<meta name="twitter:image" content="https://morningxb.github.io/2018/05/30/强化学习-5-——Model-Free—Control/1.png">
 
 
 
@@ -435,7 +440,10 @@
       
 
       
-        <p>即将上线，敬请期待。</p>
+        <h2 id="MC-Control"><a href="#MC-Control" class="headerlink" title="MC Control"></a>MC Control</h2><p>回顾一下policy-iteration的control流程，分为两步：1.对当前policy进行评估获得值函数；2.贪婪策略进行策略优化。循环上述过程直到收敛至最优策略。<br>在Model-Free的前提下，MC-Control方法中我们在第一步采用MC-Prediction方法进行值函数评估，如此出现几个问题：<br>1.MC-Prediction后的获得状态值函数V，在我们模型未知的前提下,下一步无法优化模型，所以我们第一步评估policy的Q函数即状态-动作对函数。这样根据Q函数可以轻易选取当前状态最优动作以优化策略，Q的求取方法同V；<br>2.Model-Free的值评估采用多次取样逼近真值，并没有探索所有可能路径，所以采用Greedy优化策略会错过一些最佳路径，涉及强化学习的探索和利用问题，这里举一个常用解决方法，$\epsilon$-Greedy优化方法，如下。<br><a id="more"></a><br>1-$\epsilon$的概率采取贪婪策略选择action，$\epsilon$的概率采取随机策略选择action。<br><img src="/2018/05/30/强化学习-5-——Model-Free—Control/1.png" alt="1.png" title=""><br>但是试想一下如果未知的模型很大，那么上述方法的第一步必然会采取很多无用action，评估阶段耗费大量的时间，所以我们采取单episode评估，这就像是之前是学习足够多的episodes再优化，现在是一个episode学习一点信息立即优化策略，如此可以有效加速收敛速度。<br><img src="/2018/05/30/强化学习-5-——Model-Free—Control/2.png" alt="2.png" title=""><br>以下是GLIE的MC-Control算法：<br>1.初始化Q值，以及k=0<br>2.随机一个<s,a>状态动作对，根据当前policy取样一个episode;<br>3.采用every-visit或者first-visit，update Q<s，a>，$Q(S_t,A_t)=Q(S_t,A_t)+\alpha*(G_t-Q(S_t,A_t))$;<br>4.k=k+1，$\epsilon$=1/k,$\pi=\epsilon$-Greedy(Q);<br>5.Q值的差值小于固定值，停止否则循环步骤2，3，4。<br>GLIE满足两个条件：1.所有的状态动作对都能够被探索无数次；2.策略最终收敛到一个greedy策略，也即确定性策略。</s，a></s,a></p>
+<h2 id="Sarsa-Control"><a href="#Sarsa-Control" class="headerlink" title="Sarsa Control"></a>Sarsa Control</h2><p>TD(0)相对于MC拥有低方差，并且收敛效率更高，自然用TD代替MC作为值评估方法，将上述MC-Control中单episode改为单step，就可以得到Sarsa算法如下：<br><img src="/2018/05/30/强化学习-5-——Model-Free—Control/3.png" alt="3.png" title=""></p>
+<h2 id="Sarsa-lambda"><a href="#Sarsa-lambda" class="headerlink" title="Sarsa($\lambda$)"></a>Sarsa($\lambda$)</h2><p>同样我们考虑值评估往后看n步，从而引入TD($\lambda$)评估值函数，就可以得到Sarsa($\lambda$)算法如下：（这里从工程角度采用了后向视角的TD($\lambda$)值评估方法）<br><img src="/2018/05/30/强化学习-5-——Model-Free—Control/4.png" alt="4.png" title=""></p>
+<h2 id="Next"><a href="#Next" class="headerlink" title="Next"></a>Next</h2><p>Control的问题分为off-policy和on-policy，主要区别是采取的samples（经验）是否是自己的policy采样获得的，on-policy即自己边做边学，off-policy为通过别人经验学习。</p>
 
       
     </div>
@@ -563,8 +571,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview sidebar-panel sidebar-panel-active">
+      <section class="site-overview sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/avatar.jpg"
@@ -671,6 +688,22 @@
 
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#MC-Control"><span class="nav-number">1.</span> <span class="nav-text">MC Control</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Sarsa-Control"><span class="nav-number">2.</span> <span class="nav-text">Sarsa Control</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Sarsa-lambda"><span class="nav-number">3.</span> <span class="nav-text">Sarsa($\lambda$)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Next"><span class="nav-number">4.</span> <span class="nav-text">Next</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       

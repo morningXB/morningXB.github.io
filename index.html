@@ -434,10 +434,14 @@
 
       
         
-          
-            <p>即将上线，敬请期待。</p>
-
-          
+          <h2 id="MC-Control"><a href="#MC-Control" class="headerlink" title="MC Control"></a>MC Control</h2><p>回顾一下policy-iteration的control流程，分为两步：1.对当前policy进行评估获得值函数；2.贪婪策略进行策略优化。循环上述过程直到收敛至最优策略。<br>在Model-Free的前提下，MC-Control方法中我们在第一步采用MC-Prediction方法进行值函数评估，如此出现几个问题：<br>1.MC-Prediction后的获得状态值函数V，在我们模型未知的前提下,下一步无法优化模型，所以我们第一步评估policy的Q函数即状态-动作对函数。这样根据Q函数可以轻易选取当前状态最优动作以优化策略，Q的求取方法同V；<br>2.Model-Free的值评估采用多次取样逼近真值，并没有探索所有可能路径，所以采用Greedy优化策略会错过一些最佳路径，涉及强化学习的探索和利用问题，这里举一个常用解决方法，$\epsilon$-Greedy优化方法，如下。<br>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2018/05/30/强化学习-5-——Model-Free—Control/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
